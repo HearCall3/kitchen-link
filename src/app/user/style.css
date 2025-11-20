@@ -1,0 +1,130 @@
+/* ================================
+   KitchenLink 統一スタイル
+   （会員登録・出店登録）
+   ================================ */
+
+/* テーマカラー（上書き可） */
+:root {
+  --main-color: #f97316;   /* 会員登録用: オレンジ */
+  --main-hover: #ea580c;
+}
+
+.store-theme {
+  --main-color: #10b981;   /* 出店登録用: グリーン */
+  --main-hover: #059669;
+}
+
+/* 背景と中央配置 */
+.register-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 24px;
+  font-family: "Noto Sans JP", sans-serif;
+}
+
+/* メインカード */
+.register-card {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px 28px;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.register-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+}
+
+/* タイトル */
+.register-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--main-color);
+  margin-bottom: 1.8rem;
+}
+
+/* 入力フォーム全体 */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 入力欄とセレクト共通 */
+.register-input,
+.register-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 15px;
+  background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.register-input:focus,
+.register-textarea:focus {
+  border-color: var(--main-color);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--main-color) 20%, transparent);
+}
+
+/* テキストエリア用 */
+.register-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* 登録ボタン */
+.register-btn {
+  background-color: var(--main-color);
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 12px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.register-btn:hover {
+  background-color: var(--main-hover);
+  transform: translateY(-2px);
+}
+
+/* 下部リンク */
+.register-link {
+  margin-top: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.register-link p {
+  margin-bottom: 6px;
+}
+
+.register-link button {
+  color: var(--main-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.register-link button:hover {
+  color: var(--main-hover);
+  text-decoration: underline;
+}

@@ -1,0 +1,164 @@
+/* ====== メイン画面 ====== */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ====== ヘッダー ====== */
+header {
+  display: flex;
+  align-items: center;
+  background-color: #f97316;
+  color: white;
+  padding: 10px 15px;
+  position: relative;
+  height: 64px;
+  box-sizing: border-box;
+}
+
+.menuIcon {
+  font-size: 28px;
+  margin-right: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+header input {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 9999px;
+  outline: none;
+  font-size: 14px;
+  color: #333;
+  background: white;
+}
+.title-serch{
+  
+  font-size: 14px;
+}
+.serch{
+  border-radius: 9999px;
+  padding: 10px 12px;
+  border: none;
+  outline: none;
+  color: #333;
+  font-size: 14px;
+
+}
+
+/* === モーダル（意見・アンケート） === */
+.modal, .poll-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  z-index: 50;
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 40;
+}
+
+/* 背景の暗転 */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 20;
+}
+
+/* === ハンバーガメニュー=== */
+/* デフォルトは非表示（左に隠す） */
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -70%;
+  width: 150px;
+  height: 100%;
+  background: white;
+  box-shadow: 3px 0 8px rgba(0,0,0,0.2);
+  z-index: 40;
+  transition: left 0.3s ease;
+}
+.animate-slideIn {
+  animation: slideIn 0.3s ease forwards;
+}
+
+/* open クラスで表示 */
+.side-menu.open {
+  left: 0;
+}
+
+/* メニューアイテム */
+.side-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.side-menu li {
+  padding: 12px 0;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.side-menu li:hover {
+  color: #f97316;
+}
+/* map想定 */
+.map-container {
+  width: 100%;      /* 横幅いっぱい */
+  height: 400px;    /* 高さは任意 */
+  background-color: #e0e0e0; /* 仮の背景色 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.action-button {
+  all: unset;
+  cursor: pointer;
+  display: inline-block;
+}
+/*ボタン装飾*/
+.poll-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  outline: none;
+  cursor: pointer;
+}
+/* クリックした時に枠が出ないように */
+.poll-btn:focus {
+  outline: none;
+}
+
+/* 子の画像も変な余白が出ないように */
+.poll-btn img {
+  display: block;
+}
+
