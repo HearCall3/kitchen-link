@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// ----------------------------------------------------
+// 📌 マスタテーブル (ルックアップ)
+// ----------------------------------------------------
+
+// 1. 性別テーブル (Genders_Table)
+model Gender {
+  code Int    @id @map("gender_code")
+  name String @map("gender_name") @db.VarChar(20)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Genders_Table")
+}
+
+// 2. 年齢層テーブル (Age_Table)
+model AgeGroup {
+  code Int    @id @map("age_group_code")
+  name String @map("age_group_name") @db.VarChar(20)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Age_Table")
+}
+
+// 3. 職業テーブル (Occupations_Table)
+model Occupation {
+  code Int    @id @map("occupation_code")
+  name String @map("occupation_name") @db.VarChar(50)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Occupations_Table")
+}
+
+// ----------------------------------------------------
+// 👥 ユーザー/出店者テーブル (Accounts_Table)
+// ----------------------------------------------------
+
+// 4. 利用者/出店者テーブル (Accounts_Tableとして統合)
+// account_type ('User' or 'Vendor') で区別
+model Account {
+  id            Int       @id @default(autoincrement()) @map("account_id")
+  nickname      String    @unique @db.VarChar(50)
+  accountType   String    @map("account_type") @db.VarChar(10) // 利用者(User) or 出店者(Vendor)
+  storeName     String?   @map("store_name") @db.VarChar(100) // 出店者名 (Vendorのみ)
+  introduction  String?   @db.Text // 自己紹介/店舗紹介
+  
+  // 外部キー
+  genderCode    Int?      @map("gender_code")
+  ageGroupCode  Int?      @map("age_group_code")
+  occupationCode Int?     @map("occupation_code")
+
+  // リレーションシップ
+  gender        Gender?    @relation(fields: [genderCode], references: [code])
+  ageGroup      AgeGroup?  @relation(fields: [ageGroupCode], references: [code])
+  occupation    Occupation? @relation(fields: [occupationCode], references: [code])
+  
+  // 依存リレーション
+  locations     Location[]
+  comments      Comment[]
+  likes         Like[]
+
+  @@map("Accounts_Table") // 元の定義にはないが、管理しやすいように命名
+}
+
+// ----------------------------------------------------
+// 📍 位置情報・投稿・いいね テーブル
+// ----------------------------------------------------
+
+// 5. 出店者位置情報テーブル (Locations_Table)
+model Location {
+  id            Int       @id @default(autoincrement()) @map("location_id")
+  accountId     Int       @map("account_id") // 外部キー
+
+  latitude      Decimal     @db.Decimal(10, 8)
+  longitude     Decimal     @db.Decimal(11, 8)
+  openingDate   DateTime  @map("opening_date") @db.Date // 営業開始日
+  locationName  String?   @map("location_name") @db.VarChar(100)
+
+  // リレーションシップ
+  account       Account   @relation(fields: [accountId], references: [id])
+  
+  @@map("Locations_Table")
+}
+
+// 6. コメント投稿テーブル (Comments_Table)
+model Comment {
+  id            Int       @id @default(autoincrement()) @map("comment_id")
+  accountId     Int       @map("account_id") // 外部キー
+
+  latitude      Decimal     @db.Decimal(10, 8)
+  longitude     Decimal     @db.Decimal(11, 8)
+  commentText   String    @map("comment_text") @db.Text
+  postedAt      DateTime  @map("posted_at") @default(now()) // 投稿日時
+
+  // リレーションシップ
+  account       Account   @relation(fields: [accountId], references: [id])
+  likes         Like[] // このコメントについた「いいね」
+
+  @@map("Comments_Table")
+}
+
+// 7. いいねテーブル (Likes_Table) - 複合主キー
+model Like {
+  commentId     Int       @map("comment_id") // 外部キー
+  accountId     Int       @map("account_id") // 外部キー
+  likedAt       DateTime  @map("liked_at") @default(now()) // いいね日時
+
+  // リレーションシップ
+  comment       Comment   @relation(fields: [commentId], references: [id])
+  account       Account   @relation(fields: [accountId], references: [id])
+
+  // 複合主キー (コメントIDとアカウントIDの組み合わせで一意)
+  @@id([commentId, accountId])
+  @@map("Likes_Table")
+}
