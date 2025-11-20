@@ -31,6 +31,7 @@ export default function Home() {
   };
 
   // ====== 絞り込み ======
+  const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
   // ====== アンケート ======
@@ -61,7 +62,7 @@ export default function Home() {
     }
   };
   // ====== アンケートを開く ======
-const openPoll = () => setPollOpen(true);
+  const openPoll = () => setPollOpen(true);
 
 
   return (
@@ -81,17 +82,26 @@ const openPoll = () => setPollOpen(true);
             className="flex-1 p-2 text-gray-700"
           />
         </div>
-        <div className="serch">
-          <select>
-            <option value="apple">キッチンカー</option>
-            <option value="banana">アンケート</option>
-            <option value="orange">意見</option>
-          </select>
-
-        </div>
       </header>
+      {/* ===== フィルターチップ ===== */}
+      <div className="filter-chip-container">
+        {["キッチンカー", "アンケート", "意見"].map((item) => (
+          <button
+            key={item}
+            className={`filter-chip ${selectedFilter === item ? "active" : ""}`}
+            onClick={() => setSelectedFilter(item)}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+
 
       {/* ===== ハンバーガーメニュー ===== */}
+      {menuOpen && (
+        <div className="menu-overlay" onClick={() => setMenuOpen(false)}></div>
+      )}
+
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
           <li className="border-b p-3 hover:bg-gray-100">プロフィール</li>
@@ -124,8 +134,8 @@ const openPoll = () => setPollOpen(true);
         ></div>
       )}
 
-      {/* {マップ想定} */}
-      <div className="map-container">
+      {/* マップ */}
+      <div className="map-container z-10 relative">
         地図をここに表示予定
       </div>
 
