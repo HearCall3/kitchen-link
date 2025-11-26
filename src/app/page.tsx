@@ -34,10 +34,7 @@ export default function Home() {
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-  // ====== アンケート ======
-  const [pollOpen, setPollOpen] = useState(false);
-  const [votes, setVotes] = useState({ yes: 3, no: 2 });
-  const [voted, setVoted] = useState(false);
+
 
   // ====== 意見投稿 ======
   const [postOpen, setPostOpen] = useState(false);
@@ -45,15 +42,6 @@ export default function Home() {
   const [tags, setTags] = useState<string[]>([]);
   const [inputTag, setInputTag] = useState("");
 
-  const handleVote = (option: "yes" | "no") => {
-    if (voted) return;
-    setVotes((prev) => ({ ...prev, [option]: prev[option] + 1 }));
-    setVoted(true);
-  };
-
-  const total = votes.yes + votes.no;
-  const yesPercent = total ? (votes.yes / total) * 100 : 0;
-  const noPercent = total ? (votes.no / total) * 100 : 0;
 
   const addTag = () => {
     if (inputTag.trim() && !tags.includes(inputTag.trim())) {
@@ -61,8 +49,46 @@ export default function Home() {
       setInputTag("");
     }
   };
+  // ====== アンケート ======
+  const [pollOpen, setPollOpen] = useState(false);
+  const [votes, setVotes] = useState({ yes: 3, no: 2 });
+  const [voted, setVoted] = useState(false);
+
+  const handleVote = (option: "yes" | "no") => {
+    if (voted) return;
+    setVotes((prev) => ({ ...prev, [option]: prev[option] + 1 }));
+    setVoted(true);
+  };
+
+  // ←ここなら OK！
+  const currentVotes = votes || { yes: 0, no: 0 };
+  const total = currentVotes.yes + currentVotes.no;
+  const yesPercent = total ? (currentVotes.yes / total) * 100 : 0;
+  const noPercent = total ? (currentVotes.no / total) * 100 : 0;
+
+
   // ====== アンケートを開く ======
   const openPoll = () => setPollOpen(true);
+
+  // ====== アンケート作成 ======
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newQuestion, setNewQuestion] = useState("");
+
+  const createPoll = async () => {
+    if (!newQuestion.trim()) return;
+
+    const res = await fetch("/api/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: newQuestion }),
+    });
+
+    if (res.ok) {
+      alert("アンケートを作成しました！");
+      setNewQuestion("");
+      setCreateOpen(false);
+    }
+  };
 
 
   return (
@@ -139,124 +165,107 @@ export default function Home() {
         地図をここに表示予定
       </div>
 
-
-      {/* ===== アンケート答える＆意見投稿　ボタン ===== */}
-      <main className="flex-1 p-4">
-        <button
-          className="action-button"
-          onClick={openPoll}
-          aria-haspopup="dialog"
-          aria-expanded={pollOpen}
-          type="button"
-        >
-          <Image
-            src="/icon/アンケート.png"
-            width={100}
-            height={120}
-            alt="アンケート"
-          />
-        </button>
-      </main>
+      {/* ===== アンケート作成ボタン ===== */}
       <button
-        onClick={() => setPostOpen(true)}
-        className="w-full bg-green-500 text-white p-3 rounded-lg"
+        onClick={() => setCreateOpen(true)}
+        className="submit-btn mb-2"
       >
-        意見を投稿する
+        アンケートを作成
       </button>
 
-      {/* ===== アンケートボタンの処理 ===== */}
-      {
-        pollOpen && (
-          <>
-            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-            <div className="poll-dialog active">
-              <h3 className="font-bold text-lg mb-3 text-center">
-                この店にまた来たいですか？
-              </h3>
+      {/* ===== アクションボタン ===== */}
+      <div className="flex flex-col items-center gap-4 p-4">
+        <button className="submit-btn flex flex-col items-center" onClick={openPoll}>
+          アンケートに回答する
+        </button>
 
-              {!voted ? (
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleVote("yes")}
-                    className="flex-1 bg-blue-500 text-white p-3 rounded-lg"
-                  >
-                    はい
-                  </button>
-                  <button
-                    onClick={() => handleVote("no")}
-                    className="flex-1 bg-gray-400 text-white p-3 rounded-lg"
-                  >
-                    いいえ
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden mb-2">
-                    <div
-                      className="bg-blue-500 h-6"
-                      style={{ width: `${yesPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-700">
-                    はい: {votes.yes}票 ({yesPercent.toFixed(1)}%)
-                    いいえ: {votes.no}票 ({noPercent.toFixed(1)}%)
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )
-      }
+        <button onClick={() => setPostOpen(true)} className="submit-btn">
+          意見を投稿する
+        </button>
+      </div>
 
-      {/* ===== 意見投稿ボタンの処理 ===== */}
-      {
-        postOpen && (
-          <>
-            <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
-            <div className="poll-dialog active">
-              <h3 className="font-bold text-lg mb-3 text-center">意見を投稿</h3>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="お店についての意見を入力..."
-                className="w-full border p-2 rounded mb-2"
+      {/* ===== アンケート回答ダイアログ ===== */}
+      {pollOpen && (
+        <>
+          <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
+            <h3>この店にまた来たいですか？</h3>
+            {!voted ? (
+              <div className="vote-buttons">
+                <button className="yes" onClick={() => handleVote("yes")}>はい</button>
+                <button className="no" onClick={() => handleVote("no")}>いいえ</button>
+              </div>
+            ) : (
+              <>
+                <div className="result-bar">
+                  <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
+                  <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
+                </div>
+                <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ===== アンケート作成ダイアログ ===== */}
+      {createOpen && (
+        <>
+          <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
+            <h3>アンケートを作成</h3>
+            <input
+              type="text"
+              value={newQuestion}
+              onChange={(e) => setNewQuestion(e.target.value)}
+              placeholder="質問を入力してください"
+            />
+            <button onClick={createPoll} className="submit-btn">作成</button>
+          </div>
+        </>
+      )}
+
+      {/* ===== 意見投稿ダイアログ ===== */}
+      {postOpen && (
+        <>
+          <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setPostOpen(false)}>×</button>
+            <h3>意見を投稿</h3>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="お店についての意見を入力..."
+            />
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={inputTag}
+                onChange={(e) => setInputTag(e.target.value)}
+                placeholder="#ハッシュタグ"
               />
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={inputTag}
-                  onChange={(e) => setInputTag(e.target.value)}
-                  placeholder="#ハッシュタグ"
-                  className="flex-1 border p-2 rounded"
-                />
-                <button onClick={addTag} className="bg-orange-400 text-white px-3 rounded">
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className="bg-orange-200 text-orange-800 px-2 py-1 rounded-full text-sm"
-                  >
-                    #{t}
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={() => {
-                  setPostOpen(false);
-                  setText("");
-                }}
-                className="w-full bg-green-500 text-white p-3 rounded-lg"
-              >
-                投稿する
-              </button>
+              <button onClick={addTag} className="add-btn">追加</button>
             </div>
-          </>
-        )
-      }
-    </div >
+            <div className="tags">
+              {tags.map((t) => (
+                <span key={t}>#{t}</span>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setPostOpen(false);
+                setText("");
+                setTags([]);
+              }}
+              className="submit-btn"
+            >
+              投稿する
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
-
