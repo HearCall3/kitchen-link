@@ -4,7 +4,12 @@ import { Prisma } from '@prisma/client';
 import CrudButtons from '@/components/CrudButtons'; 
 import AccountInsertForm from '@/components/AccountInsertForm';
 import UserCrudActions from '@/components/UserCrudActions'; 
+import { StoreForm } from '@/components/StoreForm';
+import { PostForm } from '@/components/PostForm';
+import {LikeButton} from '@/components/LikeButton';
 
+// テスト用のメアド
+const TEST_USER_EMAIL = 'user.login.test@example.com';
 
 // ★ 1. 型定義: Prismaクエリのペイロードを抽出
 
@@ -58,6 +63,9 @@ export default async function DbPage() {
   const occupations: OccupationPayload[] = await prisma.occupation.findMany();
   const masterData = { genders, ageGroups, occupations };
 
+  // 実際にはここで認証情報からユーザーメールを取得します。
+  const userEmail = TEST_USER_EMAIL;
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1 style={{ borderBottom: '3px solid #ccc', paddingBottom: '10px' }}>🎉 データベース CRUD ダッシュボード 🎉</h1>
@@ -110,11 +118,11 @@ export default async function DbPage() {
         {userAccounts.length > 0 ? (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {userAccounts.map((user: UserAccountPayload) => (
-              <li key={user.id} style={{ marginBottom: '15px', border: '1px solid #007BFF', padding: '15px', borderRadius: '8px', backgroundColor: '#eef7ff' }}>
+              <li key={user.email} style={{ marginBottom: '15px', border: '1px solid #007BFF', padding: '15px', borderRadius: '8px', backgroundColor: '#eef7ff' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   {/* 情報表示 */}
                   <div>
-                    <strong style={{ fontSize: '1.1em' }}>ID: {user.id}</strong> / <strong>ニックネーム:</strong> {user.nickname}
+                    <strong style={{ fontSize: '1.1em' }}>ID: {user.email}</strong> / <strong>ニックネーム:</strong> {user.nickname}
                     <br />
                     <small style={{ display: 'block', marginTop: '5px' }}>
                       性別: {user.gender?.name ?? '未設定'} | 
@@ -145,11 +153,11 @@ export default async function DbPage() {
         {vendorLocations.length > 0 ? (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {vendorLocations.map((vendor: VendorLocationPayload) => (
-              <li key={vendor.id} style={{ marginBottom: '15px', border: '1px solid #FF9800', padding: '15px', borderRadius: '8px', backgroundColor: '#fff8ee' }}>
+              <li key={vendor.email} style={{ marginBottom: '15px', border: '1px solid #FF9800', padding: '15px', borderRadius: '8px', backgroundColor: '#fff8ee' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   {/* 情報表示 */}
                   <div>
-                    <strong style={{ fontSize: '1.1em' }}>ID: {vendor.id}</strong> / <strong>店舗名:</strong> {vendor.storeName ?? 'N/A'}
+                    <strong style={{ fontSize: '1.1em' }}>ID: {vendor.email}</strong> / <strong>店舗名:</strong> {vendor.storeName ?? 'N/A'}
                     <br />
                     <small style={{ display: 'block', marginTop: '5px' }}>
                       ニックネーム: {vendor.nickname} | 
@@ -186,6 +194,16 @@ export default async function DbPage() {
       
       <hr style={{ margin: '30px 0' }}/>
 
+
+        {/* 出店情報 CRUD フォーム */}
+      <StoreForm userEmail={userEmail}/>
+
+      {/* 意見投稿 CRUD フォーム */}
+      <PostForm userEmail={userEmail}/>
+      
+      {/* ... いいねボタンのテスト表示 ... */}
+      <LikeButton commentId={1} userEmail={TEST_USER_EMAIL} isLiked={false} />
+      
       {/* 7. 最新の投稿セクション */}
       <div>
         <h2 style={{ color: '#888' }}>🗣️ 最新の意見投稿</h2>
