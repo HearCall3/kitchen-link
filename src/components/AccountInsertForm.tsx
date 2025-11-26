@@ -12,9 +12,10 @@ type AccountInsertFormProps = {
     ageGroups: AgeGroupPayload[];
     occupations: OccupationPayload[];
   };
+  userEmail: string;
 };
 
-export default function AccountInsertForm({ masterData }: AccountInsertFormProps) {
+export default function AccountInsertForm({ masterData, userEmail }: AccountInsertFormProps) {
   const [loading, setLoading] = useState(false);
   const [accountType, setAccountType] = useState('User');
 
@@ -22,8 +23,7 @@ export default function AccountInsertForm({ masterData }: AccountInsertFormProps
     setLoading(true);
 
     // ここでINSERTを実行
-    const result = await createAccount(formData);
-
+    const result = await createAccount(userEmail, formData);
     if (result.success) {
       alert('新規アカウントの追加が完了しました。');
       window.location.reload();

@@ -9,11 +9,11 @@ import { VendorLocationPayload, GenderPayload, AgeGroupPayload, OccupationPayloa
 
 // 1. 削除ボタンコンポーネント (再利用できるようにエクスポート)
 type DeleteButtonProps = {
-  accountId: number;
+  userEmail: string;
   accountNickname: string;
 };
 
-export function DeleteButton({ accountId, accountNickname }: DeleteButtonProps) {
+export function DeleteButton({ userEmail, accountNickname }: DeleteButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -25,7 +25,7 @@ export function DeleteButton({ accountId, accountNickname }: DeleteButtonProps) 
     setLoading(true);
 
     // ここでDELETEを実行
-    const result = await deleteAccount(accountId);
+    const result = await deleteAccount(userEmail);
 
     if (result.success) {
       alert('削除が完了しました。ページをリロードします。');
@@ -59,7 +59,7 @@ export default function CrudButtons({ vendor, masterData }: CrudButtonsProps) {
   
   // AccountUpdateForm に渡す initialData を VendorPayload から作成
   const initialUpdateData = {
-    id: vendor.id, 
+    userEmail: vendor.email,
     nickname: vendor.nickname, 
     introduction: vendor.introduction,
     accountType: vendor.accountType,
@@ -71,7 +71,7 @@ export default function CrudButtons({ vendor, masterData }: CrudButtonsProps) {
 
   return (
     <div style={{ display: 'inline-block', marginLeft: '20px' }}>
-      <DeleteButton accountId={vendor.id} accountNickname={vendor.nickname} />
+      <DeleteButton userEmail={vendor.email} accountNickname={vendor.nickname} />
       <button onClick={() => setShowUpdate(!showUpdate)} style={{ backgroundColor: '#2196F3', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', marginLeft: '10px' }}>
         {showUpdate ? '更新閉じる' : '更新フォーム'}
       </button>

@@ -9,7 +9,7 @@ import { PostForm } from '@/components/PostForm';
 import {LikeButton} from '@/components/LikeButton';
 
 // テスト用のメアド
-const TEST_USER_EMAIL = 'user.login.test@example.com';
+const TEST_EMAIL = 'user.login.test@example.com';
 
 // ★ 1. 型定義: Prismaクエリのペイロードを抽出
 
@@ -64,7 +64,7 @@ export default async function DbPage() {
   const masterData = { genders, ageGroups, occupations };
 
   // 実際にはここで認証情報からユーザーメールを取得します。
-  const userEmail = TEST_USER_EMAIL;
+  const userEmail = TEST_EMAIL;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
@@ -74,7 +74,7 @@ export default async function DbPage() {
       {/* 3. 新規追加フォームの配置 (INSERT) */}
       <div style={{ marginBottom: '40px' }}>
         <h2 style={{ color: '#4CAF50' }}>➕ 新規アカウント追加</h2>
-        <AccountInsertForm masterData={masterData} />
+        <AccountInsertForm masterData={masterData} userEmail={TEST_EMAIL} />
       </div>
       
       <hr style={{ margin: '30px 0' }}/>
@@ -202,7 +202,7 @@ export default async function DbPage() {
       <PostForm userEmail={userEmail}/>
       
       {/* ... いいねボタンのテスト表示 ... */}
-      <LikeButton commentId={1} userEmail={TEST_USER_EMAIL} isLiked={false} />
+      <LikeButton commentId={1} userEmail={TEST_EMAIL} isLiked={false} />
       
       {/* 7. 最新の投稿セクション */}
       <div>
