@@ -1,3 +1,18 @@
+/* オーバーレイ（画面全体を覆う） */
+.dialog-overlay {
+  position: fixed;
+  /* 画面固定 */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  /* 背景暗く */
+  z-index: 90;
+  /* ダイアログより下 */
+}
+
+
 /* ====== メイン画面 ====== */
 .app-container {
   display: flex;
@@ -16,6 +31,7 @@ header {
   position: relative;
   height: 64px;
   box-sizing: border-box;
+  z-index: 1000;
 }
 
 .menuIcon {
@@ -35,87 +51,111 @@ header input {
   color: #333;
   background: white;
 }
-.title-serch{
-  
+
+.title-serch {
+
   font-size: 14px;
 }
-.serch{
-  border-radius: 9999px;
-  padding: 10px 12px;
-  border: none;
-  outline: none;
-  color: #333;
-  font-size: 14px;
 
-}
+/* === フィルターチップ === */
+.filter-chip-container {
+  display: flex;
+  gap: 10px;
+  padding: 10px 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Firefox */
+  margin-bottom: 8px;
 
-/* === モーダル（意見・アンケート） === */
-.modal, .poll-dialog {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 400px;
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  z-index: 50;
-}
-
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.4);
-  z-index: 40;
-}
-
-/* 背景の暗転 */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  /* 地図の上に浮くように */
+  position: relative;
   z-index: 20;
 }
 
-/* === ハンバーガメニュー=== */
-/* デフォルトは非表示（左に隠す） */
-.side-menu {
-  position: fixed;
-  top: 0;
-  left: -70%;
-  width: 150px;
-  height: 100%;
-  background: white;
-  box-shadow: 3px 0 8px rgba(0,0,0,0.2);
-  z-index: 40;
-  transition: left 0.3s ease;
-}
-.animate-slideIn {
-  animation: slideIn 0.3s ease forwards;
+.filter-chip-container::-webkit-scrollbar {
+  display: none;
 }
 
-/* open クラスで表示 */
+.filter-chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(249, 115, 22, 0.7);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  color: #f97316;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* ホバー時のオレンジグラデーション */
+.filter-chip:hover {
+  background: rgba(255, 153, 70, 0.25);
+  border-color: rgba(255, 140, 60, 0.9);
+}
+
+/* 選択状態（Googleの青 → あなたはオレンジ） */
+.filter-chip.active {
+  background: rgba(249, 115, 22, 0.85);
+  color: white;
+  border-color: rgba(249, 115, 22, 1);
+  box-shadow: 0 3px 8px rgba(249, 115, 22, 0.35);
+}
+
+/* === ハンバーガーメニュー=== */
+.side-menu {
+  position: absolute;
+  top: 60px;
+  left: -100%;
+  width: 70%;
+  max-width: 260px;
+  height: calc(100vh - 60px);
+  background: white;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.2);
+  z-index: 40;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+
+.phone-frame {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  min-height: 100vh;
+  height: auto;
+}
+
 .side-menu.open {
   left: 0;
 }
 
-/* メニューアイテム */
 .side-menu ul {
   list-style: none;
   padding: 0;
+  /* ← これに修正 */
   margin: 0;
 }
 
+/* === メニュー外クリック用オーバーレイ === */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  /* うっすら暗くする */
+  z-index: 30;
+  /* メニュー(40)より後ろ、ヘッダーより前 */
+}
+
+
+/* メニューアイテム */
 .side-menu li {
-  padding: 12px 0;
+  padding: 14px 18px;
   border-bottom: 1px solid #ddd;
   cursor: pointer;
   font-weight: 500;
@@ -123,13 +163,18 @@ header input {
 }
 
 .side-menu li:hover {
+  background: #f5f5f5;
   color: #f97316;
 }
+
 /* map想定 */
 .map-container {
-  width: 100%;      /* 横幅いっぱい */
-  height: 400px;    /* 高さは任意 */
-  background-color: #e0e0e0; /* 仮の背景色 */
+  width: 100%;
+  /* 横幅いっぱい */
+  height: 400px;
+  /* 高さは任意 */
+  background-color: #e0e0e0;
+  /* 仮の背景色 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -137,28 +182,199 @@ header input {
   font-size: 14px;
 }
 
-.action-button {
-  all: unset;
-  cursor: pointer;
-  display: inline-block;
+/* オーバーレイ（画面全体を覆う） */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
 }
-/*ボタン装飾*/
-.poll-btn {
-  background: none;
+
+/* ===== ダイアログ共通 ===== */
+.poll-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.poll-dialog.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* タイトル */
+.poll-dialog h3 {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* 閉じるボタン */
+.poll-dialog .close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #f3f4f6;
+  color: #374151;
   border: none;
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  outline: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
   cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
-/* クリックした時に枠が出ないように */
-.poll-btn:focus {
+
+.poll-dialog .close-btn:hover {
+  background: #f97316;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* ===== 投票ボタン ===== */
+.poll-dialog .vote-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.poll-dialog .vote-buttons button {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 0;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.poll-dialog .vote-buttons button.yes {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+}
+
+.poll-dialog .vote-buttons button.no {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+.poll-dialog .vote-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== 結果バー ===== */
+.poll-dialog .result-bar {
+  display: flex;
+  height: 28px;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: #e5e7eb;
+}
+
+.poll-dialog .result-bar .yes-bar {
+  background: #f97316;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+  transition: width 0.4s ease;
+}
+
+.poll-dialog .result-bar .no-bar {
+  background: #6b7280;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+  transition: width 0.4s ease;
+}
+
+.poll-dialog .result-text {
+  text-align: center;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* ===== 入力欄 ===== */
+.poll-dialog input[type="text"],
+.poll-dialog textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
   outline: none;
+  box-sizing: border-box;
 }
 
-/* 子の画像も変な余白が出ないように */
-.poll-btn img {
-  display: block;
+.poll-dialog textarea {
+  resize: vertical;
 }
 
+/* ===== ハッシュタグ ===== */
+.poll-dialog .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.poll-dialog .tags span {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+}
+
+/* ===== 汎用送信ボタン ===== */
+.poll-dialog .submit-btn {
+  border: none;
+  width: 100%;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: white;
+  padding: 10px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.add-btn {
+  border: none;
+  width: 30%;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: white;
+  padding: 5px 0;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.poll-dialog .submit-btn:hover {
+  background: #fb923c;
+  transform: translateY(-2px);
+}

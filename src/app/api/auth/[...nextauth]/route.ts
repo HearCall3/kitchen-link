@@ -1,5 +1,9 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+//npm install next-auth　のインストール
 
 const handler = NextAuth({
   providers: [

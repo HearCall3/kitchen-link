@@ -13,7 +13,7 @@ body {
 /* === スマホフレーム === */
 .phone-frame {
   width: 90%;
-  max-width: 1000px; /* PCでも広がる上限 */
+  max-width: 1000px;
   height: 95vh;
   background: #fff;
   margin: 0 auto;
@@ -35,34 +35,4 @@ header {
   padding: 10px 15px;
   height: 64px;
   box-sizing: border-box;
-}
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* 全ページ共通 */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Noto Sans JP", sans-serif;
-  background-color: #f5f5f5;
-}
-
-/* button {
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-button:hover {
-  opacity: 0.9;
-} */
-
-.tag {
-  display: inline-block;
-  background-color: #fed7aa;
-  color: #c05621;
-  padding: 4px 8px;
-  border-radius: 9999px;
-  font-size: 12px;
-  margin-right: 4px;
-  margin-bottom: 4px;
 }
