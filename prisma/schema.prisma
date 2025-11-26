@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// ----------------------------------------------------
+// 📌 マスタテーブル (ルックアップ)
+// ----------------------------------------------------
+
+// 1. 性別テーブル (Genders_Table)
+model Gender {
+  code Int    @id @map("gender_code")
+  name String @map("gender_name") @db.VarChar(20)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Genders_Table")
+}
+
+// 2. 年齢層テーブル (Age_Table)
+model AgeGroup {
+  code Int    @id @map("age_group_code")
+  name String @map("age_group_name") @db.VarChar(20)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Age_Table")
+}
+
+// 3. 職業テーブル (Occupations_Table)
+model Occupation {
+  code Int    @id @map("occupation_code")
+  name String @map("occupation_name") @db.VarChar(50)
+
+  // リレーション
+  accounts Account[]
+
+  @@map("Occupations_Table")
+}
+
+// ----------------------------------------------------
+// 👥 ユーザー/出店者テーブル (Accounts_Table)
+// ----------------------------------------------------
+
+// 4. 利用者/出店者テーブル (Accounts_Tableとして統合)
+model Account {
+  // ★主キー: メールアドレス (String)
+  email         String    @id @map("email") @db.VarChar(255) 
+  nickname      String    @unique @db.VarChar(50)
+  accountType   String    @map("account_type") @db.VarChar(10)
+  storeName     String?   @map("store_name") @db.VarChar(100)
+  introduction  String?   @db.Text
+  
+  // 外部キー
+  genderCode    Int?      @map("gender_code")
+  ageGroupCode  Int?      @map("age_group_code")
+  occupationCode Int?     @map("occupation_code")
+
+  // リレーションシップ (マスタテーブル参照)
+  gender        Gender?    @relation(fields: [genderCode], references: [code])
+  ageGroup      AgeGroup?  @relation(fields: [ageGroupCode], references: [code])
+  occupation    Occupation? @relation(fields: [occupationCode], references: [code])
+  
+  // 依存リレーション (外部キーを持つテーブル)
+  locations     Location[]
+  comments      Comment[]
+  likes         Like[]
+
+  @@map("Accounts_Table")
+}
+
+// ----------------------------------------------------
+// 📍 位置情報・投稿・いいね テーブル
+// ----------------------------------------------------
+
+// 5. 出店者位置情報テーブル (Locations_Table)
+model Location {
+  id            Int       @id @default(autoincrement()) @map("location_id")
+  // ★外部キー: String型に変更し、Account.emailを参照
+  accountId     String    @map("account_email") 
+
+  latitude      Decimal     @db.Decimal(10, 8)
+  longitude     Decimal     @db.Decimal(11, 8)
+  openingDate   DateTime  @map("opening_date") @db.Date
+  locationName  String?   @map("location_name") @db.VarChar(100)
+
+  // リレーションシップ
+  account       Account   @relation(fields: [accountId], references: [email])
+  
+  @@map("Locations_Table")
+}
+
+// 6. コメント投稿テーブル (Comments_Table)
+model Comment {
+  id            Int       @id @default(autoincrement()) @map("comment_id")
+  // ★外部キー: String型に変更し、Account.emailを参照
+  accountId     String    @map("account_email") 
+
+  latitude      Decimal     @db.Decimal(10, 8)
+  longitude     Decimal     @db.Decimal(11, 8)
+  commentText   String    @map("comment_text") @db.Text
+  postedAt      DateTime  @map("posted_at") @default(now())
+
+  // リレーションシップ
+  account       Account   @relation(fields: [accountId], references: [email])
+  likes         Like[] 
+
+  @@map("Comments_Table")
+}
+
+// 7. いいねテーブル (Likes_Table) - 複合主キー
+model Like {
+  commentId     Int       @map("comment_id")
+  // ★外部キー: String型に変更し、Account.emailを参照
+  accountId     String    @map("account_email") 
+  likedAt       DateTime  @map("liked_at") @default(now())
+
+  // リレーションシップ
+  comment       Comment   @relation(fields: [commentId], references: [id]) // CommentのIDはInt型で変更なし
+  account       Account   @relation(fields: [accountId], references: [email]) // Accountの主キーを参照
+
+  // 複合主キー (コメントIDとアカウントIDの組み合わせで一意)
+  @@id([commentId, accountId])
+  @@map("Likes_Table")
+}
+
+//アンケート作成テーブル(Poll_Table) - 複合キー
+model Poll {
+  id        Int       @id @default(autoincrement())
+  question  String
+  createdAt DateTime  @default(now())
+  votes     Vote[]
+}
+
+// アンケート解答結果表示用(Void_Table)
+model Vote {
+  id        Int      @id @default(autoincrement())
+  poll      Poll     @relation(fields: [pollId], references: [id])
+  pollId    Int
+  choice    Boolean  // true = Yes, false = No
+  createdAt DateTime @default(now())
+}
