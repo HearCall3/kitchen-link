@@ -21,7 +21,7 @@ export default function UserCrudActions({ user, masterData }: UserCrudActionsPro
 
   // AccountUpdateForm に渡す initialData を UserPayload から作成
   const initialUpdateData = {
-    id: user.id,
+    userEmail: user.email,
     nickname: user.nickname,
     introduction: user.introduction,
     accountType: user.accountType,
@@ -35,7 +35,7 @@ export default function UserCrudActions({ user, masterData }: UserCrudActionsPro
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       
-      <DeleteButton accountId={user.id} accountNickname={user.nickname} />
+      <DeleteButton userEmail={user.email} accountNickname={user.nickname} />
       <button onClick={() => setShowUpdate(!showUpdate)} style={{ backgroundColor: '#2196F3', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
         {showUpdate ? '更新閉じる' : '更新フォーム'}
       </button>
