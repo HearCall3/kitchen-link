@@ -130,7 +130,13 @@ export default function Home() {
 
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
-          <li className="border-b p-3 hover:bg-gray-100">プロフィール</li>
+
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => router.push("/profile/user")}
+          >
+            プロフィール
+          </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
           <li className="border-b p-3 hover:bg-gray-100">出店登録</li>
           {!isLoggedIn ? (
