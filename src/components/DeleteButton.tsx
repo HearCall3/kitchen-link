@@ -2,12 +2,23 @@
 
 import { deleteAccount } from '@/actions/db_access';
 
-export default function DeleteButton({ accountId }: { accountId: number }) {
+interface DeleteButtonProps {
+  userEmail: string; // 主キー (メールアドレス)
+  accountNickname: string; // ★追加: ユーザーニックネーム
+}
+
+export default function DeleteButton({ userEmail, accountNickname }: DeleteButtonProps) {
+
   const handleDelete = async () => {
-    if (window.confirm('本当にこのアカウントを削除しますか？')) {
-      const result = await deleteAccount(accountId);
+    // ★修正: 確認メッセージにニックネームとメールアドレスを追加
+    const confirmMessage = `${accountNickname}（${userEmail}）のアカウントを本当に削除しますか？`;
+
+    if (window.confirm(confirmMessage)) {
+
+      const result = await deleteAccount(userEmail);
+
       if (result.success) {
-        alert('削除成功');
+        alert(`アカウント「${accountNickname}」を削除しました。`);
       } else {
         alert(`削除失敗: ${result.error}`);
       }
