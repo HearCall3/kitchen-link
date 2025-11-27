@@ -48,7 +48,7 @@ export default function StoreRegisterPage() {
           <input
             type="text"
             name="address"
-            placeholder="出店場所"
+            placeholder="URL"
             value={form.address}
             onChange={handleChange}
             className="register-input"
