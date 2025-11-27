@@ -9,7 +9,7 @@ export default function UserRegisterPage() {
   const [form, setForm] = useState({
     nickname: "",
     gender: "",
-    age: "",
+    ageGroup: "",
     occupation: "",
   });
 
@@ -50,16 +50,22 @@ export default function UserRegisterPage() {
             <option value="female">女性</option>
             <option value="other">その他</option>
           </select>
-          <input
-            type="number"
-            name="age"
-            placeholder="年齢"
-            value={form.age}
+          <select
+            name="ageGroup"
+            value={form.ageGroup}
             onChange={handleChange}
             className="register-input"
             required
-          />
-                    <select
+          >
+            <option value="">年代を選択</option>
+            <option value="10代">10代</option>
+            <option value="20代">20代</option>
+            <option value="30代">30代</option>
+            <option value="40代">40代</option>
+            <option value="50代以上">50代以上</option>
+          </select>
+
+          <select
             name="occupation"
             value={form.occupation}
             onChange={handleChange}
