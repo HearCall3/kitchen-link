@@ -8,7 +8,7 @@ import { GenderPayload, AgeGroupPayload, OccupationPayload } from '@/app/db/page
 type AccountUpdateFormProps = {
   // initialDataは更新時に必要な全データを含む
   initialData: { 
-    id: number; 
+    userEmail: string; 
     nickname: string; 
     introduction: string | null;
     accountType: string;
@@ -35,7 +35,7 @@ export default function AccountUpdateForm({ initialData, masterData, onClose }: 
     setLoading(true);
 
     // ここでUPDATEを実行
-    const result = await updateAccount(initialData.id, formData);
+    const result = await updateAccount(initialData.userEmail, formData);
 
     if (result.success) {
       alert('更新が完了しました。');
@@ -50,7 +50,7 @@ export default function AccountUpdateForm({ initialData, masterData, onClose }: 
   return (
     <form action={handleSubmit} style={{ padding: '20px', width: '100%' }}>
       <h3 style={{ borderBottom: '2px solid #2196F3', paddingBottom: '10px' }}>
-        アカウント情報更新 ({initialData.accountType} - ID: {initialData.id})
+        アカウント情報更新 ({initialData.accountType} - ID: {initialData.userEmail})
       </h3>
       
       {/* ニックネームは変更不可 */}

@@ -1,8 +1,10 @@
 "use client";
+
 import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import OpinionMap from "../components/OpinionMap"
 
 export default function Home() {
   const router = useRouter();
@@ -92,6 +94,7 @@ export default function Home() {
 
 
   return (
+
     <div className="phone-frame">
 
       {/* ===== ヘッダー ===== */}
@@ -168,7 +171,7 @@ export default function Home() {
 
       {/* マップ */}
       <div className="map-container z-10 relative">
-        地図をここに表示予定
+        <OpinionMap />
       </div>
 
       {/* ===== アンケート作成ボタン ===== */}
