@@ -23,17 +23,29 @@ export default function Home() {
       const loggedIn = localStorage.getItem("isLoggedIn") === "true";
       setIsLoggedIn(loggedIn);
     };
-    // ログアウト処理  
-    const handleLogout = () => {
-      localStorage.removeItem("isLoggedIn"); // ← 今のロジック維持する場合
+    // ログアウト処理
+    const handleLogout = async () => {
+      try {
+        // localStorageのログイン情報を削除
+        localStorage.removeItem("isLoggedIn");
 
-      signOut({ redirect: false }).then(() => {
-        // Google側のログアウトもする
+        // Stateを更新してUIを即座に反映
+        setIsLoggedIn(false);
+        setMenuOpen(false); // メニューを閉じる場合
+
+        // NextAuth のサインアウト（リダイレクトなし）
+        await signOut({ redirect: false });
+
+        // Googleアカウントもログアウト
         window.location.href = "https://accounts.google.com/Logout";
-      });
 
-      alert("ログアウトしました！");
+        alert("ログアウトしました！");
+      } catch (error) {
+        console.error("ログアウトエラー:", error);
+        alert("ログアウトに失敗しました。");
+      }
     };
+
 
     // ① コンポーネントが最初に描画された時にチェック
     checkLoginStatus();
@@ -183,12 +195,12 @@ export default function Home() {
             </li>
           ) : (
             <li
-              className="logoutBtn"
+              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
               onClick={handleLogout}
             >
               ログアウト
             </li>
-            
+
           )}
         </ul>
       </div>

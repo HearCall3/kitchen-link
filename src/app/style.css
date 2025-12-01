@@ -1,7 +1,6 @@
 /* オーバーレイ（画面全体を覆う） */
 .dialog-overlay {
   position: fixed;
-  /* 画面固定 */
   top: 0;
   left: 0;
   width: 100vw;

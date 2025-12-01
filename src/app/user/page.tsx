@@ -13,25 +13,14 @@ export default function UserRegisterPage() {
     occupation: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     console.log("登録データ:", form);
-
-    // ログイン状態保存
-    localStorage.setItem("isLoggedIn", "true");
-
-    // 必要なら追加のユーザー情報も保存できる
-    localStorage.setItem("userNickname", form.nickname);
-
-    // ホームへ戻る
-    router.push("/");
+    router.push("../../");
   };
 
   return (
@@ -102,5 +91,6 @@ export default function UserRegisterPage() {
         </form>
       </div>
     </main>
+
   );
 }

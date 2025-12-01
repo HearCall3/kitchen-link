@@ -1,33 +1,55 @@
 "use client";
+
 import { useState } from "react";
-import styles from "./style.module.css";
+import { useRouter } from "next/navigation";
+import './style.css';
 import OpinionMap from "../../components/OpinionMap";
 
 export default function StoreRegisterPage() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
 
-  const [isLoggedIn] = useState(true);
+  const toggleMenu = () => setMenuOpen(prev => !prev);
+
+  const handleLogin = () => {
+    localStorage.setItem("isLoggedIn", "true");
+    setIsLoggedIn(true);
+    setMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+    setMenuOpen(false);
+    alert("ログアウトしました");
+  };
 
   return (
-    <div className={styles.phoneFrame}>
-      <header className={styles.header}>
-        <div className={styles.menuIcon} onClick={toggleMenu}>
+    <div className="phone-frame">
+      <header className="header">
+        <div className="menuIcon" onClick={toggleMenu}>
           {menuOpen ? "×" : "☰"}
         </div>
-        <input className={styles.searchInput} placeholder="検索" />
+        <input className="searchInput" placeholder="タグや店名で検索" />
       </header>
 
-      {menuOpen && <div className={styles.menuOverlay} onClick={() => setMenuOpen(false)} />}
-      <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-        <ul>
-          <li>プロフィール</li>
-          <li>マイ投稿</li>
-          {isLoggedIn ? <li>ログアウト</li> : <li>ログイン</li>}
+      {menuOpen && <div className="menuOverlay" onClick={() => setMenuOpen(false)} />}
+
+      <div className={`sideMenu ${menuOpen ? 'sideMenuOpen' : ''}`}>
+        <ul className="sideMenuList">
+          <li className="sideMenuItem" onClick={() => router.push("/profile/user")}>プロフィール</li>
+          <li className="sideMenuItem">マイ投稿</li>
+          <li className="sideMenuItem" onClick={() => router.push("/Register")}>出店登録</li>
+          {!isLoggedIn ? (
+            <li className="sideMenuItem" onClick={handleLogin}>ログイン</li>
+          ) : (
+            <li className="sideMenuItem" onClick={handleLogout}>ログアウト</li>
+          )}
         </ul>
       </div>
 
-      <div className={styles.mapContainer}>
+      <div className="mapContainer">
         <OpinionMap />
       </div>
     </div>

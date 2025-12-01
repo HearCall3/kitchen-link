@@ -1,19 +1,88 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
 
 export default function UserProfilePage() {
+  const router = useRouter();
+
+  // フォームの state (省略)
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
   const [job, setJob] = useState("");
 
-  return (
-    <div className="phone-frame">
-      <div className="phone-content">
-        <h2 className={styles.title}>プロフィール設定</h2>
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const handleLogin = () => setIsLoggedIn(true);
+  const handleLogout = () => setIsLoggedIn(false);
+
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  const handleMenuClick = (path: string) => {
+    setMenuOpen(false);
+    setTimeout(() => router.push(path), 50); 
+  };
+
+  const menuWidth = "260px"; // サイドメニューの幅をCSSと合わせる
+
+  return (
+    <div className={styles.phoneFrame}>
+      
+      {/* ★修正点 1: メニューが開いたときに contentShift クラスを適用する ★ */}
+      <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
+        
+        {/* ハンバーガーボタン (常に☰を表示) */}
+        <button 
+          className={styles.menuButton} 
+          onClick={toggleMenu} 
+        >
+          ☰
+        </button>
+
+        {/* オーバーレイ (クリックで閉じる機能と、暗くする背景を兼ねる) */}
+        {menuOpen && (
+          <div
+            className={styles.menuOverlay}
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        {/* サイドメニュー */}
+        <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
+          
+          {/* ★修正点 2: サイドメニュー内に閉じる「×」ボタンを配置 ★ */}
+          <button className={styles.closeMenuButton} onClick={toggleMenu}>
+            ×
+          </button>
+          
+          {/* ... メニュー項目 (省略せず記載) ... */}
+          <ul>
+            <li>
+              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
+            </li>
+            <li>
+              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/profile/user")}>プロフィール</button>
+            </li>
+            <li>
+              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/Register")}>出店登録</button>
+            </li>
+            {!isLoggedIn ? (
+              <li>
+                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogin}>ログイン</button>
+              </li>
+            ) : (
+              <li>
+                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogout}>ログアウト</button>
+              </li>
+            )}
+          </ul>
+        </div>
+
+        {/* コンテンツ (フォーム部分も省略せず記載) */}
+        <h2 className={styles.title}>プロフィール設定</h2>
         <div className={styles.card}>
           {/* ニックネーム */}
           <div>
@@ -50,16 +119,16 @@ export default function UserProfilePage() {
               onChange={(e) => setAgeGroup(e.target.value)}
               className={styles.input}
             >
-            <option value="">年代を選択</option>
-            <option value="10代">10歳未満</option>
-            <option value="10代">10代</option>
-            <option value="20代">20代</option>
-            <option value="30代">30代</option>
-            <option value="40代">40代</option>
-            <option value="50代以上">50代</option>
-            <option value="50代以上">60代</option>
-            <option value="50代以上">70代</option>
-            <option value="50代以上">80代以上</option>
+              <option value="">年代を選択</option>
+              <option value="10歳未満">10歳未満</option>
+              <option value="10代">10代</option>
+              <option value="20代">20代</option>
+              <option value="30代">30代</option>
+              <option value="40代">40代</option>
+              <option value="50代">50代</option>
+              <option value="60代">60代</option>
+              <option value="70代">70代</option>
+              <option value="80代以上">80代以上</option>
             </select>
           </div>
 
@@ -71,18 +140,17 @@ export default function UserProfilePage() {
               onChange={(e) => setJob(e.target.value)}
               className={styles.input}
             >
-            <option value="">職業を選択</option>
-            <option value="student">学生</option>
-            <option value="company">会社員</option>
-            <option value="part-time">アルバイト・パート</option>
-            <option value="freelancer">フリーランス</option>
-            <option value="freelancer">公務員</option>
-            <option value="unemployed">無職</option>
-            <option value="other">その他</option>
+              <option value="">職業を選択</option>
+              <option value="student">学生</option>
+              <option value="company">会社員</option>
+              <option value="part-time">アルバイト・パート</option>
+              <option value="freelancer">フリーランス</option>
+              <option value="public">公務員</option>
+              <option value="unemployed">無職</option>
+              <option value="other">その他</option>
             </select>
           </div>
 
-          {/* 保存ボタン */}
           <button className={styles.btn} onClick={() => alert("保存しました！")}>
             保存する
           </button>
