@@ -4,9 +4,9 @@ import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import OpinionMap from "../components/OpinionMap";
-import PollMap from "../components/PollMap";
-import StoreMap from "../components/StoreMap";
+import OpinionMap from "../components/map/OpinionMap";
+import PollMap from "../components/map/PollMap";
+import StoreMap from "../components/map/StoreMap";
 
 export default function Home() {
   const router = useRouter();
