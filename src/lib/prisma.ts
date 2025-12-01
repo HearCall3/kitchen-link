@@ -1,15 +1,19 @@
-// lib/prisma.ts (Next.jsで推奨されるシングルトンパターン)
-import { PrismaClient } from '@prisma/client'
+// lib/prisma.ts
 
-let prisma: PrismaClient
+import { PrismaClient } from '@prisma/client';
 
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient()
-} else {
-  if (!(global as any).prisma) {
-    (global as any).prisma = new PrismaClient()
-  }
-  prisma = (global as any).prisma
+// グローバル変数にPrismaClientを格納するための型定義
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
 }
 
-export default prisma
+// 開発環境でのみグローバル変数を使用し、PrismaClientのインスタンスが
+// ホットリロードによって複数作成されるのを防ぐ
+export const prisma = global.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  global.prisma = prisma;
+}
+
+export default prisma;
