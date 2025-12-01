@@ -1,5 +1,7 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema file. Learn more about it in the docs:
+// https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -11,142 +13,272 @@ datasource db {
   relationMode = "prisma"
 }
 
+
 // ----------------------------------------------------
-// 📌 マスタテーブル (ルックアップ)
+// 1. Users (一般ユーザー情報)
 // ----------------------------------------------------
+model User {
+  // ユーザーID (主キー)
+  userId        Int     @id @default(autoincrement()) @map("user_id")
+  // ニックネーム (ユニーク制約推奨)
+  nickname      String  @unique @db.VarChar(50)
+  // 自己紹介文
+  introduction  String? @db.VarChar(100)
+  // 外部キー: 性別
+  genderId      Int?    @map("gender_id")
+  gender        Gender? @relation(fields: [genderId], references: [genderId])
+  // 外部キー: 年齢層
+  ageGroupId    Int?    @map("age_group_id")
+  ageGroup      AgeGroup? @relation(fields: [ageGroupId], references: [ageGroupId])
+  // 外部キー: 職業
+  occupationId  Int?    @map("occupation_id")
+  occupation    Occupation? @relation(fields: [occupationId], references: [occupationId])
 
-// 1. 性別テーブル (Genders_Table)
-model Gender {
-  code Int    @id @map("gender_code")
-  name String @map("gender_name") @db.VarChar(20)
+  // 統合アカウントとのリレーション (1:1)
+  account       Account?
 
-  // リレーション
-  accounts Account[]
-
-  @@map("Genders_Table")
-}
-
-// 2. 年齢層テーブル (Age_Table)
-model AgeGroup {
-  code Int    @id @map("age_group_code")
-  name String @map("age_group_name") @db.VarChar(20)
-
-  // リレーション
-  accounts Account[]
-
-  @@map("Age_Table")
-}
-
-// 3. 職業テーブル (Occupations_Table)
-model Occupation {
-  code Int    @id @map("occupation_code")
-  name String @map("occupation_name") @db.VarChar(50)
-
-  // リレーション
-  accounts Account[]
-
-  @@map("Occupations_Table")
+  @@map("Users")
 }
 
 // ----------------------------------------------------
-// 👥 ユーザー/出店者テーブル (Accounts_Table)
+// 2. Stores (ストア情報)
 // ----------------------------------------------------
+model Store {
+  // ストアID (主キー)
+  storeId       Int     @id @default(autoincrement()) @map("store_id")
+  // 店名 (ユニーク制約推奨)
+  storeName     String  @unique @db.VarChar(50) @map("store_name")
+  // ホームページのリンク
+  storeUrl      String? @db.VarChar(100) @map("store_url")
+  // ストア紹介文
+  introduction  String? @db.VarChar(100)
 
-// 4. 利用者/出店者テーブル (Accounts_Tableとして統合)
+  // 統合アカウントとのリレーション (1:1)
+  account       Account?
+
+  // 出店情報とのリレーション (1:N)
+  openings      StoreOpeningInformation[]
+  // アンケートとのリレーション (1:N)
+  questions     Question[]
+
+  @@map("Stores")
+}
+
+// ----------------------------------------------------
+// 3. Account (統合アカウント)
+// ----------------------------------------------------
 model Account {
-  // ★主キー: メールアドレス (String)
-  email         String    @id @map("email") @db.VarChar(255) 
-  nickname      String    @unique @db.VarChar(50)
-  accountType   String    @map("account_type") @db.VarChar(10)
-  storeName     String?   @map("store_name") @db.VarChar(100)
-  introduction  String?   @db.Text
-  
-  // 外部キー
-  genderCode    Int?      @map("gender_code")
-  ageGroupCode  Int?      @map("age_group_code")
-  occupationCode Int?     @map("occupation_code")
+  // アカウントID (主キー)
+  accountId     Int      @id @default(autoincrement()) @map("account_id")
+  // アカウントタイプ ('User', 'Store', または 'Both')
+  accountType   String   @db.VarChar(10) @map("account_type")
 
-  // リレーションシップ (マスタテーブル参照)
-  gender        Gender?    @relation(fields: [genderCode], references: [code])
-  ageGroup      AgeGroup?  @relation(fields: [ageGroupCode], references: [code])
-  occupation    Occupation? @relation(fields: [occupationCode], references: [code])
-  
-  // 依存リレーション (外部キーを持つテーブル)
-  locations     Location[]
-  comments      Comment[]
-  likes         Like[]
+  // 外部キー: Users.user_id (NULL許容)
+  userId        Int?     @unique @map("user_id") // uniqueで1:1を強制
+  user          User?    @relation(fields: [userId], references: [userId])
 
-  @@map("Accounts_Table")
+  // 外部キー: Stores.store_id (NULL許容)
+  storeId       Int?     @unique @map("store_id") // uniqueで1:1を強制
+  store         Store?   @relation(fields: [storeId], references: [storeId])
+
+  // 意見投稿とのリレーション (1:N)
+  opinions      PostAnOpinion[]
+  // いいねとのリレーション (1:N)
+  likes         PressLike[]
+  // アンケート回答とのリレーション (1:N)
+  answers       QuestionAnswer[]
+
+  @@map("Account")
 }
 
 // ----------------------------------------------------
-// 📍 位置情報・投稿・いいね テーブル
+// 4. store_opening_information (出店情報)
 // ----------------------------------------------------
+model StoreOpeningInformation {
+  // 出店情報ID (主キー)
+  storeOpeningInformationId Int     @id @default(autoincrement()) @map("store_opening_information_id")
+  // 緯度
+  latitude                  Float   
+  // 経度
+  longitude                 Float   
+  // 出店日
+  openingDate               DateTime @db.Date @map("opening_date")
+  // 場所の名前 (任意)
+  locationName              String? @db.VarChar(100) @map("location_name")
 
-// 5. 出店者位置情報テーブル (Locations_Table)
-model Location {
-  id            Int       @id @default(autoincrement()) @map("location_id")
-  // ★外部キー: String型に変更し、Account.emailを参照
-  accountId     String    @map("account_email") 
+  // 外部キー: Stores.store_id (N:1)
+  storeId                   Int     @map("store_id")
+  store                     Store   @relation(fields: [storeId], references: [storeId])
 
-  latitude      Decimal     @db.Decimal(10, 8)
-  longitude     Decimal     @db.Decimal(11, 8)
-  openingDate   DateTime  @map("opening_date") @db.Date
-  locationName  String?   @map("location_name") @db.VarChar(100)
-
-  // リレーションシップ
-  account       Account   @relation(fields: [accountId], references: [email])
-  
-  @@map("Locations_Table")
+  @@map("store_opening_information")
 }
 
-// 6. コメント投稿テーブル (Comments_Table)
-model Comment {
-  id            Int       @id @default(autoincrement()) @map("comment_id")
-  // ★外部キー: String型に変更し、Account.emailを参照
-  accountId     String    @map("account_email") 
+// ----------------------------------------------------
+// 5. post_an_opinion (意見投稿)
+// ----------------------------------------------------
+model PostAnOpinion {
+  // 意見投稿ID (主キー)
+  postAnOpinionId Int      @id @default(autoincrement()) @map("post_an_opinion_id")
+  // 緯度
+  latitude        Float
+  // 経度
+  longitude       Float
+  // 意見内容
+  commentText     String   @db.Text @map("comment_text")
+  // 投稿日時
+  postedAt        DateTime @map("posted_at")
 
-  latitude      Decimal     @db.Decimal(10, 8)
-  longitude     Decimal     @db.Decimal(11, 8)
-  commentText   String    @map("comment_text") @db.Text
-  postedAt      DateTime  @map("posted_at") @default(now())
+  // 外部キー: Accounts.account_id (N:1)
+  accountId       Int      @map("account_id")
+  account         Account  @relation(fields: [accountId], references: [accountId])
 
-  // リレーションシップ
-  account       Account   @relation(fields: [accountId], references: [email])
-  likes         Like[] 
+  // タグ中間テーブルとのリレーション (1:N)
+  opinionTags     OpinionTags[]
+  // いいねとのリレーション (1:N)
+  likes           PressLike[]
 
-  @@map("Comments_Table")
+  @@map("post_an_opinion")
 }
 
-// 7. いいねテーブル (Likes_Table) - 複合主キー
-model Like {
-  commentId     Int       @map("comment_id")
-  // ★外部キー: String型に変更し、Account.emailを参照
-  accountId     String    @map("account_email") 
-  likedAt       DateTime  @map("liked_at") @default(now())
+// ----------------------------------------------------
+// 6. opinion_tags (意見投稿とタグの中間テーブル)
+// ----------------------------------------------------
+model OpinionTags {
+  // 複合主キー
+  postAnOpinionId Int @map("post_an_opinion_id")
+  tagId           Int @map("tag_id")
 
-  // リレーションシップ
-  comment       Comment   @relation(fields: [commentId], references: [id]) // CommentのIDはInt型で変更なし
-  account       Account   @relation(fields: [accountId], references: [email]) // Accountの主キーを参照
+  // リレーション
+  opinion         PostAnOpinion @relation(fields: [postAnOpinionId], references: [postAnOpinionId])
+  tag             Tag           @relation(fields: [tagId], references: [tagId])
 
-  // 複合主キー (コメントIDとアカウントIDの組み合わせで一意)
-  @@id([commentId, accountId])
-  @@map("Likes_Table")
+  @@id([postAnOpinionId, tagId])
+  @@map("opinion_tags")
 }
 
-//アンケート作成テーブル(Poll_Table) - 複合キー
-model Poll {
-  id        Int       @id @default(autoincrement())
-  question  String
-  createdAt DateTime  @default(now())
-  votes     Vote[]
+// ----------------------------------------------------
+// 7. press_like (いいね)
+// ----------------------------------------------------
+model PressLike {
+  // 複合主キー
+  postAnOpinionId Int      @map("post_an_opinion_id")
+  accountId       Int      @map("account_id")
+
+  // いいねを押した日時
+  likedAt         DateTime @map("liked_at")
+
+  // リレーション
+  opinion         PostAnOpinion @relation(fields: [postAnOpinionId], references: [postAnOpinionId])
+  account         Account       @relation(fields: [accountId], references: [accountId])
+
+  @@id([postAnOpinionId, accountId])
+  @@map("press_like")
 }
 
-// アンケート解答結果表示用(Void_Table)
-model Vote {
-  id        Int      @id @default(autoincrement())
-  poll      Poll     @relation(fields: [pollId], references: [id])
-  pollId    Int
-  choice    Boolean  // true = Yes, false = No
-  createdAt DateTime @default(now())
+// ----------------------------------------------------
+// 8. question (アンケート)
+// ----------------------------------------------------
+model Question {
+  // アンケートID (主キー)
+  questionId      Int     @id @default(autoincrement()) @map("question_id")
+  // 緯度
+  latitude        Float
+  // 経度
+  longitude       Float
+  // 質問内容
+  questionText    String  @db.Text @map("question_text")
+  // 選択肢1
+  option1Text     String  @db.VarChar(255) @map("option_1_text")
+  // 選択肢2
+  option2Text     String  @db.VarChar(255) @map("option_2_text")
+
+  // 外部キー: Stores.store_id (N:1)
+  storeId         Int     @map("store_id")
+  store           Store   @relation(fields: [storeId], references: [storeId])
+
+  // アンケート回答とのリレーション (1:N)
+  answers         QuestionAnswer[]
+
+  @@map("question")
+}
+
+// ----------------------------------------------------
+// 9. question_answer (アンケート回答)
+// ----------------------------------------------------
+model QuestionAnswer {
+  // 複合主キー
+  accountId               Int @map("account_id")
+  questionId              Int @map("question_id")
+
+  // 選択肢番号 (1 or 2)
+  selectedOptionNumber    Int @map("selected_option_number")
+  // 回答日時
+  answeredAt              DateTime @map("answered_at")
+
+  // リレーション
+  account                 Account  @relation(fields: [accountId], references: [accountId])
+  question                Question @relation(fields: [questionId], references: [questionId])
+
+  @@id([accountId, questionId])
+  @@map("question_answer")
+}
+
+// ----------------------------------------------------
+// 10. Genders (性別 - ルックアップテーブル)
+// ----------------------------------------------------
+model Gender {
+  // 性別ID(主キー)
+  genderId   Int    @id @default(autoincrement()) @map("gender_id")
+  // 性別名
+  genderName String @db.VarChar(20) @map("gender_name")
+
+  // リレーション
+  users      User[]
+
+  @@map("Genders")
+}
+
+// ----------------------------------------------------
+// 11. Age_Groups (年齢層 - ルックアップテーブル)
+// ----------------------------------------------------
+model AgeGroup {
+  // 年齢層ID (主キー)
+  ageGroupId   Int    @id @default(autoincrement()) @map("age_group_id")
+  // 年齢層名
+  ageGroupName String @db.VarChar(20) @map("age_group_name")
+
+  // リレーション
+  users        User[]
+
+  @@map("Age_Groups")
+}
+
+// ----------------------------------------------------
+// 12. Occupations (職業 - ルックアップテーブル)
+// ----------------------------------------------------
+model Occupation {
+  // 職業ID(主キー)
+  occupationId   Int    @id @default(autoincrement()) @map("occupation_id")
+  // 職業名
+  occupationName String @db.VarChar(50) @map("occupation_name")
+
+  // リレーション
+  users          User[]
+
+  @@map("Occupations")
+}
+
+// ----------------------------------------------------
+// 13. Tags (タグ - ルックアップテーブル)
+// ----------------------------------------------------
+model Tag {
+  // タグＩＤ（主キー）
+  tagId   Int    @id @default(autoincrement()) @map("tag_id")
+  // タグ名
+  tagName String @db.VarChar(50) @map("tag_name")
+
+  // リレーション
+  opinions OpinionTags[]
+
+  @@map("Tags")
 }
