@@ -1,69 +1,35 @@
 "use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import "./style.css";
+import styles from "./style.module.css";
+import OpinionMap from "../../components/OpinionMap";
 
 export default function StoreRegisterPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({
-    storeName: "",
-    description: "",
-    address: "",
-  });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const toggleMenu = () => setMenuOpen(!menuOpen);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("店舗登録データ:", form);
-    router.push("../../");
-  };
+  const [isLoggedIn] = useState(true);
 
   return (
-    <main className="register-page store-theme">
-      <div className="register-card">
-        <h1 className="register-title">出店登録</h1>
-
-        <form onSubmit={handleSubmit} className="register-form">
-          <input
-            type="text"
-            name="storeName"
-            placeholder="店舗名"
-            value={form.storeName}
-            onChange={handleChange}
-            className="register-input"
-            required
-          />
-          <textarea
-            name="description"
-            placeholder="店舗の紹介"
-            value={form.description}
-            onChange={handleChange}
-            className="register-textarea"
-            required
-          />
-          <input
-            type="text"
-            name="address"
-            placeholder="URL"
-            value={form.address}
-            onChange={handleChange}
-            className="register-input"
-            required
-          />
-          <button type="submit" className="register-btn">
-            登録する
-          </button>
-        </form>
-
-        <div className="register-link">
-          <p>一般ユーザーはこちら</p>
-          <button onClick={() => router.push("/user")}>会員登録</button>
+    <div className={styles.phoneFrame}>
+      <header className={styles.header}>
+        <div className={styles.menuIcon} onClick={toggleMenu}>
+          {menuOpen ? "×" : "☰"}
         </div>
+        <input className={styles.searchInput} placeholder="検索" />
+      </header>
+
+      {menuOpen && <div className={styles.menuOverlay} onClick={() => setMenuOpen(false)} />}
+      <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
+        <ul>
+          <li>プロフィール</li>
+          <li>マイ投稿</li>
+          {isLoggedIn ? <li>ログアウト</li> : <li>ログイン</li>}
+        </ul>
       </div>
-    </main>
+
+      <div className={styles.mapContainer}>
+        <OpinionMap />
+      </div>
+    </div>
   );
 }

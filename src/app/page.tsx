@@ -1,8 +1,9 @@
-"use client";
+"use client"
 
 import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import Image from "next/image";
 import OpinionMap from "../components/OpinionMap"
 
@@ -17,25 +18,53 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    setIsLoggedIn(loggedIn);
+    // ログイン状態をlocalStorageからチェックし、stateを更新する関数
+    const checkLoginStatus = () => {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
+    };
+    // ログアウト処理  
+    const handleLogout = () => {
+      localStorage.removeItem("isLoggedIn"); // ← 今のロジック維持する場合
+
+      signOut({ redirect: false }).then(() => {
+        // Google側のログアウトもする
+        window.location.href = "https://accounts.google.com/Logout";
+      });
+
+      alert("ログアウトしました！");
+    };
+
+    // ① コンポーネントが最初に描画された時にチェック
+    checkLoginStatus();
+
+    // ② ユーザーがタブ/アプリに戻った時（focusイベント）に再チェック
+    window.addEventListener('focus', checkLoginStatus);
+
+    // ③ クリーンアップ関数: コンポーネントが破棄されるときにイベントリスナーを解除
+    return () => {
+      window.removeEventListener('focus', checkLoginStatus);
+    };
   }, []);
 
+
+  // --- 修正箇所: handleLoginとhandleLogoutの定義を復元/追加 ---
   const handleLogin = () => {
+    // ログインページへ遷移
     router.push("/login");
   };
 
   const handleLogout = () => {
+    // ログアウト処理
     localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-    setMenuOpen(false);
+    setIsLoggedIn(false); // stateを即座に更新
+    setMenuOpen(false); // メニューを閉じる
     alert("ログアウトしました");
   };
 
   // ====== 絞り込み ======
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
-
 
 
   // ====== 意見投稿 ======
@@ -61,8 +90,6 @@ export default function Home() {
     setVotes((prev) => ({ ...prev, [option]: prev[option] + 1 }));
     setVoted(true);
   };
-
-  // ←ここなら OK！
   const currentVotes = votes || { yes: 0, no: 0 };
   const total = currentVotes.yes + currentVotes.no;
   const yesPercent = total ? (currentVotes.yes / total) * 100 : 0;
@@ -141,22 +168,27 @@ export default function Home() {
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          <li className="border-b p-3 hover:bg-gray-100">出店登録</li>
+          <li
+            className="border-b p-3 hover:bg-gray-100"
+            onClick={() => router.push("/Register")}
+          >出店登録</li>
+          {/* ログインしたら「ログアウト」
+          未ログインなら「ログイン」 */}
           {!isLoggedIn ? (
             <li
               className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
               onClick={handleLogin}
             >
-              {/* todo ログイン中はログアウト、未ログインの場合はログインと表示*/}
               ログイン
             </li>
           ) : (
             <li
-              className="border-b p-3 hover:bg-gray-100 text-red-500 cursor-pointer"
+              className="logoutBtn"
               onClick={handleLogout}
             >
-
+              ログアウト
             </li>
+            
           )}
         </ul>
       </div>
@@ -278,3 +310,4 @@ export default function Home() {
     </div>
   );
 }
+

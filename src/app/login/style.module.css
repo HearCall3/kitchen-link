@@ -1,0 +1,75 @@
+/* style.module.css */
+
+/* ページ全体 */
+.phoneFrame {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f0f0, #fafafa);
+  font-family: "Noto Sans JP", sans-serif;
+  padding: 24px;
+}
+
+/* 中央カード */
+.phoneContent {
+  background-color: #fff;
+  width: 90%;
+  max-width: 400px;
+  padding: 36px;
+  border-radius: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.phoneContent:hover {
+  transform: translateY(-2px);
+}
+
+/* タイトル */
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333; /* 濃いめグレー */
+  margin-bottom: 36px;
+  background: linear-gradient(90deg, #ff7f50, #f9a26b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ボタン */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 0;
+  margin-bottom: 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(90deg, #ff7f50, #ffb277);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(255, 127, 80, 0.3);
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(255, 127, 80, 0.4);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(255, 127, 80, 0.2);
+}
+
+/* Googleロゴ */
+.googleLogo {
+  width: 20px;
+  height: 20px;
+}

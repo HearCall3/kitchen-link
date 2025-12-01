@@ -1,0 +1,58 @@
+/* スマホ風フレーム全体 */
+.phoneFrame {
+  width: 100%;
+  min-height: 100vh;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+/* 中央に配置されるスマホ画面部分 */
+.phoneContent {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  min-height: 100vh;
+  border-radius: 28px;
+  box-shadow: 0 0 18px rgba(0,0,0,0.15);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* タイトルを中央に */
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 auto 24px auto;
+}
+/* ボタンフレーム内下中央固定 */
+.btn {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 0;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+}
+
+.btn:active {
+  transform: translateX(-50%) scale(0.96);
+}

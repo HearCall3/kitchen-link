@@ -50,12 +50,16 @@ export default function UserProfilePage() {
               onChange={(e) => setAgeGroup(e.target.value)}
               className={styles.input}
             >
-              <option value="">選択してください</option>
-              <option value="10s">10代</option>
-              <option value="20s">20代</option>
-              <option value="30s">30代</option>
-              <option value="40s">40代</option>
-              <option value="50s">50代以上</option>
+            <option value="">年代を選択</option>
+            <option value="10代">10歳未満</option>
+            <option value="10代">10代</option>
+            <option value="20代">20代</option>
+            <option value="30代">30代</option>
+            <option value="40代">40代</option>
+            <option value="50代以上">50代</option>
+            <option value="50代以上">60代</option>
+            <option value="50代以上">70代</option>
+            <option value="50代以上">80代以上</option>
             </select>
           </div>
 
@@ -67,14 +71,14 @@ export default function UserProfilePage() {
               onChange={(e) => setJob(e.target.value)}
               className={styles.input}
             >
-              <option value="">職業を選択</option>
-              <option value="student">学生</option>
-              <option value="company">会社員</option>
-              <option value="freelancer">フリーランス</option>
-              <option value="self-employed">自営業</option>
-              <option value="part-time">アルバイト・パート</option>
-              <option value="unemployed">無職</option>
-              <option value="other">その他</option>
+            <option value="">職業を選択</option>
+            <option value="student">学生</option>
+            <option value="company">会社員</option>
+            <option value="part-time">アルバイト・パート</option>
+            <option value="freelancer">フリーランス</option>
+            <option value="freelancer">公務員</option>
+            <option value="unemployed">無職</option>
+            <option value="other">その他</option>
             </select>
           </div>
 
