@@ -1,13 +1,15 @@
-// app/db/page.tsx
+// app/db/page.tsx (更新後)
 
 import Link from 'next/link';
 
 // 操作対象のテーブルリスト
 const transactionTables = [
+  { name: 'アカウント作成 (User/Store)', path: 'account-create' }, // 👈 追加
   { name: '意見投稿', path: 'opinion' },
   { name: '出店情報', path: 'opening-info' },
-  { name: 'アンケート回答', path: 'answer' },
+  { name: 'アンケート作成・回答', path: 'questions-and-answers' }, // アンケート関連を統合するパスとして修正
   { name: 'いいね', path: 'like' },
+  { name: '意見タグ管理 (中間テーブル)', path: 'opinion-tags' },
 ];
 
 export default function DBMenuPage() {
