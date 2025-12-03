@@ -4,7 +4,6 @@ import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import Image from "next/image";
 import OpinionMap from "../components/OpinionMap"
 
 export default function Home() {
