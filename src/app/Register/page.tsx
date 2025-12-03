@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "./style.module.css";
+import OpinionMap from "../../components/OpinionMap";
 
 export default function StoreRegisterPage() {
   const [storeName, setStoreName] = useState("");

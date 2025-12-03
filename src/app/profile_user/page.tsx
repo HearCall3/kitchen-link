@@ -23,21 +23,21 @@ export default function UserProfilePage() {
 
   const handleMenuClick = (path: string) => {
     setMenuOpen(false);
-    setTimeout(() => router.push(path), 50); 
+    setTimeout(() => router.push(path), 50);
   };
 
   const menuWidth = "260px"; // サイドメニューの幅をCSSと合わせる
 
   return (
     <div className={styles.phoneFrame}>
-      
+
       {/* ★修正点 1: メニューが開いたときに contentShift クラスを適用する ★ */}
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
-        
+
         {/* ハンバーガーボタン (常に☰を表示) */}
-        <button 
-          className={styles.menuButton} 
-          onClick={toggleMenu} 
+        <button
+          className={styles.menuButton}
+          onClick={toggleMenu}
         >
           ☰
         </button>
@@ -52,12 +52,12 @@ export default function UserProfilePage() {
 
         {/* サイドメニュー */}
         <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-          
+
           {/* ★修正点 2: サイドメニュー内に閉じる「×」ボタンを配置 ★ */}
           <button className={styles.closeMenuButton} onClick={toggleMenu}>
             ×
           </button>
-          
+
           {/* ... メニュー項目 (省略せず記載) ... */}
           <ul>
             <li>

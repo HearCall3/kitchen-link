@@ -175,14 +175,14 @@ export default function Home() {
 
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => router.push("/profile/user")}
+            onClick={() => router.push("/profile_user")}
           >
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
           <li
             className="border-b p-3 hover:bg-gray-100"
-            onClick={() => router.push("/Register")}
+            onClick={() => router.push("/register")}
           >出店登録</li>
           {/* ログインしたら「ログアウト」
           未ログインなら「ログイン」 */}

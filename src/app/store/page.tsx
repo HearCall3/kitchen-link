@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import './style.css';
+import './style.module.css';
 import OpinionMap from "../../components/OpinionMap";
 
 export default function StoreRegisterPage() {
