@@ -5,10 +5,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
-import OpinionMap from "../components/OpinionMap"
+import OpinionMap from "../components/map/OpinionMap";
+import PollMap from "../components/map/PollMap";
+import StoreMap from "../components/map/StoreMap";
 
 export default function Home() {
   const router = useRouter();
+
+  const status = ['opinion', 'poll', 'store'] as const;
+  const [mapStatus, setMapStatus] = useState<typeof status[number]>('store');
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -131,6 +136,28 @@ export default function Home() {
     }
   };
 
+  const handleDialogOpen = (data: string) => {
+    switch (data) {
+      case ("post"):
+        setPostOpen(true);
+        break;
+      case ("poll"):
+        setCreateOpen(true);
+        break;
+    }
+  }
+
+  const FILTER_ITEMS = [
+    { label: "キッチンカー", key: "store" },
+    { label: "アンケート", key: "poll" },
+    { label: "意見", key: "opinion" },
+  ] as const;
+
+  const mapList = {
+    opinion: <OpinionMap onDialogOpen={handleDialogOpen}/>,
+    poll: <PollMap onDialogOpen={handleDialogOpen}/>,
+    store: <StoreMap />
+  };
 
   return (
 
@@ -153,13 +180,13 @@ export default function Home() {
       </header>
       {/* ===== フィルターチップ ===== */}
       <div className="filter-chip-container">
-        {["キッチンカー", "アンケート", "意見"].map((item) => (
+        {FILTER_ITEMS.map((item) => (
           <button
-            key={item}
-            className={`filter-chip ${selectedFilter === item ? "active" : ""}`}
-            onClick={() => setSelectedFilter(item)}
+            key={item.key}
+            className={`filter-chip ${mapStatus === item.key ? "active" : ""}`}
+            onClick={() => setMapStatus(item.key)}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </div>
@@ -215,7 +242,7 @@ export default function Home() {
 
       {/* マップ */}
       <div className="map-container z-10 relative">
-        <OpinionMap />
+        {mapList[mapStatus]}
       </div>
 
       {/* ===== アンケート作成ボタン ===== */}

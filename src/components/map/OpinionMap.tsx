@@ -8,8 +8,8 @@ import {
     InfoWindowF, // InfoWindow をインポート
     Circle,        // Circle をインポート
     type Libraries,
-    DrawingManager,
-    useJsApiLoader
+    useJsApiLoader,
+    OverlayView
 } from '@react-google-maps/api';
 
 const containerStyle = {
@@ -31,11 +31,6 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
-interface myMarkerData {
-    lat: number;
-    lng: number;
-    id: number;
-};
 
 interface testopinionData {
     lat: number,
@@ -66,7 +61,10 @@ const opinionList: testopinionData[] = [
     { "lat": 35.6700, "lon": 139.7850, "opinion": "月島のもんじゃ焼きは美味しい。", "radius": 580 }
 ]
 
-export default function OpinionMap() {
+interface OpinionMapProps {
+    onDialogOpen: (data: string) => void;
+}
+export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -74,10 +72,10 @@ export default function OpinionMap() {
         libraries: libraries,
     });
 
-    const [markers, setMarkers] = useState<myMarkerData>();
     const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
     const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
 
@@ -133,23 +131,8 @@ export default function OpinionMap() {
 
     const MAX_VISIBLE_LABELS = 5;
 
-    const handleMapClick = (event: google.maps.MapMouseEvent) => {
-        if (event.latLng) {
-
-            const newMarker = {
-                lat: event.latLng.lat(),
-                lng: event.latLng.lng(),
-                id: new Date().getTime() // とりあえずユニークなIDを付与
-            }
-            setMarkers(newMarker);
-        };
-    };
-
-    const handleSurveyTransition = () => {
-
-    }
     const handleOpinionTransition = () => {
-
+        onDialogOpen("post");
     }
 
     //コンポーネントではなくuseEffectでDrawingManagerを管理する
@@ -207,7 +190,13 @@ export default function OpinionMap() {
     return (
         <>
             <GoogleMap
-                onClick={handleMapClick}
+                onClick={(e) => {
+                    if (!e.latLng) return;
+                    setClickPos({
+                        lat: e.latLng.lat(),
+                        lng: e.latLng.lng(),
+                    })
+                }}
                 mapContainerStyle={containerStyle}
                 center={center}
                 zoom={14}
@@ -216,33 +205,27 @@ export default function OpinionMap() {
                 onUnmount={onUnmount}
                 options={{
                     disableDefaultUI: true,
-                }}
+                }
+                }
             >
-                {markers && (
-                    <>
-                        <MarkerF
-                            key={markers?.id}
-                            // `markerData` を `MarkerProps` (position) に変換
-                            position={{ lat: markers.lat, lng: markers.lng }}
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}>
+                    {clickPos && (
+                        <OverlayView
+                            position={clickPos}
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                         >
-                            <InfoWindowF
-                                position={{ lat: markers.lat, lng: markers.lng }}
-                            >
-                                <div>
-                                    <button
-                                        className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                        onClick={handleSurveyTransition}
-                                    >アンケート
-                                    </button>
-                                    <button
-                                        className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                        onClick={handleOpinionTransition}>
-                                        意見</button>
-                                </div>
-                            </InfoWindowF>
-                        </MarkerF>
-                    </>
-                )}
+                            <button
+                                style={{
+                                    background: 'white', padding: '8px 12px', borderRadius:
+                                        '6px', border: '1px solid #ccc', whiteSpace: 'nowrap',
+                                }}
+                                onClick={handleOpinionTransition}>
+                                意見を投稿</button>
+                        </OverlayView>
+                    )}
+                </div>
 
                 {map && opinionList.map((data) => {
 
