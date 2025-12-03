@@ -1,0 +1,95 @@
+/* ===== スマホ風フレーム全体 ===== */
+.phone-frame {
+  width: 100%;
+  min-height: 100vh;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+/* ===== 中央に配置されるスマホ画面部分 ===== */
+.phone-content {
+  width: 100%;
+  max-width: 420px; /* スマホ最大幅 */
+  background: #ffffff;
+  min-height: 100vh;
+  border-radius: 28px;
+  box-shadow: 0 0 18px rgba(0,0,0,0.15);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* スクロール対応 */
+}
+
+/* ===== コンテンツ表示領域 ===== */
+.container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== タイトル ===== */
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* ===== ラベル ===== */
+.label {
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ===== 入力系 ===== */
+.input,
+.textarea {
+  width: 90%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.3);
+}
+
+/* ===== ボタン ===== */
+.btn {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 0;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
