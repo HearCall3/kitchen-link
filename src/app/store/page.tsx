@@ -2,25 +2,32 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
+import { useRouter } from "next/navigation";
 // next-auth から useSession をインポート
 import { useSession } from "next-auth/react";
 // データベースアクションをインポート
 import { registerStore } from "@/actions/db_access"; //
 
-
 export default function StoreRegisterPage() {
-  const router = useRouter();
-  // セッションからメールアドレスを取得
+  const [storeName, setStoreName] = useState("");
+  const [description, setDescription] = useState("");
+  const [storeUrl, setStoreUrl] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: session } = useSession();
+  // セッションからメールアドレスを取得
   const email = session?.user?.email;
-
   const [form, setForm] = useState({
     storeName: "",
     description: "",
     address: "",
   });
+  const router = useRouter();
+
+  //保存ボタンで画面遷移
+  const handleSave = () => {
+    router.push("/");
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -61,46 +68,43 @@ export default function StoreRegisterPage() {
       alert(`登録失敗: ${result.error}`);
     }
   };
-
   return (
-    <main className={styles["register-page"]}>
-      <div className={styles["register-card"]}>
-        <h1 className={styles["register-title"]}>出店登録</h1>
-        
-        {/* ユーザーのGmailアカウント名を表示 */}
-        {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
+    <div>
+      {/* ==== メインコンテンツ ==== */}
+      <div className={styles.storeTheme}>
+        <div className={styles.registerCard}>
+          <h2 className={styles.registerTitle}>店舗情報入力</h2>
 
-        <form onSubmit={handleSubmit} className={styles["register-form"]}>
-          <input
-            type="text"
-            name="storeName"
-            placeholder="店舗名"
-            value={form.storeName}
-            onChange={handleChange}
-            className={styles["register-input"]}
-            required
-          />
-          <textarea
-            name="description"
-            placeholder="店舗の紹介"
-            value={form.description}
-            onChange={handleChange}
-            className={styles["register-textarea"]}
-            required
-          />
-          <input
-            type="text"
-            name="address"
-            placeholder="出店場所"
-            value={form.address}
-            onChange={handleChange}
-            className={styles["register-input"]}
-            required
-          />
-          <button type="submit" className={styles.registerBtn}>
-            登録する
-          </button>
-        </form>
+          <div className={styles.registerForm}>
+            <input
+              type="text"
+              className={styles.registerInput}
+              placeholder="店舗名"
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              required
+            />
+
+            <textarea
+              className={styles.registerTextarea}
+              placeholder="説明（任意）"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            ></textarea>
+
+            <input
+              type="url"
+              className={styles.registerInput}
+              placeholder="店舗URL（任意）"
+              value={storeUrl}
+              onChange={(e) => setStoreUrl(e.target.value)}
+            />
+
+            <button onClick={handleSave} className={styles.registerBtn}>
+              登録する
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );

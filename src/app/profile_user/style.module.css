@@ -1,69 +1,53 @@
 /* style.module.css */
 
-/* 1. phoneFrame: ブラウザの画面全体を占有し、外側のスクロールを完全に抑制 */
+/* ===== スマホ枠：中央寄せ／外側スクロール無効 ===== */
 .phoneFrame {
   width: 100%;
-  /* ビューポート幅全体 */
-  height: 600px;
-  /* ビューポート高さ全体 */
-
-  /* 外側のスクロールバーを完全に抑制する（ブラウザのデフォルトマージンを無視させる効果もある） */
+  height: 100vh;
   overflow: hidden;
   position: fixed;
-  /* 画面全体に固定し、bodyのスクロールを完全に無視させる */
   top: 0;
   left: 0;
-
   background: #f3f4f6;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding: 16px 0;
+  align-items: center;
 }
 
-/* 2. phoneContent: スマホ画面内のスクロールも抑制 */
+/* ===== 内側画面（スマホ表示部分） ===== */
 .phoneContent {
   width: 100%;
   max-width: 420px;
+  height: 90vh;
   background: #ffffff;
-  /* phoneFrame のパディングを引いた高さを設定 */
-  height: calc(100vh - 32px);
   border-radius: 28px;
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.15);
-  padding: 24px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   position: relative;
-
-  /* ★修正点★: 内側のスクロールバーも非表示にする */
-  overflow-y: hidden;
 }
 
-/* 3. card: 装飾として枠の二重感を解消 */
+/* ===== タイトル ===== */
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* ===== フォーム領域（二重背景解消） ===== */
 .card {
-  background: none;
-  border-radius: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 420px;
+  background: transparent;
   box-shadow: none;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-/* その他のスタイルはそのまま維持 */
-
-.title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 24px;
-  text-align: center;
-  /* ハンバーガーボタンとの干渉を避けるため、上部に余白を追加 */
-  margin-top: 40px;
-}
-
-
+/* ===== ラベル ===== */
 .label {
   display: block;
   color: #374151;
@@ -71,24 +55,27 @@
   margin-bottom: 6px;
 }
 
-.input,
-.inputtext {
-  padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
-}
-
+/* ===== 入力欄（白背景 × シンプル枠） ===== */
 .input {
-  width: 90%;
-  /* select要素用 */
+  background: #f9fafb;
+  width: 97%;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
 }
 
 .inputtext {
-  width: 84%;
-  /* input[type="text"] 要素用 */
+  background: #f9fafb;
+  width: 90%;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
 }
 
 .input:focus,
@@ -97,6 +84,7 @@
   box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.3);
 }
 
+/* ===== 送信ボタン ===== */
 .btn {
   width: 100%;
   background: linear-gradient(135deg, #f97316, #fb923c);
@@ -118,8 +106,45 @@
   transform: scale(0.96);
 }
 
+/* ===== ハンバーガーメニュー ===== */
+.menuButton {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #fff;
+  color: black;
+  padding: 10px 12px;
+  font-size: 1.4rem;
+  border: none;
+  cursor: pointer;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-/* サイドメニュー */
+.closeMenuBtn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #fff;
+  color: black;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 32px;
+  border: none;
+  cursor: pointer;
+  z-index: 60;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== サイドメニュー ===== */
 .sideMenu {
   position: absolute;
   top: 0;
@@ -128,158 +153,48 @@
   width: 80%;
   max-width: 260px;
   background: #fff;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
-  /* 影を追加 */
-  z-index: 30;
-  /* overlay (z-index: 20) より上にする */
-  display: flex;
-  flex-direction: column;
+  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.18);
+  border-radius: 0 20px 20px 0;
+  z-index: 9999;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  padding-top: 60px;
-  border-radius: 0 20px 20px 0;
+  padding-top: 70px;
 }
 
 .sideMenuOpen {
   transform: translateX(0);
 }
 
-.sideMenu ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sideMenu ul li {
-  /* padding を menuItemButton に移し、li の hover を削除 */
-  cursor: pointer;
-}
-
+/* ===== サイドメニュー内ボタン ===== */
 .menuItemButton {
   all: unset;
   display: block;
   width: 100%;
-  padding: 14px 20px;
-  text-align: left;
+  padding: 18px;
   cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-weight: 500;
+  color: #333;
 }
 
-.menuItemButton:hover {
-  background: #f3f4f6;
-}
-
-.textBlue {
-  color: #3b82f6;
-}
-
-/* ハンバーガーメニューボタン */
-.menuButton {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: white;
-  color: black;
-  padding: 10px 12px;
-  border-radius: 6px;
-  /* ★修正点 2: 「×」がきれいに見えるようにフォントサイズを大きくする★ */
-  font-size: 1.5rem;
-  border: none;
-  cursor: pointer;
-  /* メニューが開いているときは compoment 側で z-index: 40 に設定します */
-  z-index: 10;
-  line-height: 1;
-  /* アイコンを中央に揃える */
-  width: 44px;
-  /* ボタンの幅を固定 */
-  height: 44px;
-  /* ボタンの高さを固定 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* メニューオーバーレイ */
-
-/* サイドメニュー */
-.sideMenu {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 80%;
-  max-width: 260px;
-  background: #ffffff;
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-  padding-top: 60px;
-  border-radius: 0 20px 20px 0;
-}
-
-.sideMenuOpen {
-  transform: translateX(0);
-}
-
-.sideMenu ul {
+.menuList {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.sideMenu ul li {
-  padding: 14px 20px;
-  cursor: pointer;
+
+.menuItemButton:hover {
+  color: #f97316;
 }
 
-.sideMenu ul li:hover {
-  background: #f3f4f6;
-}
-
+/* ===== サイドメニュー外クリック遮蔽 ===== */
 .menuOverlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0);
-  z-index: 20;
-}
-
-.sideMenu {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 80%;
-  max-width: 260px;
-  background: #fff;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
-  z-index: 15;
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-  padding-top: 60px;
-  border-radius: 0 20px 20px 0;
-}
-
-.sideMenuOpen {
-  transform: translateX(0);
-}
-
-.menuItemButton {
-  all: unset;
-  display: block;
-  width: 100%;
-  padding: 14px 20px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menuItemButton:hover {
-  background: #f3f4f6;
-}
-
-.textBlue {
-  color: #3b82f6;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 30;
 }
