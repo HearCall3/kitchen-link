@@ -7,6 +7,7 @@ import styles from "./style.module.css";
 export default function UserProfilePage() {
   const router = useRouter();
 
+  // フォームの state (省略)
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
@@ -25,14 +26,15 @@ export default function UserProfilePage() {
     setTimeout(() => router.push(path), 50);
   };
 
-  const menuWidth = "260px";
+  const menuWidth = "260px"; // サイドメニューの幅をCSSと合わせる
 
   return (
     <div className={styles.phoneFrame}>
 
+      {/* ★修正点 1: メニューが開いたときに contentShift クラスを適用する ★ */}
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
 
-        {/* ハンバーガーボタン*/}
+        {/* ハンバーガーボタン (常に☰を表示) */}
         <button
           className={styles.menuButton}
           onClick={toggleMenu}
@@ -40,7 +42,7 @@ export default function UserProfilePage() {
           ☰
         </button>
 
-        {/* オーバーレイ */}
+        {/* オーバーレイ (クリックで閉じる機能と、暗くする背景を兼ねる) */}
         {menuOpen && (
           <div
             className={styles.menuOverlay}
@@ -51,10 +53,13 @@ export default function UserProfilePage() {
         {/* サイドメニュー */}
         <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
 
-          <button className={styles.closeMenuBtn} onClick={toggleMenu}>
+          {/* ★修正点 2: サイドメニュー内に閉じる「×」ボタンを配置 ★ */}
+          <button className={styles.closeMenuButton} onClick={toggleMenu}>
             ×
           </button>
-          <ul className={styles.menuList}>
+
+          {/* ... メニュー項目 (省略せず記載) ... */}
+          <ul>
             <li>
               <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
             </li>
@@ -76,6 +81,7 @@ export default function UserProfilePage() {
           </ul>
         </div>
 
+        {/* コンテンツ (フォーム部分も省略せず記載) */}
         <h2 className={styles.title}>プロフィール設定</h2>
         <div className={styles.card}>
           {/* ニックネーム */}

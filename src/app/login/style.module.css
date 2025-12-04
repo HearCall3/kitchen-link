@@ -67,3 +67,9 @@
   transform: translateY(0);
   box-shadow: 0 4px 8px rgba(255, 127, 80, 0.2);
 }
+
+/* Googleロゴ */
+.googleLogo {
+  width: 20px;
+  height: 20px;
+}
