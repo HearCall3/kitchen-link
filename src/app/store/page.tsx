@@ -1,19 +1,72 @@
+// src/app/store/page.tsx
 "use client";
 
 import { useState } from "react";
 import styles from "./style.module.css";
 import { useRouter } from "next/navigation";
+// next-auth から useSession をインポート
+import { useSession } from "next-auth/react";
+// データベースアクションをインポート
+import { registerStore } from "@/actions/db_access"; //
 
 export default function StoreRegisterPage() {
   const [storeName, setStoreName] = useState("");
   const [description, setDescription] = useState("");
   const [storeUrl, setStoreUrl] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session } = useSession();
+  // セッションからメールアドレスを取得
+  const email = session?.user?.email;
+  const [form, setForm] = useState({
+    storeName: "",
+    description: "",
+    address: "",
+  });
   const router = useRouter();
 
   //保存ボタンで画面遷移
   const handleSave = () => {
     router.push("/");
+  
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // --- デバッグログ: 試行開始 ---
+    console.log("--- Store Registration Attempt ---");
+    console.log("Session Email:", email); 
+    // ------------------------------
+
+    if (!email) {
+      alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
+      router.push("/login");
+      return;
+    }
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const storeName = formData.get('storeName');
+    console.log("Form Store Name:", storeName); // 入力された店舗名を確認
+    
+
+    // DB登録アクション呼び出し
+    const result = await registerStore(formData, email); //
+
+    // --- デバッグログ: サーバーアクションの結果 ---
+    console.log("Server Action Result:", result); 
+    // ------------------------------------------
+
+    if (result.success) {
+      console.log("店舗登録データ:", form);
+      alert("出店登録が完了しました！");
+      // 登録成功後、トップページへリダイレクト
+      router.push("/");
+    } else {
+      alert(`登録失敗: ${result.error}`);
+    }
   };
   return (
     <div>
@@ -53,6 +106,6 @@ export default function StoreRegisterPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
