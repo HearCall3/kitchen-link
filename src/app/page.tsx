@@ -7,12 +7,18 @@ import Image from "next/image";
 import OpinionMap from "../components/map/OpinionMap";
 import PollMap from "../components/map/PollMap";
 import StoreMap from "../components/map/StoreMap";
+import Test from "./db/page"
 
 export default function Home() {
   const router = useRouter();
+  // return (
+  //   <Test />
+  // )
 
   const status = ['opinion', 'poll', 'store'] as const;
   const [mapStatus, setMapStatus] = useState<typeof status[number]>('store');
+
+  const [latLng, setLatLng] = useState<{ lat: number, lng: number } | null>(null)
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,21 +47,21 @@ export default function Home() {
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-
-
-  // ====== 意見投稿 ======
+  // --- 意見投稿のセクション（変更後） ---
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [inputTag, setInputTag] = useState("");
 
+  const tags = [//意見のタグ
+    { value: "", label: "" }, // 初期選択肢（プレースホルダー）
+    { value: "react", label: "React" },
+    { value: "javascript", label: "JavaScript" },
+    { value: "css", label: "CSS" },
+    { value: "general", label: "雑談" },
+  ];
 
-  const addTag = () => {
-    if (inputTag.trim() && !tags.includes(inputTag.trim())) {
-      setTags([...tags, inputTag.trim()]);
-      setInputTag("");
-    }
-  };
+  // プルダウンで選択されたタグを保持する新しいstate
+  const [selectedTag, setSelectedTag] = useState("");
+
   // ====== アンケート ======
   const [pollOpen, setPollOpen] = useState(false);
   const [votes, setVotes] = useState({ yes: 3, no: 2 });
@@ -80,24 +86,39 @@ export default function Home() {
   // ====== アンケート作成 ======
   const [createOpen, setCreateOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
+  const [optionOne, setOptionOne] = useState("");
+  const [optionTwo, setOptionTwo] = useState("");
 
   const createPoll = async () => {
-    if (!newQuestion.trim()) return;
 
-    const res = await fetch("/api/poll", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: newQuestion }),
-    });
+    alert(newQuestion);
+    alert(optionOne);
+    alert(optionTwo);
+    if (latLng)
+      alert(`緯度: ${latLng.lat}, 経度: ${latLng.lng}`);
 
-    if (res.ok) {
-      alert("アンケートを作成しました！");
-      setNewQuestion("");
-      setCreateOpen(false);
-    }
+    //↓は既存のDBに投げる処理
+    // if (!newQuestion.trim()) return;
+
+    // const res = await fetch("/api/poll", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ question: newQuestion }),
+    // });
+
+    // if (res.ok) {
+    //   alert("アンケートを作成しました！");
+    setNewQuestion("");
+    setCreateOpen(false);
+    setOptionOne("");
+    setOptionTwo("");
+    // }
   };
 
-  const handleDialogOpen = (data: string) => {
+  const handleDialogOpen = (data: string, takelatLng: { lat: number, lng: number }) => {
+
+    setLatLng(takelatLng)
+
     switch (data) {
       case ("post"):
         setPostOpen(true);
@@ -115,8 +136,8 @@ export default function Home() {
   ] as const;
 
   const mapList = {
-    opinion: <OpinionMap onDialogOpen={handleDialogOpen}/>,
-    poll: <PollMap onDialogOpen={handleDialogOpen}/>,
+    opinion: <OpinionMap onDialogOpen={handleDialogOpen} />,
+    poll: <PollMap onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
 
@@ -252,50 +273,80 @@ export default function Home() {
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="質問を入力してください"
             />
-            <button onClick={createPoll} className="submit-btn">作成</button>
+            <input
+              type="text"
+              value={optionOne}
+              onChange={(e) => setOptionOne(e.target.value)}
+              placeholder='回答１'
+            >
+            </input>
+            <input
+              type="text"
+              value={optionTwo}
+              onChange={(e) => setOptionTwo(e.target.value)}
+              placeholder='回答2'>
+            </input>
+            <button onClick={() => {
+              if (newQuestion && optionOne && optionTwo)
+                createPoll()
+            }} className="submit-btn">作成</button>
           </div>
         </>
-      )}
+      )
+      }
 
       {/* ===== 意見投稿ダイアログ ===== */}
-      {postOpen && (
-        <>
-          <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setPostOpen(false)}>×</button>
-            <h3>意見を投稿</h3>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="お店についての意見を入力..."
-            />
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={inputTag}
-                onChange={(e) => setInputTag(e.target.value)}
-                placeholder="#ハッシュタグ"
+      {
+        postOpen && (
+          <>
+            <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setPostOpen(false)}>×</button>
+              <h3>意見を投稿</h3>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="お店についての意見を入力..."
               />
-              <button onClick={addTag} className="add-btn">追加</button>
+              <div className="form-controls">
+                {/* ------------------------------- */}
+                {/* プルダウンメニュー (タグ選択) */}
+                {/* ------------------------------- */}
+                <div className="flex gap-2 mb-3">
+                  <select
+                    value={selectedTag}
+                    onChange={(e) => setSelectedTag(e.target.value)}
+                    className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+                  >
+                    {/* optionsのリストをレンダリング */}
+                    {tags.map((tag) => (
+                      <option key={tag.value} value={tag.value}>
+                        {tag.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => {
+                    if (selectedTag && text && latLng) {
+                      alert(selectedTag);
+                      alert(text);
+                      if (latLng)
+                        alert(`緯度: ${latLng.lat}, 経度: ${latLng.lng}`);
+                      setPostOpen(false);
+                      setText("");
+                      setSelectedTag("");
+                      //ここにDBに送る処理
+                    }
+                  }}
+                  className="submit-btn"
+                >
+                  投稿する
+                </button>
+              </div>
             </div>
-            <div className="tags">
-              {tags.map((t) => (
-                <span key={t}>#{t}</span>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                setPostOpen(false);
-                setText("");
-                setTags([]);
-              }}
-              className="submit-btn"
-            >
-              投稿する
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+          </>
+        )
+      }</div >
+  )
 }
