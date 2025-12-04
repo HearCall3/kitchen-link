@@ -1,56 +1,57 @@
 "use client";
 
 import { useState } from "react";
+import styles from "./style.module.css";
 import { useRouter } from "next/navigation";
-import './style.module.css';
-import OpinionMap from "../../components/OpinionMap";
 
 export default function StoreRegisterPage() {
-  const router = useRouter();
+  const [storeName, setStoreName] = useState("");
+  const [description, setDescription] = useState("");
+  const [storeUrl, setStoreUrl] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
+  const router = useRouter();
 
-  const toggleMenu = () => setMenuOpen(prev => !prev);
-
-  const handleLogin = () => {
-    localStorage.setItem("isLoggedIn", "true");
-    setIsLoggedIn(true);
-    setMenuOpen(false);
+  //保存ボタンで画面遷移
+  const handleSave = () => {
+    router.push("/");
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-    setMenuOpen(false);
-    alert("ログアウトしました");
-  };
-
   return (
-    <div className="phone-frame">
-      <header className="header">
-        <div className="menuIcon" onClick={toggleMenu}>
-          {menuOpen ? "×" : "☰"}
+    <div>
+      {/* ==== メインコンテンツ ==== */}
+      <div className={styles.storeTheme}>
+        <div className={styles.registerCard}>
+          <h2 className={styles.registerTitle}>店舗情報入力</h2>
+
+          <div className={styles.registerForm}>
+            <input
+              type="text"
+              className={styles.registerInput}
+              placeholder="店舗名"
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              required
+            />
+
+            <textarea
+              className={styles.registerTextarea}
+              placeholder="説明（任意）"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            ></textarea>
+
+            <input
+              type="url"
+              className={styles.registerInput}
+              placeholder="店舗URL（任意）"
+              value={storeUrl}
+              onChange={(e) => setStoreUrl(e.target.value)}
+            />
+
+            <button onClick={handleSave} className={styles.registerBtn}>
+              登録する
+            </button>
+          </div>
         </div>
-        <input className="searchInput" placeholder="タグや店名で検索" />
-      </header>
-
-      {menuOpen && <div className="menuOverlay" onClick={() => setMenuOpen(false)} />}
-
-      <div className={`sideMenu ${menuOpen ? 'sideMenuOpen' : ''}`}>
-        <ul className="sideMenuList">
-          <li className="sideMenuItem" onClick={() => router.push("/profile/user")}>プロフィール</li>
-          <li className="sideMenuItem">マイ投稿</li>
-          <li className="sideMenuItem" onClick={() => router.push("/Register")}>出店登録</li>
-          {!isLoggedIn ? (
-            <li className="sideMenuItem" onClick={handleLogin}>ログイン</li>
-          ) : (
-            <li className="sideMenuItem" onClick={handleLogout}>ログアウト</li>
-          )}
-        </ul>
-      </div>
-
-      <div className="mapContainer">
-        <OpinionMap />
       </div>
     </div>
   );

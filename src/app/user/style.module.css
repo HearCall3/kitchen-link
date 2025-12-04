@@ -1,119 +1,46 @@
-/* ===== 全体フレーム ===== */
-.phone-frame {
-  position: relative;
-  width: 90%;
-  max-width: 500px;
-  margin: 0 auto;
-  min-height: 100vh;
-  background: #fff;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-/* ===== ヘッダー ===== */
-.header {
-  display: flex;
-  align-items: center;
-  background-color: #f97316;
-  color: #fff;
-  padding: 10px 15px;
-  position: relative;
-  z-index: 1000;
-}
-
-.menuIcon {
-  font-size: 28px;
-  margin-right: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.searchInput {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 9999px;
-  outline: none;
-  font-size: 14px;
-  background: #fff;
-  color: #333;
-}
-
-/* ===== サイドメニュー ===== */
-.sideMenu {
-  position: fixed;
-  top: 0;
-  left: -260px;
-  width: 220px;
-  height: 100vh;
-  background: #fff;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.2);
-  z-index: 1100;
-  transition: left 0.3s ease;
-  padding-top: 60px;
-}
-
-.sideMenuOpen {
-  left: 0;
-}
-
-.sideMenuList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sideMenuItem {
-  padding: 14px 18px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-  font-weight: 500;
-  color: #333;
-}
-
-.sideMenuItem:hover {
-  background: #f5f5f5;
-  color: #f97316;
-}
-
-/* ===== メニューオーバーレイ ===== */
-.menuOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.3);
-  z-index: 1050;
-}
-
 /* ===== 会員登録フォーム ===== */
+
+.register-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
 .register-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  padding: 24px;
-  margin: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 32px 28px;
+  width: 90%;
+  max-width: 450px;
 }
 
 .register-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: bold;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .register-input {
-  padding: 10px 12px;
+  width: 100%;
+  /* ←フル幅！ */
+  padding: 14px;
   border: 1px solid #ccc;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .register-input:focus {
@@ -121,13 +48,14 @@
 }
 
 .registerBtn {
-  padding: 12px;
+  padding: 14px;
   background-color: #f97316;
   color: white;
   border: none;
   border-radius: 12px;
   font-size: 16px;
   cursor: pointer;
+  width: 100%;
   transition: background 0.2s;
 }
 
