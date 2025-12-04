@@ -1,8 +1,9 @@
-"use client";
+"use client"
 
 import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import Image from "next/image";
 import OpinionMap from "../components/map/OpinionMap";
 import PollMap from "../components/map/PollMap";
@@ -28,18 +29,59 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    setIsLoggedIn(loggedIn);
+    // ログイン状態をlocalStorageからチェックし、stateを更新する関数
+    const checkLoginStatus = () => {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
+    };
+    // ログアウト処理
+    const handleLogout = async () => {
+      try {
+        // localStorageのログイン情報を削除
+        localStorage.removeItem("isLoggedIn");
+
+        // Stateを更新してUIを即座に反映
+        setIsLoggedIn(false);
+        setMenuOpen(false); // メニューを閉じる場合
+
+        // NextAuth のサインアウト（リダイレクトなし）
+        await signOut({ redirect: false });
+
+        // Googleアカウントもログアウト
+        window.location.href = "https://accounts.google.com/Logout";
+
+        alert("ログアウトしました！");
+      } catch (error) {
+        console.error("ログアウトエラー:", error);
+        alert("ログアウトに失敗しました。");
+      }
+    };
+
+
+    // ① コンポーネントが最初に描画された時にチェック
+    checkLoginStatus();
+
+    // ② ユーザーがタブ/アプリに戻った時（focusイベント）に再チェック
+    window.addEventListener('focus', checkLoginStatus);
+
+    // ③ クリーンアップ関数: コンポーネントが破棄されるときにイベントリスナーを解除
+    return () => {
+      window.removeEventListener('focus', checkLoginStatus);
+    };
   }, []);
 
+
+  // --- 修正箇所: handleLoginとhandleLogoutの定義を復元/追加 ---
   const handleLogin = () => {
+    // ログインページへ遷移
     router.push("/login");
   };
 
   const handleLogout = () => {
+    // ログアウト処理
     localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-    setMenuOpen(false);
+    setIsLoggedIn(false); // stateを即座に更新
+    setMenuOpen(false); // メニューを閉じる
     alert("ログアウトしました");
   };
 
@@ -47,7 +89,7 @@ export default function Home() {
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-  // --- 意見投稿のセクション（変更後） ---
+  // ====== 意見投稿 ======
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
 
@@ -72,8 +114,6 @@ export default function Home() {
     setVotes((prev) => ({ ...prev, [option]: prev[option] + 1 }));
     setVoted(true);
   };
-
-  // ←ここなら OK！
   const currentVotes = votes || { yes: 0, no: 0 };
   const total = currentVotes.yes + currentVotes.no;
   const yesPercent = total ? (currentVotes.yes / total) * 100 : 0;
@@ -181,24 +221,35 @@ export default function Home() {
 
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
-          <li className="border-b p-3 hover:bg-gray-100">プロフィール</li>
+
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => router.push("/profile_user")}
+          >
+            プロフィール
+          </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          <li className="border-b p-3 hover:bg-gray-100">出店登録</li>
+          <li
+            className="border-b p-3 hover:bg-gray-100"
+            onClick={() => router.push("/register")}
+          >出店登録</li>
+          {/* ログインしたら「ログアウト」
+          未ログインなら「ログイン」 */}
           {!isLoggedIn ? (
             <li
               className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
               onClick={handleLogin}
             >
-              {/* todo ログイン中はログアウト、未ログインの場合はログインと表示*/}
               ログイン
             </li>
           ) : (
             <li
-              className="border-b p-3 hover:bg-gray-100 text-red-500 cursor-pointer"
+              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
               onClick={handleLogout}
             >
-
+              ログアウト
             </li>
+
           )}
         </ul>
       </div>

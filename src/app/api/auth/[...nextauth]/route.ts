@@ -1,9 +1,7 @@
+// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
-
-//npm install next-auth　のインストール
+import { findUserByEmail } from "@/actions/db_access"; //
 
 const handler = NextAuth({
   providers: [
@@ -17,23 +15,36 @@ const handler = NextAuth({
   },
   callbacks: {
     async signIn({ user }) {
-      // 初回ログインなら user へ飛ばす　テスト用で全員になっている
-      const isNewUser = true; // todo 後でDB判定に置き換え
-      if (isNewUser) {
-        // Google認証の直後に登録画面へ
+      if (!user.email) {
+        return false;
+      }
+      
+      // データベースに何らかのアカウントが存在するかメールアドレスで確認
+      const { exists } = await findUserByEmail(user.email); //
+
+      if (!exists) {
+        // 全く新規のユーザーの場合のみ、ユーザー登録画面へリダイレクト
         return "/user";
       }
-      // 2回目以降ならそのままOK
+      
+      // 既存ユーザーの場合（UserまたはStoreの片方を持っている場合）はホームへ
       return true;
     },
 
     async jwt({ token, user }) {
-      if (user) token.isNewUser = user.isNewUser ?? false;
+      if (user) {
+        token.email = user.email; // JWTにメールアドレスを保存
+        
+        const { exists } = await findUserByEmail(user.email!);
+        // 新規ユーザー判定は「Accountが一つも存在しない」場合に true と定義
+        token.isNewUser = !exists; 
+      }
       return token;
     },
 
     async session({ session, token }) {
-      session.user.isNewUser = token.isNewUser;
+      session.user.email = token.email as string;
+      session.user.isNewUser = token.isNewUser; //
       return session;
     },
   },

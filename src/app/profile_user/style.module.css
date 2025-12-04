@@ -1,0 +1,285 @@
+/* style.module.css */
+
+/* 1. phoneFrame: ブラウザの画面全体を占有し、外側のスクロールを完全に抑制 */
+.phoneFrame {
+  width: 100%;
+  /* ビューポート幅全体 */
+  height: 600px;
+  /* ビューポート高さ全体 */
+
+  /* 外側のスクロールバーを完全に抑制する（ブラウザのデフォルトマージンを無視させる効果もある） */
+  overflow: hidden;
+  position: fixed;
+  /* 画面全体に固定し、bodyのスクロールを完全に無視させる */
+  top: 0;
+  left: 0;
+
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+/* 2. phoneContent: スマホ画面内のスクロールも抑制 */
+.phoneContent {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  /* phoneFrame のパディングを引いた高さを設定 */
+  height: calc(100vh - 32px);
+  border-radius: 28px;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  /* ★修正点★: 内側のスクロールバーも非表示にする */
+  overflow-y: hidden;
+}
+
+/* 3. card: 装飾として枠の二重感を解消 */
+.card {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* その他のスタイルはそのまま維持 */
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;
+  /* ハンバーガーボタンとの干渉を避けるため、上部に余白を追加 */
+  margin-top: 40px;
+}
+
+
+.label {
+  display: block;
+  color: #374151;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.input,
+.inputtext {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input {
+  width: 90%;
+  /* select要素用 */
+}
+
+.inputtext {
+  width: 84%;
+  /* input[type="text"] 要素用 */
+}
+
+.input:focus,
+.inputtext:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.3);
+}
+
+.btn {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 0;
+  border-radius: 12px;
+  border: none;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+
+/* サイドメニュー */
+.sideMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 80%;
+  max-width: 260px;
+  background: #fff;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  /* 影を追加 */
+  z-index: 30;
+  /* overlay (z-index: 20) より上にする */
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  padding-top: 60px;
+  border-radius: 0 20px 20px 0;
+}
+
+.sideMenuOpen {
+  transform: translateX(0);
+}
+
+.sideMenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sideMenu ul li {
+  /* padding を menuItemButton に移し、li の hover を削除 */
+  cursor: pointer;
+}
+
+.menuItemButton {
+  all: unset;
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItemButton:hover {
+  background: #f3f4f6;
+}
+
+.textBlue {
+  color: #3b82f6;
+}
+
+/* ハンバーガーメニューボタン */
+.menuButton {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: white;
+  color: black;
+  padding: 10px 12px;
+  border-radius: 6px;
+  /* ★修正点 2: 「×」がきれいに見えるようにフォントサイズを大きくする★ */
+  font-size: 1.5rem;
+  border: none;
+  cursor: pointer;
+  /* メニューが開いているときは compoment 側で z-index: 40 に設定します */
+  z-index: 10;
+  line-height: 1;
+  /* アイコンを中央に揃える */
+  width: 44px;
+  /* ボタンの幅を固定 */
+  height: 44px;
+  /* ボタンの高さを固定 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* メニューオーバーレイ */
+
+/* サイドメニュー */
+.sideMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 80%;
+  max-width: 260px;
+  background: #ffffff;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  padding-top: 60px;
+  border-radius: 0 20px 20px 0;
+}
+
+.sideMenuOpen {
+  transform: translateX(0);
+}
+
+.sideMenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sideMenu ul li {
+  padding: 14px 20px;
+  cursor: pointer;
+}
+
+.sideMenu ul li:hover {
+  background: #f3f4f6;
+}
+
+.menuOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0);
+  z-index: 20;
+}
+
+.sideMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 80%;
+  max-width: 260px;
+  background: #fff;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  z-index: 15;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  padding-top: 60px;
+  border-radius: 0 20px 20px 0;
+}
+
+.sideMenuOpen {
+  transform: translateX(0);
+}
+
+.menuItemButton {
+  all: unset;
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItemButton:hover {
+  background: #f3f4f6;
+}
+
+.textBlue {
+  color: #3b82f6;
+}

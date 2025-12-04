@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import styles from "./style.module.css"; // ← ここ修正！
+import styles from "./style.module.css";
 
 export default function StoreProfileEditPage() {
   const [storeName, setStoreName] = useState("");
