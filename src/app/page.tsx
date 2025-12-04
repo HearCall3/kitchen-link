@@ -3,24 +3,86 @@
 import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import Image from "next/image";
 import OpinionMap from "../components/map/OpinionMap";
 import PollMap from "../components/map/PollMap";
 import StoreMap from "../components/map/StoreMap";
 
 export default function Home() {
   const router = useRouter();
-  // ログイン情報を取得
-  // NextAuthのセッション情報
-  // isLoggedIn = !!session で判定
-  const { data: session } = useSession();
 
-  // ====== マップ状態 ======
   const status = ['opinion', 'poll', 'store'] as const;
   const [mapStatus, setMapStatus] = useState<typeof status[number]>('store');
+
+  // ====== メニュー・状態 ======
+  const [menuOpen, setMenuOpen] = useState(false);
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
+
+  // ====== ログイン状態 ======
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // ログイン状態をlocalStorageからチェックし、stateを更新する関数
+    const checkLoginStatus = () => {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
+    };
+    // ログアウト処理
+    const handleLogout = async () => {
+      try {
+        // localStorageのログイン情報を削除
+        localStorage.removeItem("isLoggedIn");
+
+        // Stateを更新してUIを即座に反映
+        setIsLoggedIn(false);
+        setMenuOpen(false); // メニューを閉じる場合
+
+        // NextAuth のサインアウト（リダイレクトなし）
+        await signOut({ redirect: false });
+
+        // Googleアカウントもログアウト
+        window.location.href = "https://accounts.google.com/Logout";
+
+        alert("ログアウトしました！");
+      } catch (error) {
+        console.error("ログアウトエラー:", error);
+        alert("ログアウトに失敗しました。");
+      }
+    };
+
+
+    // ① コンポーネントが最初に描画された時にチェック
+    checkLoginStatus();
+
+    // ② ユーザーがタブ/アプリに戻った時（focusイベント）に再チェック
+    window.addEventListener('focus', checkLoginStatus);
+
+    // ③ クリーンアップ関数: コンポーネントが破棄されるときにイベントリスナーを解除
+    return () => {
+      window.removeEventListener('focus', checkLoginStatus);
+    };
+  }, []);
+
+
+  // --- 修正箇所: handleLoginとhandleLogoutの定義を復元/追加 ---
+  const handleLogin = () => {
+    // ログインページへ遷移
+    router.push("/login");
+  };
+
+  const handleLogout = () => {
+    // ログアウト処理
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false); // stateを即座に更新
+    setMenuOpen(false); // メニューを閉じる
+    alert("ログアウトしました");
+  };
+
   // ====== 絞り込み ======
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
+
 
   // ====== 意見投稿 ======
   const [postOpen, setPostOpen] = useState(false);
@@ -28,16 +90,13 @@ export default function Home() {
   const [tags, setTags] = useState<string[]>([]);
   const [inputTag, setInputTag] = useState("");
 
+
   const addTag = () => {
     if (inputTag.trim() && !tags.includes(inputTag.trim())) {
       setTags([...tags, inputTag.trim()]);
       setInputTag("");
     }
   };
-
-  // ====== メニュー ======
-  const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen((prev) => !prev);
   // ====== アンケート ======
   const [pollOpen, setPollOpen] = useState(false);
   const [votes, setVotes] = useState({ yes: 3, no: 2 });
@@ -50,26 +109,8 @@ export default function Home() {
   };
   const currentVotes = votes || { yes: 0, no: 0 };
   const total = currentVotes.yes + currentVotes.no;
-
   const yesPercent = total ? (currentVotes.yes / total) * 100 : 0;
   const noPercent = total ? (currentVotes.no / total) * 100 : 0;
-
-  const handleOpenPost = () => {
-    // 未ログインならモーダル表示して終了
-    // ログイン済みなら意見投稿モーダルを開く
-    if (!checkLoginStatus()) return;
-    setPostOpen(true);
-  };
-
-  const handleOpenPollCreate = () => {
-    if (!checkLoginStatus()) return;
-    setCreateOpen(true);
-  };
-
-  const handleOpenPollVote = () => {
-    if (!checkLoginStatus()) return;
-    setPollOpen(true);
-  };
 
 
   // ====== アンケートを開く ======
@@ -78,10 +119,6 @@ export default function Home() {
   // ====== アンケート作成 ======
   const [createOpen, setCreateOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
-  //選択肢（２こ）
-  const [option1, setOption1] = useState("");
-  const [option2, setOption2] = useState("");
-
 
   const createPoll = async () => {
     if (!newQuestion.trim()) return;
@@ -98,61 +135,6 @@ export default function Home() {
       setCreateOpen(false);
     }
   };
-
-  // ====== ログイン====
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-  // ====== ログインチェック関数=====
-  const checkLoginStatus = () => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    // ログイン状態を state にセット
-    setIsLoggedIn(loggedIn);
-    // 未ログインならモーダル表示
-    if (!loggedIn) setShowLoginPrompt(true);
-    // 戻り値でログイン状態を返す
-    return loggedIn;
-  };
-
-  // ====== ログイン・ログアウト関数（トップレベルに置く）=====
-  const handleLogin = () => router.push("/login");
-
-  const handleLogout = async () => {
-    try {
-      // NextAuth のセッションを削除
-      await signOut({ callbackUrl: "/" }); // ログアウト後はトップページへ
-      // localStorageの状態も更新
-      localStorage.removeItem("isLoggedIn");
-      setIsLoggedIn(false);
-      setMenuOpen(false);
-    } catch (error) {
-      console.error(error);
-      alert("ログアウトに失敗しました");
-    }
-  };
-
-  // マップ処理
-  useEffect(() => {
-    // コンポーネント初回レンダリング時とタブフォーカス時にログインチェック
-    checkLoginStatus();
-    window.addEventListener("focus", checkLoginStatus);
-
-    return () => window.removeEventListener("focus", checkLoginStatus);
-  }, []);
-
-  useEffect(() => {
-    // ① コンポーネントが最初に描画された時にチェック
-    checkLoginStatus();
-
-    // ② ユーザーがタブ/アプリに戻った時（focusイベント）に再チェック
-    window.addEventListener('focus', checkLoginStatus);
-
-    // ③ クリーンアップ関数: コンポーネントが破棄されるときにイベントリスナーを解除
-    return () => {
-      window.removeEventListener('focus', checkLoginStatus);
-    };
-  }, []);
 
   const handleDialogOpen = (data: string) => {
     switch (data) {
@@ -172,13 +154,15 @@ export default function Home() {
   ] as const;
 
   const mapList = {
-    opinion: <OpinionMap onDialogOpen={handleDialogOpen} />,
-    poll: <PollMap onDialogOpen={handleDialogOpen} />,
+    opinion: <OpinionMap onDialogOpen={handleDialogOpen}/>,
+    poll: <PollMap onDialogOpen={handleDialogOpen}/>,
     store: <StoreMap />
   };
 
   return (
-    <div className="frame">
+
+    <div className="phone-frame">
+
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
@@ -207,6 +191,7 @@ export default function Home() {
         ))}
       </div>
 
+
       {/* ===== ハンバーガーメニュー ===== */}
       {menuOpen && (
         <div className="menu-overlay" onClick={() => setMenuOpen(false)}></div>
@@ -226,44 +211,26 @@ export default function Home() {
             className="border-b p-3 hover:bg-gray-100"
             onClick={() => router.push("/register")}
           >出店登録</li>
-          {!session ? (
-            <li onClick={() => signIn("google", { callbackUrl: "/user" })}>ログイン</li>
+          {/* ログインしたら「ログアウト」
+          未ログインなら「ログイン」 */}
+          {!isLoggedIn ? (
+            <li
+              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
+              onClick={handleLogin}
+            >
+              ログイン
+            </li>
           ) : (
-            <li onClick={() => signOut({ callbackUrl: "/" })}>ログアウト</li>
+            <li
+              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
+              onClick={handleLogout}
+            >
+              ログアウト
+            </li>
+
           )}
         </ul>
       </div>
-
-      {/*ログイン画面下から出す*/}
-      {showLoginPrompt && (
-        <>
-          {/* 背景オーバーレイ */}
-          <div
-            className="dialog-overlay"
-            onClick={() => setShowLoginPrompt(false)}
-          />
-
-          {/* ログインモーダル */}
-          <div className="login-prompt-dialog">
-            <button className="close-btn" onClick={() => setShowLoginPrompt(false)}>×</button>
-            <h1 className="login-title">Kitchen Link</h1>
-            <button
-              className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/user" })}>
-              Googleでユーザーログイン
-            </button>
-
-            <button
-              className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/store" })}
-            >
-              Googleで店舗ログイン
-            </button>
-          </div>
-        </>
-      )}
-
-
 
       {/* ==== オーバーレイ（背景クリックで閉じる） ==== */}
       {menuOpen && (
@@ -278,16 +245,21 @@ export default function Home() {
         {mapList[mapStatus]}
       </div>
 
+      {/* ===== アンケート作成ボタン ===== */}
+      <button
+        onClick={() => setCreateOpen(true)}
+        className="submit-btn mb-2"
+      >
+        アンケートを作成
+      </button>
+
       {/* ===== アクションボタン ===== */}
       <div className="flex flex-col items-center gap-4 p-4">
-        <button onClick={handleOpenPollCreate} className="submit-btn mb-2">
-          アンケートを作成
-        </button>
-        <button className="submit-btn flex flex-col items-center" onClick={handleOpenPollVote}>
+        <button className="submit-btn flex flex-col items-center" onClick={openPoll}>
           アンケートに回答する
         </button>
 
-        <button onClick={handleOpenPost} className="submit-btn">
+        <button onClick={() => setPostOpen(true)} className="submit-btn">
           意見を投稿する
         </button>
       </div>
@@ -324,45 +296,16 @@ export default function Home() {
           <div className="poll-dialog active">
             <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
             <h3>アンケートを作成</h3>
-
-            {/* 質問入力 */}
             <input
               type="text"
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="質問を入力してください"
-              className="mb-2 p-2 border rounded w-full"
             />
-
-            {/* 選択肢1 */}
-            <input
-              type="text"
-              value={option1}
-              onChange={(e) => setOption1(e.target.value)}
-              placeholder="選択肢1"
-              className="mb-2 p-2 border rounded w-full"
-            />
-
-            {/* 選択肢2 */}
-            <input
-              type="text"
-              value={option2}
-              onChange={(e) => setOption2(e.target.value)}
-              placeholder="選択肢2"
-              className="mb-4 p-2 border rounded w-full"
-            />
-
-            {/* 作成ボタン */}
-            <button
-              onClick={createPoll}
-              className="submit-btn w-full"
-            >
-              作成
-            </button>
+            <button onClick={createPoll} className="submit-btn">作成</button>
           </div>
         </>
       )}
-
 
       {/* ===== 意見投稿ダイアログ ===== */}
       {postOpen && (
