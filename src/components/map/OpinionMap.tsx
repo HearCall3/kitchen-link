@@ -62,7 +62,7 @@ const opinionList: testopinionData[] = [
 ]
 
 interface OpinionMapProps {
-    onDialogOpen: (data: string) => void;
+    onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
 }
 export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
 
@@ -132,9 +132,10 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
     const MAX_VISIBLE_LABELS = 5;
 
     const handleOpinionTransition = () => {
-        onDialogOpen("post");
+        if (clickPos) {
+            onDialogOpen("post", clickPos);
+        }
     }
-
     //コンポーネントではなくuseEffectでDrawingManagerを管理する
     useEffect(() => {
         if (!map || !isLoaded) return;

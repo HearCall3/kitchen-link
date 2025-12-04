@@ -18,7 +18,7 @@ const containerStyle = {
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
-const mapOption = {disableDefaultUI: true}
+const mapOption = { disableDefaultUI: true }
 
 // 定数は外に出す（変更なし）
 const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
@@ -33,11 +33,10 @@ const circleOptions = {
 };
 
 interface PostMapProps {
-    onDialogOpen: (data: string) => void;
+    onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
 }
 
 export default function PollMap({ onDialogOpen }: PostMapProps) {
-// export default function PollMap() {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -51,7 +50,8 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
 
 
     const handleOpinionTransition = () => {
-        onDialogOpen("post");
+        if (clickPos)
+            onDialogOpen("poll", clickPos);
     }
 
     useEffect(() => {
@@ -91,7 +91,7 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                                     background: 'white', padding: '8px 12px', borderRadius:
                                         '6px', border: '1px solid #ccc', whiteSpace: 'nowrap',
                                 }}
-                            onClick={handleOpinionTransition}
+                                onClick={handleOpinionTransition}
                             >
                                 アンケートを作成</button>
                         </OverlayView>
