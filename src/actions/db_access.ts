@@ -1,4 +1,4 @@
-// src/actions/db_access.ts (Account IDに '03' を適用するように修正)
+// src/actions/db_access.ts
 'use server';
 
 import prisma from '@/lib/prisma';
@@ -18,20 +18,19 @@ function safeParseInt(value: FormDataEntryValue | null): number | undefined {
 
 const SEQUENCE_NAME_USER = 'user_seq';
 const SEQUENCE_NAME_STORE = 'store_seq';
-// ★ Account専用のシーケンス名を追加
 const SEQUENCE_NAME_ACCOUNT = 'account_seq'; 
+const SEQUENCE_NAME_OPENING = 'opening_info_seq'; 
+const SEQUENCE_NAME_OPINION = 'opinion_seq';      
+const SEQUENCE_NAME_QUESTION = 'question_seq';    
+
 const COUNT_LENGTH = 8; // 連番部分の桁数
 
 /**
  * データベースで連番を安全にインクリメントし、カスタムIDを生成する
- * @param seqName - 'user_seq', 'store_seq', or 'account_seq'
- * @param typeCode - '01' (User), '02' (Store), or '03' (Account)
- * @param tx - Prismaトランザクションクライアント
- * @returns [8桁の連番][2桁のタイプコード] の形式のカスタムID (String)
  */
-async function getAndIncrementCustomId(seqName: typeof SEQUENCE_NAME_USER | typeof SEQUENCE_NAME_STORE | typeof SEQUENCE_NAME_ACCOUNT, typeCode: '01' | '02' | '03', tx: any): Promise<string> {
+async function getAndIncrementCustomId(seqName: string, typeCode: string, tx: any): Promise<string> {
     
-    // シーケンスを検索・インクリメント (各テーブル固有のシーケンスを使う)
+    // シーケンスを検索・インクリメント
     let sequence = await tx.sequence.findUnique({
         where: { name: seqName },
     });
@@ -54,7 +53,7 @@ async function getAndIncrementCustomId(seqName: typeof SEQUENCE_NAME_USER | type
 }
 
 // ----------------------------------------------------------------------
-// 1. 一般利用者（User）登録 (INSERT/UPDATE)
+// 1. 一般利用者（User）登録 (INSERT/UPDATE) - ロジックは前回通り
 // ----------------------------------------------------------------------
 export async function registerUser(formData: FormData, email: string) {
     const nickname = formData.get('nickname') as string;
@@ -69,7 +68,6 @@ export async function registerUser(formData: FormData, email: string) {
     try {
         const newUser = await prisma.$transaction(async (tx) => {
             
-            // 1. Accountの存在確認
             const existingAccount = await tx.account.findUnique({
                 where: { email: email },
             });
@@ -78,7 +76,6 @@ export async function registerUser(formData: FormData, email: string) {
                 return { error: 'このメールアドレスは、既に一般利用者（User）として登録済みです。' };
             }
 
-            // 2. Userテーブルに登録
             const customUserId = await getAndIncrementCustomId(SEQUENCE_NAME_USER, '01', tx);
             
             const userData: Prisma.UserCreateInput = {
@@ -98,24 +95,20 @@ export async function registerUser(formData: FormData, email: string) {
 
             const user = await tx.user.create({ data: userData });
 
-            // 3. Accountテーブルの処理 (新規作成 or 更新)
             if (existingAccount) {
-                // 既存のAccountレコードを更新
                 await tx.account.update({
                     where: { accountId: existingAccount.accountId },
                     data: {
-                        userId: customUserId, // User IDを追記
+                        userId: customUserId,
                         accountType: existingAccount.storeId ? 'Both' : 'User' 
                     }
                 });
             } else {
-                // 新規Accountレコードを作成
-                // ★ Account IDを専用シーケンスから生成 ('03' を適用)
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx); 
                 
                 await tx.account.create({
                     data: {
-                        accountId: customAccountId, // ★ ID指定
+                        accountId: customAccountId,
                         email: email, 
                         accountType: 'User',
                         userId: customUserId, 
@@ -127,13 +120,16 @@ export async function registerUser(formData: FormData, email: string) {
 
         });
 
-        revalidatePath('/'); 
+        revalidatePath('/db'); 
         return { success: true, user: newUser };
 
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             if (error.meta && (error.meta.target as string[]).includes('nickname')) {
                  return { error: 'そのニックネームは既に使用されています。別のニックネームを選んでください。' };
+            }
+            if (error.meta && (error.meta.target as string[]).includes('email')) {
+                 return { error: 'このメールアドレスは既に他のアカウントで使用されています。' };
             }
             return { error: '登録に失敗しました（データ重複エラー）。' };
         }
@@ -146,7 +142,7 @@ export async function registerUser(formData: FormData, email: string) {
 }
 
 // ----------------------------------------------------------------------
-// 2. ストア（Store）登録 (INSERT/UPDATE)
+// 2. ストア（Store）登録 (INSERT/UPDATE) - ロジックは前回通り
 // ----------------------------------------------------------------------
 export async function registerStore(formData: FormData, email: string) {
     const storeName = formData.get('storeName') as string;
@@ -160,7 +156,6 @@ export async function registerStore(formData: FormData, email: string) {
     try {
         const newStore = await prisma.$transaction(async (tx) => {
             
-            // 1. Accountの存在確認
             const existingAccount = await tx.account.findUnique({
                 where: { email: email },
             });
@@ -169,35 +164,33 @@ export async function registerStore(formData: FormData, email: string) {
                 return { error: 'このメールアドレスは、既に出店者（Store）として登録済みです。' };
             }
 
-            // 2. Storeテーブルに登録
             const customStoreId = await getAndIncrementCustomId(SEQUENCE_NAME_STORE, '02', tx);
             
             const store = await tx.store.create({
                 data: {
-                    storeId: customStoreId, // ★ ID指定
+                    storeId: customStoreId, 
                     storeName: storeName,
                     introduction: introduction, 
                 }
             });
+            
+            // StoreOpeningInformation ID生成
+            const customOpeningId = await getAndIncrementCustomId(SEQUENCE_NAME_OPENING, '04', tx);
 
-            // 3. Accountテーブルの処理 (新規作成 or 更新)
             if (existingAccount) {
-                // 既存のAccountレコードを更新
                 await tx.account.update({
                     where: { accountId: existingAccount.accountId },
                     data: {
-                        storeId: customStoreId, // Store IDを追記
+                        storeId: customStoreId, 
                         accountType: existingAccount.userId ? 'Both' : 'Store'
                     }
                 });
             } else {
-                // 新規Accountレコードを作成
-                // ★ Account IDを専用シーケンスから生成 ('03' を適用)
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx); 
 
                 await tx.account.create({
                     data: {
-                        accountId: customAccountId, // ★ ID指定
+                        accountId: customAccountId, 
                         email: email, 
                         accountType: 'Store',
                         storeId: customStoreId, 
@@ -205,10 +198,10 @@ export async function registerStore(formData: FormData, email: string) {
                 });
             }
 
-
-            // 4. StoreOpeningInformation に出店場所を仮登録
+            // StoreOpeningInformation に出店場所を仮登録
             await tx.storeOpeningInformation.create({
                 data: {
+                    storeOpeningInformationId: customOpeningId, // ★ ID指定
                     storeId: customStoreId, 
                     locationName: locationName,
                     latitude: 35.6895, 
@@ -221,13 +214,16 @@ export async function registerStore(formData: FormData, email: string) {
 
         });
 
-        revalidatePath('/');
+        revalidatePath('/db');
         return { success: true, store: newStore };
 
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             if (error.meta && (error.meta.target as string[]).includes('store_name')) {
                  return { error: 'その店舗名は既に使用されています。別の店舗名を選んでください。' };
+            }
+            if (error.meta && (error.meta.target as string[]).includes('email')) {
+                 return { error: 'このメールアドレスは既に他のアカウントで使用されています。' };
             }
             return { error: '登録に失敗しました（データ重複エラー）。' };
         }
@@ -236,20 +232,136 @@ export async function registerStore(formData: FormData, email: string) {
     }
 }
 
+
 // ----------------------------------------------------------------------
-// 3. ユーザーの存在確認 (認証コールバック用)
+// 3. 更新 (UPDATE) - IDをStringに変更し、User/Storeの更新に集中
 // ----------------------------------------------------------------------
-export async function findUserByEmail(email: string) {
+// IDの型を number から string に変更
+export async function updateAccount(id: string, formData: FormData) {
+    // フォームデータから取得
+    const introduction = formData.get('introduction') as string;
+    const storeName = formData.get('storeName') as string; 
+    
+    // マスタIDは Int のまま
+    const genderId = safeParseInt(formData.get('genderCode'));
+    const ageGroupCode = safeParseInt(formData.get('ageGroupCode'));
+    const occupationCode = safeParseInt(formData.get('occupationCode'));
+
+    const existingAccount = await prisma.account.findUnique({
+        where: { accountId: id }, // accountId は string
+        select: { accountType: true, userId: true, storeId: true }
+    });
+
+    if (!existingAccount) {
+        return { error: 'Account not found for update.' };
+    }
+    
     try {
-        const account = await prisma.account.findUnique({
-            where: { email: email }, 
-            select: { accountId: true }
-        });
-        
-        return { exists: !!account };
-        
+        await prisma.$transaction(async (tx) => {
+            
+            // User or Both の場合、Userテーブルを更新
+            if (existingAccount.userId) {
+                
+                const userData: Prisma.UserUpdateInput = {
+                    introduction: introduction, // Userテーブルのintroductionを更新
+                };
+
+                // マスタデータ接続/切断ロジック
+                if (genderId !== undefined) {
+                    userData.gender = { connect: { genderId: genderId } };
+                } 
+                if (ageGroupCode !== undefined) {
+                    userData.ageGroup = { connect: { ageGroupId: ageGroupCode } };
+                } 
+                if (occupationCode !== undefined) {
+                    userData.occupation = { connect: { occupationId: occupationCode } };
+                }
+
+                await tx.user.update({
+                    where: { userId: existingAccount.userId },
+                    data: userData,
+                });
+            }
+
+            // Store or Both の場合、Storeテーブルを更新
+            if (existingAccount.storeId) {
+                await tx.store.update({
+                    where: { storeId: existingAccount.storeId },
+                    data: {
+                        storeName: storeName, // StoreテーブルのstoreNameを更新
+                        introduction: introduction, // Storeテーブルのintroductionを更新
+                    },
+                });
+            }
+            
+            // ★ Accountテーブル自体には更新は不要 (introductionがないため)
+            // AccountUpdateInputのエラーを回避するため、ここでは何も実行しない
+            
+        }); // $transaction end
+
+        revalidatePath('/db');
+        return { success: true };
+
     } catch (error) {
-        console.error('Find user by email error:', error);
-        return { exists: false, error: 'DB search failed' }; 
+        // P2002 (重複) と P2025 (レコードが見つからない) のエラーハンドリングを修正
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+             if (error.meta && (error.meta.target as string[]).includes('store_name')) {
+                 return { error: '更新に失敗: その店舗名は既に使用されています。' };
+             }
+             return { error: '更新に失敗: データ重複エラーが発生しました。' };
+        }
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            return { error: '更新に失敗: 選択されたマスタデータIDが存在しません。' };
+        }
+        
+        console.error('Account update error:', error);
+        return { error: 'アカウント情報の更新に失敗しました。詳細をログで確認してください。' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 4. 削除 (DELETE) - ロジックは前回通り
+// ----------------------------------------------------------------------
+export async function deleteAccount(id: string) {
+    
+    const existingAccount = await prisma.account.findUnique({
+        where: { accountId: id }, 
+        select: { userId: true, storeId: true }
+    });
+
+    if (!existingAccount) {
+        return { error: 'Account not found for deletion.' };
+    }
+    
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. 依存するトランザクションデータを削除
+            await tx.pressLike.deleteMany({ where: { accountId: id } }); 
+            await tx.questionAnswer.deleteMany({ where: { accountId: id } });
+            await tx.postAnOpinion.deleteMany({ where: { accountId: id } });
+
+            // 2. 関連する User/Store テーブルを削除
+            if (existingAccount.userId) {
+                await tx.user.delete({ where: { userId: existingAccount.userId } });
+            }
+            if (existingAccount.storeId) {
+                await tx.storeOpeningInformation.deleteMany({ where: { storeId: existingAccount.storeId } });
+                await tx.question.deleteMany({ where: { storeId: existingAccount.storeId } }); 
+                await tx.store.delete({ where: { storeId: existingAccount.storeId } });
+            }
+
+            // 3. Account を削除
+            await tx.account.delete({
+                where: { accountId: id },
+            });
+        });
+
+
+        revalidatePath('/db');
+        return { success: true };
+
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        return { error: 'アカウントの削除に失敗しました。関連するデータの問題を確認してください。' };
     }
 }
