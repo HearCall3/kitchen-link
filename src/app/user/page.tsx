@@ -7,7 +7,7 @@ import styles from "./style.module.css";
 // next-auth から useSession をインポート
 import { useSession } from "next-auth/react";
 // データベースアクションをインポート
-import { registerUser } from "@/actions/db_access"; //
+import { createUser } from "@/actions/db_access"; //
 
 
 export default function UserRegisterPage() {
@@ -16,6 +16,7 @@ export default function UserRegisterPage() {
   const { data: session } = useSession();
   const email = session?.user?.email;
 
+  // フォームのstate管理
   const [form, setForm] = useState({
     nickname: "",
     gender: "",
@@ -39,7 +40,7 @@ export default function UserRegisterPage() {
     const formData = new FormData(e.target as HTMLFormElement);
     
     // DB登録アクション呼び出し
-    const result = await registerUser(formData, email); //
+    const result = await createUser(formData, email); //
 
     if (result.success) {
       console.log("登録データ:", form);
