@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
+import DeleteAccountButton from "@/components/DeleteAccountButton";
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -155,6 +156,10 @@ export default function UserProfilePage() {
             保存する
           </button>
         </div>
+      </div>
+      <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+        <h2>危険区域</h2>
+        <DeleteAccountButton />
       </div>
     </div>
   );

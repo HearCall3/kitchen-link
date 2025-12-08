@@ -2,12 +2,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
+import { useRouter } from "next/navigation";
+
 // next-auth から useSession をインポート
 import { useSession } from "next-auth/react";
 // データベースアクションをインポート
-import { registerStore } from "@/actions/db_access"; //
+import { createStore } from "@/actions/db_access"; //
 
 
 export default function StoreRegisterPage() {
@@ -22,6 +23,8 @@ export default function StoreRegisterPage() {
     address: "",
   });
 
+  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -32,7 +35,6 @@ export default function StoreRegisterPage() {
     // --- デバッグログ: 試行開始 ---
     console.log("--- Store Registration Attempt ---");
     console.log("Session Email:", email); 
-    // ------------------------------
 
     if (!email) {
       alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
@@ -46,15 +48,15 @@ export default function StoreRegisterPage() {
     
 
     // DB登録アクション呼び出し
-    const result = await registerStore(formData, email); //
+    const result = await createStore(formData, email); 
 
     // --- デバッグログ: サーバーアクションの結果 ---
     console.log("Server Action Result:", result); 
-    // ------------------------------------------
 
     if (result.success) {
       console.log("店舗登録データ:", form);
       alert("出店登録が完了しました！");
+
       // 登録成功後、トップページへリダイレクト
       router.push("/");
     } else {

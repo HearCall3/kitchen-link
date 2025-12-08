@@ -1,7 +1,7 @@
 // src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { findUserByEmail } from "@/actions/db_access"; //
+import { findUserByEmail, findAccountDetailsByEmail } from "@/actions/db_access"; //
 
 const handler = NextAuth({
   providers: [
@@ -24,19 +24,31 @@ const handler = NextAuth({
 
       if (!exists) {
         // 全く新規のユーザーの場合のみ、ユーザー登録画面へリダイレクト
-        return "/user";
+        return true;
       }
       
       // 既存ユーザーの場合（UserまたはStoreの片方を持っている場合）はホームへ
-      return true;
+      return "/";
     },
 
     async jwt({ token, user }) {
       if (user) {
-        token.email = user.email; // JWTにメールアドレスを保存
+        token.email = user.email;
+        
+        // ★ データベースからアカウント詳細を取得 ★
+        if (user.email) {
+            const account = await findAccountDetailsByEmail(user.email);
+            
+            if (account) {
+                token.accountId = account.accountId as unknown as string;
+                // storeIdが存在する場合のみ格納
+                if (account.storeId) {
+                    token.storeId = account.storeId as unknown as string;
+                }
+            }
+        }
         
         const { exists } = await findUserByEmail(user.email!);
-        // 新規ユーザー判定は「Accountが一つも存在しない」場合に true と定義
         token.isNewUser = !exists; 
       }
       return token;
@@ -44,7 +56,12 @@ const handler = NextAuth({
 
     async session({ session, token }) {
       session.user.email = token.email as string;
-      session.user.isNewUser = token.isNewUser; //
+      session.user.isNewUser = token.isNewUser as boolean;
+      
+      // ★ JWTからstoreIdとaccountIdをセッションに格納 ★
+      session.user.accountId = token.accountId as string | undefined;
+      session.user.storeId = token.storeId as string | undefined;
+      
       return session;
     },
   },
