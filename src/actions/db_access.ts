@@ -4,6 +4,13 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
+import * as crypto from 'crypto';
+
+// メールアドレスをSHA-256でハッシュ化する関数
+function hashEmail(email: string): string {
+    // メールアドレスは小文字に変換してからハッシュ化することで、大文字・小文字を区別しない検索を可能にする
+    return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
+}
 
 // FormDataから数値を安全にパースし、undefinedを返すユーティリティ
 function safeParseInt(value: FormDataEntryValue | null): number | undefined {
@@ -226,6 +233,9 @@ export async function createStore(formData: FormData, email: string) {
     console.log(`[DB] START: Creating Store for email: ${email}`);
     const storeName = formData.get('storeName') as string;
     const introduction = formData.get('description') as string;
+    // ハッシュ値を使用
+    const hashedEmail = hashEmail(email);
+
 
     if (!storeName || !email) {
         return { error: '店舗名とメールアドレスは必須です。' };
@@ -234,7 +244,7 @@ export async function createStore(formData: FormData, email: string) {
     try {
         const newStore = await prisma.$transaction(async (tx) => {
 
-            const existingAccount = await tx.account.findUnique({ where: { email: email } });
+            const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.storeId) {
                 return { error: 'このメールアドレスは、既に出店者（Store）として登録済みです。' };
             }
@@ -256,7 +266,7 @@ export async function createStore(formData: FormData, email: string) {
             } else {
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
-                    data: { accountId: customAccountId, email: email, accountType: 'Store', storeId: customStoreId }
+                    data: { accountId: customAccountId, email: hashedEmail, accountType: 'Store', storeId: customStoreId }
                 });
             }
 
@@ -806,9 +816,12 @@ export async function toggleLike(formData: FormData) {
 // 6. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
 export async function findUserByEmail(email: string) {
+    const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+    
+    console.log(`[DB] START: Finding user by HASH.`);
     try {
         const account = await prisma.account.findUnique({
-            where: { email: email },
+            where: { email: hashedEmail },
             select: { accountId: true }
         });
 
@@ -872,5 +885,53 @@ export async function getAllTags() {
     } catch (error) {
         console.error('Fetching tags failed:', error);
         return { success: false, error: 'タグリストの取得に失敗しました。' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 9. アカウントデータ取得
+// ----------------------------------------------------------------------
+
+/** 9-A. アカウントIDからUserとStoreの詳細情報を取得 */
+export async function getUserAndStoreDetails(accountId: string) {
+    console.log(`[DB] START: Fetching User/Store Details for Account ID: ${accountId}`);
+    if (!accountId) {
+        return { success: false, error: 'アカウントIDが指定されていません。' };
+    }
+
+    try {
+        // Accountレコードを取得し、関連するUserとStoreの情報を取得（結合）
+        const account = await prisma.account.findUnique({
+            where: { accountId: accountId },
+            select: {
+                accountId: true,
+                email: true,
+                accountType: true,
+                // Userテーブルの全カラムではなく、必要なカラムとマスタデータの名前を選択
+                user: {
+                    select: {
+                        userId: true,
+                        nickname: true,
+                        introduction: true,
+                        gender: { select: { genderName: true } }, 
+                        ageGroup: { select: { ageGroupName: true } }, 
+                        occupation: { select: { occupationName: true } },
+                    }
+                }, 
+                // Storeテーブルの全カラムを取得
+                store: true, 
+            },
+        });
+
+        if (!account) {
+            return { success: false, error: '指定されたアカウントIDは見つかりませんでした。' };
+        }
+
+        console.log(`[DB] END: Fetched details for Account ID: ${accountId}`);
+        return { success: true, account };
+
+    } catch (error) {
+        console.error('Fetching account details failed:', error);
+        return { success: false, error: 'アカウント詳細情報の取得に失敗しました。' };
     }
 }

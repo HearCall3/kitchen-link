@@ -16,7 +16,8 @@ import {
   getAllQuestions,
   answerQuestion,
   getAllTags,
-  getAllOpinions
+  getAllOpinions,
+  getUserAndStoreDetails
 } from "@/actions/db_access";
 // next-auth から useSession をインポート
 import { useSession } from "next-auth/react";
@@ -25,33 +26,56 @@ import { useSession } from "next-auth/react";
 export default function Home() {
   const router = useRouter();
 
-  // セッションからメールアドレスを取得
-  const { data: session } = useSession();
+  // ★ 修正: useSession から data: session と status を正しく取得
+  const { data: session, status } = useSession();
   const email = session?.user?.email;
 
-  // return (
-  //   <Test />
-  // )
-
-  const status = ['opinion', 'poll', 'store'] as const;
-  const [mapStatus, setMapStatus] = useState<typeof status[number]>('store');
+  // Map Statuses (配列名の衝突を避けるために mapStatuses に変更)
+  const mapStatuses = ['opinion', 'poll', 'store'] as const;
+  const [mapStatus, setMapStatus] = useState<typeof mapStatuses[number]>('store');
 
   const [latLng, setLatLng] = useState<{ lat: number, lng: number } | null>(null);
 
-  // ★ 追加: 回答ダイアログの状態と現在回答中の質問を保持するState  
+  // ====== 共通データ States ======
   const [questions, setQuestions] = useState<any[]>([]);
-  const [answerPollOpen, setAnswerPollOpen] = useState(false); // 新しい回答ダイアログの開閉
-  const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null); // 現在回答中の質問
-  const [selectedOption, setSelectedOption] = useState<number | null>(null); // 選択された回答
-  const [opinions, setOpinions] = useState<any[]>([]); // 意見リストを保持するState
+  const [opinions, setOpinions] = useState<any[]>([]); // 意見リスト
+  const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]); // タグリスト (動的取得)
+
+  // ====== アンケート回答 States ======
+  const [answerPollOpen, setAnswerPollOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleMenu = () => setMenuOpen((prev) => !prev);
 
-  // ====== ログイン状態 ======
+  // ====== ログイン状態 (localStorage利用はそのまま残す) ======
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // ====== 意見投稿 States ======
+  const [postOpen, setPostOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+
+  // ====== アンケート作成 States ======
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [optionOne, setOptionOne] = useState("");
+  const [optionTwo, setOptionTwo] = useState("");
+
+  // ====== 出店登録 States ======
+  const [storeRegisterOpen, setStoreRegisterOpen] = useState(false);
+  const [storeForm, setStoreForm] = useState({
+    storeName: "",
+    description: "",
+    address: "",
+  });
+
+
+  // --- useEffects ---
+
+  // 1. ログイン状態チェック
   useEffect(() => {
     // ログイン状態をlocalStorageからチェックし、stateを更新する関数
     const checkLoginStatus = () => {
@@ -94,31 +118,35 @@ export default function Home() {
     };
   }, []);
 
-  // ★ 追加: アンケートリストをフェッチする useEffect
+  // 2. データ取得: アンケート、意見、タグ (統合)
   useEffect(() => {
-    async function fetchQuestions() {
-      const result = await getAllQuestions();
-      if (result.success && result.questions) {
-        setQuestions(result.questions);
+    async function fetchData() {
+      // アンケート取得
+      const resultQ = await getAllQuestions();
+      if (resultQ.success && resultQ.questions) {
+        setQuestions(resultQ.questions);
       } else {
-        console.error(result.error);
+        console.error(resultQ.error);
       }
-    }
-    fetchQuestions();
-  }, []); // ページロード時に一度だけ実行
 
-  // ★ 追加: 意見リストをフェッチする useEffect ★
-  useEffect(() => {
-    async function fetchOpinions() {
-      const result = await getAllOpinions();
-      if (result.success && result.opinions) {
-        setOpinions(result.opinions);
+      // 意見取得
+      const resultO = await getAllOpinions();
+      if (resultO.success && resultO.opinions) {
+        setOpinions(resultO.opinions);
       } else {
-        console.error(result.error);
+        console.error(resultO.error);
+      }
+
+      // タグ取得
+      const resultT = await getAllTags();
+      if (resultT.success && resultT.tags) {
+        setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
+      } else {
+        console.error(resultT.error);
       }
     }
-    fetchOpinions();
-  }, []); // ページロード時に一度だけ実行
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (session?.user) {
@@ -130,21 +158,225 @@ export default function Home() {
     }
   }, [session]);
 
+  // 3. ログイン詳細情報取得ログ
   useEffect(() => {
-    async function fetchTags() {
-      const result = await getAllTags();
-      if (result.success && result.tags) {
-        // プレースホルダーと結合
-        setTags([{ value: "", label: "タグを選択" }, ...result.tags]);
-      } else {
-        console.error(result.error);
-        // 失敗した場合でも、最低限プレースホルダーは表示
-        setTags([{ value: "", label: "タグを選択" }]);
-      }
-    }
-    fetchTags();
-  }, []); // ページロード時に一度だけ実行
+    const currentAccountId = session?.user?.accountId;
 
+    if (status === 'authenticated' && currentAccountId) {
+      console.log("--- ログイン後のセッション情報 (簡易版) ---");
+      console.log("Account ID:", currentAccountId);
+      console.log("---------------------------------------");
+
+      async function fetchUserDetails() {
+        // ! で string | undefined の問題を解決
+        const result = await getUserAndStoreDetails(currentAccountId!);
+
+        if (result.success && result.account) {
+          console.log("--- ログインユーザーの詳細情報 (DB取得) ---");
+          console.log("Account (共通):", result.account);
+
+          if (result.account.user) {
+            console.log("User (利用者情報 - 全カラム):", result.account.user);
+          }
+          if (result.account.store) {
+            console.log("Store (出店者情報 - 全カラム):", result.account.store);
+          }
+          console.log("-----------------------------------------");
+        } else {
+          console.error("ユーザー詳細情報の取得に失敗しました:", result.error);
+        }
+      }
+      fetchUserDetails();
+
+    } else if (status === 'unauthenticated') {
+      console.log("--- ログアウト状態 ---");
+    }
+  }, [session, status]);
+
+  // --- Store Handlers ---
+  const handleStoreRegisterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setStoreForm({ ...storeForm, [e.target.name]: e.target.value });
+  };
+
+  const handleStoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const email = session?.user?.email;
+
+    if (!email) {
+      alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
+      router.push("/login");
+      return;
+    }
+
+    const { storeName, description, address } = storeForm;
+
+    if (!storeName || !description) {
+      alert("店舗名と店舗の紹介は必須です。");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('storeName', storeName);
+    formData.append('description', description);
+    formData.append('address', address);
+
+    const result = await createStore(formData, email);
+
+    if (result.success) {
+      alert("出店登録が完了しました！");
+      setStoreRegisterOpen(false);
+      setStoreForm({ storeName: "", description: "", address: "" });
+
+      // router.reload()のエラー修正済み
+      window.location.reload();
+
+    } else {
+      alert(`登録失敗: ${result.error}`);
+    }
+  };
+
+
+  // --- Opinion Handlers ---
+  const handleOpinionSubmit = async () => {
+
+    const accountId = session?.user?.accountId;
+
+    if (!accountId) {
+      alert("アカウントIDがセッションから取得できませんでした。ログインしているか確認してください。");
+      return;
+    }
+    if (!text || !latLng || !selectedTag || selectedTag === "") {
+      alert("コメント、場所（地図上のピン）、およびタグは必須です。");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('accountId', accountId);
+    formData.append('commentText', text);
+    formData.append('latitude', latLng.lat.toString());
+    formData.append('longitude', latLng.lng.toString());
+    formData.append('tagValue', selectedTag);
+
+    const result = await createOpinion(formData);
+
+    if (result.success) {
+      alert("意見の投稿が完了しました！");
+      setPostOpen(false);
+      setText("");
+      setSelectedTag("");
+      // 投稿成功後、リストを更新
+      const fetchResult = await getAllOpinions();
+      if (fetchResult.success && fetchResult.opinions) {
+        setOpinions(fetchResult.opinions);
+      }
+    } else {
+      alert(`意見投稿に失敗しました: ${result.error}`);
+    }
+  };
+
+
+  // --- Answer Handlers ---
+  const handleAnswerClick = (question: any) => {
+    if (!session?.user?.accountId) {
+      alert("アカウントIDがセッションから取得できませんでした。ログインしているか確認してください。");
+      return;
+    }
+
+    setSelectedQuestion(question);
+    setSelectedOption(null);
+    setAnswerPollOpen(true);
+  };
+
+  const handleAnswerSubmit = async () => {
+    if (!session?.user?.accountId || !selectedQuestion || selectedOption === null) {
+      alert("回答情報が不完全です。");
+      return;
+    }
+
+    const accountId = session.user.accountId;
+    const questionId = selectedQuestion.questionId;
+
+    const formData = new FormData();
+    formData.append('accountId', accountId);
+    formData.append('questionId', questionId);
+    formData.append('selectedOptionNumber', selectedOption.toString());
+
+    const result = await answerQuestion(formData);
+
+    if (result.success) {
+      alert("アンケートに回答しました！");
+      setAnswerPollOpen(false);
+
+      const fetchResult = await getAllQuestions();
+      if (fetchResult.success && fetchResult.questions) {
+        setQuestions(fetchResult.questions);
+      }
+    } else {
+      alert(`回答に失敗しました: ${result.error}`);
+    }
+  };
+
+  // --- Poll Creation Handlers ---
+  const createPoll = async () => {
+
+    const storeId = session?.user?.storeId;
+
+    if (!storeId) {
+      alert("ストアIDがセッションから取得できませんでした。出店者としてログインしているか確認してください。");
+      return;
+    }
+
+    if (!newQuestion || !optionOne || !optionTwo || !latLng || !storeId) {
+      alert("質問、選択肢、ストアID、および現在地情報が不完全です。");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('storeId', storeId);
+    formData.append('questionText', newQuestion);
+    formData.append('option1Text', optionOne);
+    formData.append('option2Text', optionTwo);
+    formData.append('latitude', latLng.lat.toString());
+    formData.append('longitude', latLng.lng.toString());
+
+    const result = await createQuestion(formData);
+
+    if (result.success) {
+      alert("アンケートの作成が完了しました！");
+      setCreateOpen(false);
+      setNewQuestion("");
+      setOptionOne("");
+      setOptionTwo("");
+
+      const fetchResult = await getAllQuestions();
+      if (fetchResult.success && fetchResult.questions) {
+        setQuestions(fetchResult.questions);
+      }
+    } else {
+      alert(`アンケート作成に失敗しました: ${result.error}`);
+    }
+
+    setNewQuestion("");
+    setCreateOpen(false);
+    setOptionOne("");
+    setOptionTwo("");
+  };
+
+  // --- Map Handlers ---
+  const handleDialogOpen = (data: string, takelatLng: { lat: number, lng: number }) => {
+
+    setLatLng(takelatLng)
+
+    switch (data) {
+      case ("post"):
+        setPostOpen(true);
+        break;
+      case ("poll"):
+        setCreateOpen(true);
+        break;
+    }
+  }
 
   // --- 修正箇所: handleLoginとhandleLogoutの定義を復元/追加 ---
   const handleLogin = () => {
@@ -160,238 +392,11 @@ export default function Home() {
     alert("ログアウトしました");
   };
 
-  // ★ 追加: 回答ボタンクリックハンドラー
-  const handleAnswerClick = (question: any) => {
-    if (!session?.user?.accountId) {
-      alert("アカウントIDがセッションから取得できませんでした。ログインしているか確認してください。");
-      return;
-    }
-
-    // ダイアログを開く
-    setSelectedQuestion(question);
-    setSelectedOption(null);
-    setAnswerPollOpen(true);
-  };
-
-
-  // ★ 2. 回答ダイアログ内の「回答を送信」ボタンが実行する関数 ★
-  const handleAnswerSubmit = async () => {
-    if (!session?.user?.accountId || !selectedQuestion || selectedOption === null) {
-      alert("回答情報が不完全です。");
-      return;
-    }
-
-    const accountId = session.user.accountId;
-    const questionId = selectedQuestion.questionId;
-
-    const formData = new FormData();
-    formData.append('accountId', accountId);
-    formData.append('questionId', questionId);
-    formData.append('selectedOptionNumber', selectedOption.toString());
-
-    // サーバーアクションを呼び出し
-    const result = await answerQuestion(formData);
-
-    if (result.success) {
-      alert("アンケートに回答しました！");
-      setAnswerPollOpen(false);
-
-      // アンケートリストを再取得
-      const fetchResult = await getAllQuestions();
-      if (fetchResult.success && fetchResult.questions) {
-        setQuestions(fetchResult.questions);
-      }
-    } else {
-      alert(`回答に失敗しました: ${result.error}`);
-    }
-  };
-
-  // ★  意見投稿ハンドラー ★
-  const handleOpinionSubmit = async () => {
-
-    // accountIdの取得
-    const accountId = session?.user?.accountId;
-
-
-    // クライアント側での必須チェック
-    // selectedTagが初期値("")でないことを確認
-    if (!accountId) {
-      alert("アカウントIDがセッションから取得できませんでした。ログインしているか確認してください。");
-      return;
-    }
-    if (!text || !latLng || !selectedTag || selectedTag === "") {
-      alert("コメント、場所（地図上のピン）、およびタグは必須です。");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('accountId', accountId);
-    formData.append('commentText', text);
-    formData.append('latitude', latLng.lat.toString());
-    formData.append('longitude', latLng.lng.toString());
-    formData.append('tagValue', selectedTag); // ★ タグのvalueを渡す ★
-
-    // サーバーアクションを呼び出し
-    const result = await createOpinion(formData);
-
-    if (result.success) {
-      alert("意見の投稿が完了しました！");
-
-      // 成功時の状態リセット
-      setPostOpen(false);
-      setText("");
-      setSelectedTag("");
-    } else {
-      alert(`意見投稿に失敗しました: ${result.error}`);
-    }
-  };
 
   // ====== 絞り込み ======
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-
-  // ====== 意見投稿 ======
-  const [postOpen, setPostOpen] = useState(false); // ★ 意見投稿ダイアログの開閉
-  const [text, setText] = useState(""); // ★ 意見コメント
-
-  const [tags, setTags] = useState([
-    { value: "", label: "タグを選択" }, // 初期選択肢（プレースホルダー）
-  ]);
-
-  // プルダウンで選択されたタグを保持する新しいstate
-  const [selectedTag, setSelectedTag] = useState("");
-
-
-  // ====== アンケート作成 ======
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newQuestion, setNewQuestion] = useState("");
-  const [optionOne, setOptionOne] = useState("");
-  const [optionTwo, setOptionTwo] = useState("");
-
-
-  const createPoll = async () => {
-
-    const storeId = session?.user?.storeId;
-
-    if (!storeId) {
-      alert("ストアIDがセッションから取得できませんでした。出店者としてログインしているか確認してください。");
-      return; // ストアIDがない場合は処理を中断
-    }
-
-    // クライアント側での必須チェック
-    if (!newQuestion || !optionOne || !optionTwo || !latLng || !storeId) {
-      alert("質問、選択肢、ストアID、および現在地情報が不完全です。");
-      return;
-    }
-
-    // FormDataを作成し、必要なデータを格納
-    const formData = new FormData();
-    formData.append('storeId', storeId);
-    formData.append('questionText', newQuestion);
-    formData.append('option1Text', optionOne);
-    formData.append('option2Text', optionTwo);
-    formData.append('latitude', latLng.lat.toString());
-    formData.append('longitude', latLng.lng.toString());
-
-    // サーバーアクションを呼び出し
-    const result = await createQuestion(formData); //
-
-    if (result.success) {
-      alert("アンケートの作成が完了しました！");
-
-      // 成功時の状態リセット
-      setCreateOpen(false);
-      setNewQuestion("");
-      setOptionOne("");
-      setOptionTwo("");
-
-      // ★ 追加: アンケートリストを再取得して表示を更新
-      const fetchResult = await getAllQuestions();
-      if (fetchResult.success && fetchResult.questions) {
-        setQuestions(fetchResult.questions);
-      }
-    } else {
-      alert(`アンケート作成に失敗しました: ${result.error}`);
-    }
-
-    setNewQuestion("");
-    setCreateOpen(false);
-    setOptionOne("");
-    setOptionTwo("");
-  };
-
-  // ====== 出店登録 ======
-  // ★ 追加: 出店登録ダイアログの状態とフォームデータ ★
-  const [storeRegisterOpen, setStoreRegisterOpen] = useState(false);
-  const [storeForm, setStoreForm] = useState({
-    storeName: "",
-    description: "",
-    address: "", // addressはDBで処理されないが出店登録として必須
-  });
-
-  const handleStoreRegisterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setStoreForm({ ...storeForm, [e.target.name]: e.target.value });
-  };
-
-  // ★ 追加: 出店登録ハンドラー (createStoreを呼び出す) ★
-  const handleStoreSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const email = session?.user?.email; // セッションからメールアドレスを取得
-
-    if (!email) {
-      alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
-      router.push("/login");
-      return;
-    }
-
-    const { storeName, description, address } = storeForm;
-
-    if (!storeName || !description) {
-      alert("店舗名と店舗の紹介は必須です。");
-      return;
-    }
-
-    // FormDataを作成 (createStoreのシグネチャに合わせる)
-    const formData = new FormData();
-    formData.append('storeName', storeName);
-    formData.append('description', description);
-    formData.append('address', address);
-
-    // DB登録アクション呼び出し
-    const result = await createStore(formData, email);
-
-    if (result.success) {
-      alert("出店登録が完了しました！");
-
-      // 成功後の状態リセット
-      setStoreRegisterOpen(false);
-      setStoreForm({ storeName: "", description: "", address: "" });
-
-      // 登録成功後、IDをセッションに反映させるためページをリロード (セッション更新)
-      window.location.reload();
-
-    } else {
-      alert(`登録失敗: ${result.error}`);
-    }
-  };
-
-
-
-  const handleDialogOpen = (data: string, takelatLng: { lat: number, lng: number }) => {
-
-    setLatLng(takelatLng)
-
-    switch (data) {
-      case ("post"):
-        setPostOpen(true);
-        break;
-      case ("poll"):
-        setCreateOpen(true);
-        break;
-    }
-  }
 
   const FILTER_ITEMS = [
     { label: "キッチンカー", key: "store" },
@@ -734,7 +739,7 @@ export default function Home() {
                 className="register-input"
                 required
               />
-              <button type="submit" className="submit-btn mt-3">
+              <button type="submit" className="submit-btn mt-3">a
                 登録する
               </button>
             </form>
