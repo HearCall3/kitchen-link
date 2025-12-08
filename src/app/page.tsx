@@ -12,9 +12,11 @@ import StoreMap from "../components/map/StoreMap";
 import {
   createOpinion,
   createQuestion,
+  createStore,
   getAllQuestions,
   answerQuestion,
-  getAllTags
+  getAllTags,
+  getAllOpinions
 } from "@/actions/db_access";
 // next-auth から useSession をインポート
 import { useSession } from "next-auth/react";
@@ -41,6 +43,7 @@ export default function Home() {
   const [answerPollOpen, setAnswerPollOpen] = useState(false); // 新しい回答ダイアログの開閉
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null); // 現在回答中の質問
   const [selectedOption, setSelectedOption] = useState<number | null>(null); // 選択された回答
+  const [opinions, setOpinions] = useState<any[]>([]); // 意見リストを保持するState
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -104,30 +107,43 @@ export default function Home() {
     fetchQuestions();
   }, []); // ページロード時に一度だけ実行
 
+  // ★ 追加: 意見リストをフェッチする useEffect ★
+  useEffect(() => {
+    async function fetchOpinions() {
+      const result = await getAllOpinions();
+      if (result.success && result.opinions) {
+        setOpinions(result.opinions);
+      } else {
+        console.error(result.error);
+      }
+    }
+    fetchOpinions();
+  }, []); // ページロード時に一度だけ実行
+
   useEffect(() => {
     if (session?.user) {
-        console.log("--- ログイン後のセッション情報確認 (Home画面) ---");
-        // ...
-        console.log("Account ID:", session.user.accountId); // ユーザーアカウントID
-        console.log("Store ID:", session.user.storeId);    // 店舗ID
-        // ...
+      console.log("--- ログイン後のセッション情報確認 (Home画面) ---");
+      // ...
+      console.log("Account ID:", session.user.accountId); // ユーザーアカウントID
+      console.log("Store ID:", session.user.storeId);    // 店舗ID
+      // ...
     }
-}, [session]);
+  }, [session]);
 
-useEffect(() => {
+  useEffect(() => {
     async function fetchTags() {
-        const result = await getAllTags();
-        if (result.success && result.tags) {
-            // プレースホルダーと結合
-            setTags([{ value: "", label: "タグを選択" }, ...result.tags]);
-        } else {
-            console.error(result.error);
-            // 失敗した場合でも、最低限プレースホルダーは表示
-            setTags([{ value: "", label: "タグを選択" }]);
-        }
+      const result = await getAllTags();
+      if (result.success && result.tags) {
+        // プレースホルダーと結合
+        setTags([{ value: "", label: "タグを選択" }, ...result.tags]);
+      } else {
+        console.error(result.error);
+        // 失敗した場合でも、最低限プレースホルダーは表示
+        setTags([{ value: "", label: "タグを選択" }]);
+      }
     }
     fetchTags();
-}, []); // ページロード時に一度だけ実行
+  }, []); // ページロード時に一度だけ実行
 
 
   // --- 修正箇所: handleLoginとhandleLogoutの定義を復元/追加 ---
@@ -195,7 +211,7 @@ useEffect(() => {
 
     // accountIdの取得
     const accountId = session?.user?.accountId;
-    
+
 
     // クライアント側での必須チェック
     // selectedTagが初期値("")でないことを確認
@@ -234,14 +250,14 @@ useEffect(() => {
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-  
+
   // ====== 意見投稿 ======
-const [postOpen, setPostOpen] = useState(false); // ★ 意見投稿ダイアログの開閉
-const [text, setText] = useState(""); // ★ 意見コメント
+  const [postOpen, setPostOpen] = useState(false); // ★ 意見投稿ダイアログの開閉
+  const [text, setText] = useState(""); // ★ 意見コメント
 
   const [tags, setTags] = useState([
     { value: "", label: "タグを選択" }, // 初期選択肢（プレースホルダー）
-]);
+  ]);
 
   // プルダウンで選択されたタグを保持する新しいstate
   const [selectedTag, setSelectedTag] = useState("");
@@ -305,6 +321,64 @@ const [text, setText] = useState(""); // ★ 意見コメント
     setOptionTwo("");
   };
 
+  // ====== 出店登録 ======
+  // ★ 追加: 出店登録ダイアログの状態とフォームデータ ★
+  const [storeRegisterOpen, setStoreRegisterOpen] = useState(false);
+  const [storeForm, setStoreForm] = useState({
+    storeName: "",
+    description: "",
+    address: "", // addressはDBで処理されないが出店登録として必須
+  });
+
+  const handleStoreRegisterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setStoreForm({ ...storeForm, [e.target.name]: e.target.value });
+  };
+
+  // ★ 追加: 出店登録ハンドラー (createStoreを呼び出す) ★
+  const handleStoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const email = session?.user?.email; // セッションからメールアドレスを取得
+
+    if (!email) {
+      alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
+      router.push("/login");
+      return;
+    }
+
+    const { storeName, description, address } = storeForm;
+
+    if (!storeName || !description) {
+      alert("店舗名と店舗の紹介は必須です。");
+      return;
+    }
+
+    // FormDataを作成 (createStoreのシグネチャに合わせる)
+    const formData = new FormData();
+    formData.append('storeName', storeName);
+    formData.append('description', description);
+    formData.append('address', address);
+
+    // DB登録アクション呼び出し
+    const result = await createStore(formData, email);
+
+    if (result.success) {
+      alert("出店登録が完了しました！");
+
+      // 成功後の状態リセット
+      setStoreRegisterOpen(false);
+      setStoreForm({ storeName: "", description: "", address: "" });
+
+      // 登録成功後、IDをセッションに反映させるためページをリロード (セッション更新)
+      window.location.reload();
+
+    } else {
+      alert(`登録失敗: ${result.error}`);
+    }
+  };
+
+
+
   const handleDialogOpen = (data: string, takelatLng: { lat: number, lng: number }) => {
 
     setLatLng(takelatLng)
@@ -366,7 +440,7 @@ const [text, setText] = useState(""); // ★ 意見コメント
 
       {/* ===== ハンバーガーメニュー ===== */}
       {menuOpen && (
-        <div className="menu-overlay" onClick={() => setMenuOpen(false)}></div>
+        <div className="menu-overlay" onClick={() => setStoreRegisterOpen(true)}></div>
       )}
 
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
@@ -465,6 +539,40 @@ const [text, setText] = useState(""); // ★ 意見コメント
                   >
                     回答する
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ===== ★ 追加: 意見投稿一覧表示エリア ★ ===== */}
+      <div className="p-4 pt-0">
+        <h3 className="text-lg font-bold mb-3 text-gray-700 border-b pb-1">投稿された意見</h3>
+        {opinions.length === 0 ? (
+          <p className="text-gray-500">現在、投稿された意見はありません。</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {opinions.map((o) => (
+              <div key={o.opinionId} className="p-3 border rounded-lg shadow-sm bg-white">
+                <p className="text-sm text-gray-500">
+                  投稿者: <span className="font-semibold">{o.creatorName}</span>
+                </p>
+                {/* creatorNameに '(店舗)' が含まれず、profile.genderが '未設定' でない場合に表示 */}
+                {o.profile && o.profile.gender !== '店舗' && o.profile.gender !== '未設定' && (
+                  <p className="text-xs text-gray-600 mb-2">
+                    属性: {o.profile.gender} / {o.profile.age} / {o.profile.occupation}
+                  </p>
+                )}
+
+                <p className="text-sm text-gray-500 mb-2">
+                  タグ: {o.tags.length > 0 ? o.tags.join(', ') : 'タグなし'}
+                </p>
+                <p className="text-base mb-2">{o.commentText}</p>
+
+                <div className="flex justify-end items-center text-xs text-gray-400 mt-2">
+                  <span className="mr-3">👍 {o.likeCount}</span>
+                  <span>{new Date(o.postedAt).toLocaleDateString()}</span>
                 </div>
               </div>
             ))}
@@ -587,6 +695,51 @@ const [text, setText] = useState(""); // ★ 意見コメント
             </div>
           </>
         )
-      }</div >
+      }
+
+      {/* ===== ★ 追加: 出店登録ダイアログ ★ ===== */}
+      {storeRegisterOpen && (
+        <>
+          <div className="dialog-overlay" onClick={() => setStoreRegisterOpen(false)} />
+          <div className="poll-dialog active"> {/* スタイルは既存のpoll-dialogを流用 */}
+            <button className="close-btn" onClick={() => setStoreRegisterOpen(false)}>×</button>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">出店登録</h3>
+
+            {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>(登録アカウント: {email})</p>}
+
+            <form onSubmit={handleStoreSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <input
+                type="text"
+                name="storeName"
+                placeholder="店舗名"
+                value={storeForm.storeName}
+                onChange={handleStoreRegisterChange}
+                className="register-input" // 既存のスタイルに合わせてclassNameを適宜調整
+                required
+              />
+              <textarea
+                name="description"
+                placeholder="店舗の紹介 (DBのIntroductionになります)"
+                value={storeForm.description}
+                onChange={handleStoreRegisterChange}
+                className="register-textarea" // 既存のスタイルに合わせてclassNameを適宜調整
+                required
+              />
+              <input
+                type="text"
+                name="address"
+                placeholder="出店場所 (現在DBには登録されません)"
+                value={storeForm.address}
+                onChange={handleStoreRegisterChange}
+                className="register-input"
+                required
+              />
+              <button type="submit" className="submit-btn mt-3">
+                登録する
+              </button>
+            </form>
+          </div>
+        </>
+      )}</div >
   )
 }

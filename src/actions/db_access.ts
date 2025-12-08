@@ -221,7 +221,7 @@ export async function deleteUser(accountId: string) {
 // 2. ストア（Store）CRUD
 // ----------------------------------------------------------------------
 
-/** 2-A. ストア作成 (Store Create) - 出店場所仮登録を削除 */
+/** 2-A. ストア作成 (Store Create) */
 export async function createStore(formData: FormData, email: string) {
     console.log(`[DB] START: Creating Store for email: ${email}`);
     const storeName = formData.get('storeName') as string;
@@ -491,6 +491,102 @@ export async function deleteOpinion(id: string) {
         return { error: '意見投稿の削除に失敗しました。' };
     } finally {
         console.log(`[DB] END: Deleting Opinion.`);
+    }
+}
+
+/** 3-D. 全意見の取得 (Get All Opinions with User Info) */
+export async function getAllOpinions() {
+    console.log(`[DB] START: Fetching all Opinions.`);
+    try {
+        const opinions = await prisma.postAnOpinion.findMany({
+            orderBy: { postedAt: 'desc' }, // 新しい順にソート
+            select: {
+                postAnOpinionId: true,
+                commentText: true,
+                latitude: true,
+                longitude: true,
+                postedAt: true,
+                // 作成者情報 (Account -> User -> Master Data) を取得
+                account: {
+                    select: {
+                        user: {
+                            select: {
+                                nickname: true,
+                                introduction: true,
+                                gender: { select: { genderName: true } },
+                                ageGroup: { select: { ageGroupName: true } },
+                                occupation: { select: { occupationName: true } }
+                            }
+                        },
+                        // Store情報 (ハイブリッドアカウントの場合、店舗名を取得)
+                        store: {
+                            select: { storeName: true }
+                        }
+                    }
+                },
+                // いいねの数
+                likes: {
+                    select: { accountId: true } 
+                },
+                // タグ情報
+                opinionTags: {
+                    select: {
+                        tag: {
+                            select: { tagName: true }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // クライアント側で扱いやすい形式にデータを加工
+        const processedOpinions = opinions.map(o => {
+            let creatorName = '匿名ユーザー';
+            let profile = { gender: '', age: '', occupation: '' }; // ★ プロフィールデータ用のオブジェクトを初期化
+
+            // ユーザー情報（一般利用者）を優先して処理
+            if (o.account?.user?.nickname) {
+
+                // ★ デバッグログを追加 ★
+                console.log("--- DEBUG OPINION PROFILE ---");
+                console.log("Nickname:", o.account.user.nickname);
+                console.log("Gender Data:", o.account.user.gender);
+                console.log("AgeGroup Data:", o.account.user.ageGroup);
+                console.log("Occupation Data:", o.account.user.occupation);
+                console.log("-----------------------------");
+
+                creatorName = o.account.user.nickname;
+                
+                // ★ ユーザー属性の値を抽出 ★
+                profile.gender = o.account.user.gender?.genderName || '未設定';
+                profile.age = o.account.user.ageGroup?.ageGroupName || '未設定';
+                profile.occupation = o.account.user.occupation?.occupationName || '未設定';
+            } 
+            // ユーザー情報がなく、ストア情報がある場合
+            else if (o.account?.store?.storeName) {
+                creatorName = o.account.store.storeName + ' (店舗)';
+                profile = { gender: '店舗', age: '', occupation: '' }; // 店舗の場合は属性をクリア
+            }
+
+            return {
+                opinionId: o.postAnOpinionId,
+                commentText: o.commentText,
+                latitude: o.latitude,
+                longitude: o.longitude,
+                postedAt: o.postedAt,
+                likeCount: o.likes.length,
+                creatorName: creatorName,
+                tags: o.opinionTags.map(ot => ot.tag.tagName),
+                profile: profile // ★ 処理されたプロフィール情報を含める ★
+            };
+        });
+
+        console.log(`[DB] END: Fetched ${opinions.length} Opinions.`);
+        return { success: true, opinions: processedOpinions };
+
+    } catch (error) {
+        console.error('Fetching opinions failed:', error);
+        return { success: false, error: '意見リストの取得に失敗しました。' };
     }
 }
 
