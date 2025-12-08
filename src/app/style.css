@@ -152,6 +152,31 @@ header input {
   color: #f97316;
 }
 
+/* 意見投稿ジャンル選択 */
+.genre-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+  background: none;
+  position: fixed;
+}
+
+.genre-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: #eee;
+  border: none;
+  cursor: pointer;
+}
+
+.genre-btn.selected {
+  background: #ff914d;
+  color: white;
+  font-weight: bold;
+}
+
+
 /* map想定 */
 .map-container {
   width: 100%;

@@ -9,31 +9,28 @@ import PollMap from "../components/map/PollMap";
 import StoreMap from "../components/map/StoreMap";
 
 export default function Home() {
-  const router = useRouter();
-  // ログイン情報を取得
-  // NextAuthのセッション情報
-  // isLoggedIn = !!session で判定
-  const { data: session } = useSession();
 
   // ====== マップ状態 ======
   const status = ['opinion', 'poll', 'store'] as const;
   const [mapStatus, setMapStatus] = useState<typeof status[number]>('store');
   // ====== 絞り込み ======
-  const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
   // ====== 意見投稿 ======
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [inputTag, setInputTag] = useState("");
 
-  const addTag = () => {
-    if (inputTag.trim() && !tags.includes(inputTag.trim())) {
-      setTags([...tags, inputTag.trim()]);
-      setInputTag("");
-    }
-  };
+  // 意見投稿のジャンル選択の定義＆中身
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+
+  const genres = [
+    "商品",
+    "設備",
+    "値段",
+    "ボリューム",
+    "満足",
+    "その他",
+  ];
 
   // ====== メニュー ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,22 +51,27 @@ export default function Home() {
   const yesPercent = total ? (currentVotes.yes / total) * 100 : 0;
   const noPercent = total ? (currentVotes.no / total) * 100 : 0;
 
+  // ログイン
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
+  const router = useRouter();
+
+  // ====== 投稿・アンケート開閉 ======
   const handleOpenPost = () => {
-    // 未ログインならモーダル表示して終了
-    // ログイン済みなら意見投稿モーダルを開く
-    if (!checkLoginStatus()) return;
+    if (!session) return setShowLoginPrompt(true);
     setPostOpen(true);
   };
 
   const handleOpenPollCreate = () => {
-    if (!checkLoginStatus()) return;
+    if (!session) return setShowLoginPrompt(true);
     setCreateOpen(true);
   };
 
   const handleOpenPollVote = () => {
-    if (!checkLoginStatus()) return;
+    if (!session) return setShowLoginPrompt(true);
     setPollOpen(true);
   };
+
 
 
   // ====== アンケートを開く ======
@@ -99,60 +101,7 @@ export default function Home() {
     }
   };
 
-  // ====== ログイン====
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-  // ====== ログインチェック関数=====
-  const checkLoginStatus = () => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    // ログイン状態を state にセット
-    setIsLoggedIn(loggedIn);
-    // 未ログインならモーダル表示
-    if (!loggedIn) setShowLoginPrompt(true);
-    // 戻り値でログイン状態を返す
-    return loggedIn;
-  };
-
-  // ====== ログイン・ログアウト関数（トップレベルに置く）=====
-  const handleLogin = () => router.push("/login");
-
-  const handleLogout = async () => {
-    try {
-      // NextAuth のセッションを削除
-      await signOut({ callbackUrl: "/" }); // ログアウト後はトップページへ
-      // localStorageの状態も更新
-      localStorage.removeItem("isLoggedIn");
-      setIsLoggedIn(false);
-      setMenuOpen(false);
-    } catch (error) {
-      console.error(error);
-      alert("ログアウトに失敗しました");
-    }
-  };
-
-  // マップ処理
-  useEffect(() => {
-    // コンポーネント初回レンダリング時とタブフォーカス時にログインチェック
-    checkLoginStatus();
-    window.addEventListener("focus", checkLoginStatus);
-
-    return () => window.removeEventListener("focus", checkLoginStatus);
-  }, []);
-
-  useEffect(() => {
-    // ① コンポーネントが最初に描画された時にチェック
-    checkLoginStatus();
-
-    // ② ユーザーがタブ/アプリに戻った時（focusイベント）に再チェック
-    window.addEventListener('focus', checkLoginStatus);
-
-    // ③ クリーンアップ関数: コンポーネントが破棄されるときにイベントリスナーを解除
-    return () => {
-      window.removeEventListener('focus', checkLoginStatus);
-    };
-  }, []);
 
   const handleDialogOpen = (data: string) => {
     switch (data) {
@@ -176,6 +125,7 @@ export default function Home() {
     poll: <PollMap onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
+    console.log("Session user:", session?.user);
 
   return (
     <div className="frame">
@@ -222,14 +172,31 @@ export default function Home() {
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          <li
-            className="border-b p-3 hover:bg-gray-100"
-            onClick={() => router.push("/register")}
-          >出店登録</li>
+          {/* 店舗ログイン */}
+          {session?.user?.role === "store" && (
+            <li
+              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+              onClick={() => router.push("/register")}
+            >
+              出店登録
+            </li>
+          )}
+
+
           {!session ? (
-            <li onClick={() => signIn("google", { callbackUrl: "/user" })}>ログイン</li>
+            <li
+              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
+              onClick={() => signIn("google", { callbackUrl: "/login" })}
+            >
+              ログイン
+            </li>
           ) : (
-            <li onClick={() => signOut({ callbackUrl: "/" })}>ログアウト</li>
+            <li
+              className="border-b p-3 hover:bg-gray-100 text-red-600 cursor-pointer"
+              onClick={() => signOut({ callbackUrl: "/" })}
+            >
+              ログアウト
+            </li>
           )}
         </ul>
       </div>
@@ -247,31 +214,36 @@ export default function Home() {
           <div className="login-prompt-dialog">
             <button className="close-btn" onClick={() => setShowLoginPrompt(false)}>×</button>
             <h1 className="login-title">Kitchen Link</h1>
+
             <button
               className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/user" })}>
+              onClick={() => signIn("google", { callbackUrl: "/user?role=user" })}
+            >
               Googleでユーザーログイン
             </button>
 
             <button
               className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/store" })}
+              onClick={() => signIn("google", { callbackUrl: "/store?role=store" })}
             >
               Googleで店舗ログイン
             </button>
           </div>
         </>
-      )}
+      )
+      }
 
 
 
       {/* ==== オーバーレイ（背景クリックで閉じる） ==== */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-40 z-30"
-          onClick={() => setMenuOpen(false)}
-        ></div>
-      )}
+      {
+        menuOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 z-30"
+            onClick={() => setMenuOpen(false)}
+          ></div>
+        )
+      }
 
       {/* マップ */}
       <div className="map-container z-10 relative">
@@ -293,117 +265,146 @@ export default function Home() {
       </div>
 
       {/* ===== アンケート回答ダイアログ ===== */}
-      {pollOpen && (
-        <>
-          <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
-            <h3>この店にまた来たいですか？</h3>
-            {!voted ? (
-              <div className="vote-buttons">
-                <button className="yes" onClick={() => handleVote("yes")}>はい</button>
-                <button className="no" onClick={() => handleVote("no")}>いいえ</button>
-              </div>
-            ) : (
-              <>
-                <div className="result-bar">
-                  <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
-                  <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
+      {
+        pollOpen && (
+          <>
+            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
+              <h3>この店にまた来たいですか？</h3>
+              {!voted ? (
+                <div className="vote-buttons">
+                  <button className="yes" onClick={() => handleVote("yes")}>はい</button>
+                  <button className="no" onClick={() => handleVote("no")}>いいえ</button>
                 </div>
-                <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p>
-              </>
-            )}
-          </div>
-        </>
-      )}
+              ) : (
+                <>
+                  <div className="result-bar">
+                    <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
+                    <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
+                  </div>
+                  <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p>
+                </>
+              )}
+            </div>
+          </>
+        )
+      }
 
       {/* ===== アンケート作成ダイアログ ===== */}
-      {createOpen && (
-        <>
-          <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
-            <h3>アンケートを作成</h3>
+      {
+        createOpen && (
+          <>
+            <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
+              <h3>アンケートを作成</h3>
 
-            {/* 質問入力 */}
-            <input
-              type="text"
-              value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="質問を入力してください"
-              className="mb-2 p-2 border rounded w-full"
-            />
+              {/* 質問入力 */}
+              <input
+                type="text"
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                placeholder="質問を入力してください"
+                className="mb-2 p-2 border rounded w-full"
+              />
 
-            {/* 選択肢1 */}
-            <input
-              type="text"
-              value={option1}
-              onChange={(e) => setOption1(e.target.value)}
-              placeholder="選択肢1"
-              className="mb-2 p-2 border rounded w-full"
-            />
+              {/* 選択肢1 */}
+              <input
+                type="text"
+                value={option1}
+                onChange={(e) => setOption1(e.target.value)}
+                placeholder="選択肢1"
+                className="mb-2 p-2 border rounded w-full"
+              />
 
-            {/* 選択肢2 */}
-            <input
-              type="text"
-              value={option2}
-              onChange={(e) => setOption2(e.target.value)}
-              placeholder="選択肢2"
-              className="mb-4 p-2 border rounded w-full"
-            />
+              {/* 選択肢2 */}
+              <input
+                type="text"
+                value={option2}
+                onChange={(e) => setOption2(e.target.value)}
+                placeholder="選択肢2"
+                className="mb-4 p-2 border rounded w-full"
+              />
 
-            {/* 作成ボタン */}
-            <button
-              onClick={createPoll}
-              className="submit-btn w-full"
-            >
-              作成
-            </button>
-          </div>
-        </>
-      )}
+              {/* 作成ボタン */}
+              <button
+                onClick={createPoll}
+                className="submit-btn w-full"
+              >
+                作成
+              </button>
+            </div>
+          </>
+        )
+      }
 
 
       {/* ===== 意見投稿ダイアログ ===== */}
-      {postOpen && (
-        <>
-          <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setPostOpen(false)}>×</button>
-            <h3>意見を投稿</h3>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="お店についての意見を入力..."
+      {
+        postOpen && (
+          <>
+            <div
+              className="dialog-overlay"
+              onClick={() => setPostOpen(false)}
             />
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={inputTag}
-                onChange={(e) => setInputTag(e.target.value)}
-                placeholder="#ハッシュタグ"
+            <div className="poll-dialog active">
+              <button
+                className="close-btn"
+                onClick={() => setPostOpen(false)}
+              >
+                ×
+              </button>
+
+              <h3>意見を投稿</h3>
+
+              {/* ジャンル選択UI */}
+              <div className="genre-container">
+                {genres.map((g) => (
+                  <button
+                    key={g}
+                    className={`genre-btn ${selectedGenres.includes(g) ? "selected" : ""
+                      }`}
+                    onClick={() => {
+                      if (selectedGenres.includes(g)) {
+                        setSelectedGenres(
+                          selectedGenres.filter((item) => item !== g)
+                        );
+                      } else {
+                        setSelectedGenres([...selectedGenres, g]);
+                      }
+                    }}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="お店についての意見を入力..."
               />
-              <button onClick={addTag} className="add-btn">追加</button>
+
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => {
+                    console.log("投稿する:", {
+                      text,
+                      genres: selectedGenres,
+                    });
+                    setPostOpen(false);
+                  }}
+                  className="submit-btn"
+                >
+                  投稿する
+                </button>
+              </div>
             </div>
-            <div className="tags">
-              {tags.map((t) => (
-                <span key={t}>#{t}</span>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                setPostOpen(false);
-                setText("");
-                setTags([]);
-              }}
-              className="submit-btn"
-            >
-              投稿する
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )
+      }
+    </div >
   );
 }
 
