@@ -25,7 +25,6 @@ export default function Home() {
 
   const genres = [
     "商品",
-    "設備",
     "値段",
     "ボリューム",
     "満足",
@@ -57,21 +56,29 @@ export default function Home() {
   const router = useRouter();
 
   // ====== 投稿・アンケート開閉 ======
-  const handleOpenPost = () => {
-    if (!session) return setShowLoginPrompt(true);
-    setPostOpen(true);
-  };
-
   const handleOpenPollCreate = () => {
-    if (!session) return setShowLoginPrompt(true);
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setCreateOpen(true);
   };
 
   const handleOpenPollVote = () => {
-    if (!session) return setShowLoginPrompt(true);
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setPollOpen(true);
   };
 
+  const handleOpenPost = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setPostOpen(true);
+  };
 
 
   // ====== アンケートを開く ======
@@ -103,16 +110,17 @@ export default function Home() {
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  const handleDialogOpen = (data: string) => {
-    switch (data) {
-      case ("post"):
-        setPostOpen(true);
-        break;
-      case ("poll"):
-        setCreateOpen(true);
-        break;
+  const handleDialogOpen = (type: string) => {
+    if (!session) return setShowLoginPrompt(true);
+
+    if (type === "post") {
+      setPostOpen(true);
+    } else if (type === "poll") {
+      setCreateOpen(true);
+    } else {
+      console.warn("Unknown dialog type:", type);
     }
-  }
+  };
 
   const FILTER_ITEMS = [
     { label: "キッチンカー", key: "store" },
@@ -125,7 +133,7 @@ export default function Home() {
     poll: <PollMap onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
-    console.log("Session user:", session?.user);
+  console.log("Session user:", session?.user);
 
   return (
     <div className="frame">
@@ -212,19 +220,18 @@ export default function Home() {
 
           {/* ログインモーダル */}
           <div className="login-prompt-dialog">
-            <button className="close-btn" onClick={() => setShowLoginPrompt(false)}>×</button>
             <h1 className="login-title">Kitchen Link</h1>
 
             <button
               className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/user?role=user" })}
+              onClick={() => signIn("google", { callbackUrl: "/user" })}
             >
               Googleでユーザーログイン
             </button>
 
             <button
               className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/store?role=store" })}
+              onClick={() => signIn("google", { callbackUrl: "/store" })}
             >
               Googleで店舗ログイン
             </button>
@@ -232,8 +239,6 @@ export default function Home() {
         </>
       )
       }
-
-
 
       {/* ==== オーバーレイ（背景クリックで閉じる） ==== */}
       {
@@ -246,28 +251,15 @@ export default function Home() {
       }
 
       {/* マップ */}
-      <div className="map-container z-10 relative">
+      <div className="map-wrapper">
         {mapList[mapStatus]}
       </div>
 
-      {/* ===== アクションボタン ===== */}
-      <div className="flex flex-col items-center gap-4 p-4">
-        <button onClick={handleOpenPollCreate} className="submit-btn mb-2">
-          アンケートを作成
-        </button>
-        <button className="submit-btn flex flex-col items-center" onClick={handleOpenPollVote}>
-          アンケートに回答する
-        </button>
-
-        <button onClick={handleOpenPost} className="submit-btn">
-          意見を投稿する
-        </button>
-      </div>
-
-      {/* ===== アンケート回答ダイアログ ===== */}
+      {/* ===== ダイアログ ===== */}
       {
         pollOpen && (
           <>
+            {/* アンケート回答画面 */}
             <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
             <div className="poll-dialog active">
               <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
@@ -290,11 +282,10 @@ export default function Home() {
           </>
         )
       }
-
-      {/* ===== アンケート作成ダイアログ ===== */}
       {
         createOpen && (
           <>
+            {/* アンケート作成 */}
             <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
             <div className="poll-dialog active">
               <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
@@ -339,11 +330,10 @@ export default function Home() {
         )
       }
 
-
-      {/* ===== 意見投稿ダイアログ ===== */}
       {
         postOpen && (
           <>
+            {/* ===== 意見投稿 ===== */}
             <div
               className="dialog-overlay"
               onClick={() => setPostOpen(false)}
@@ -358,8 +348,14 @@ export default function Home() {
 
               <h3>意見を投稿</h3>
 
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="お店についての意見を入力..."
+              />
               {/* ジャンル選択UI */}
               <div className="genre-container">
+                選択：
                 {genres.map((g) => (
                   <button
                     key={g}
@@ -379,13 +375,6 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="お店についての意見を入力..."
-              />
-
               <div className="flex gap-2 mb-3">
                 <button
                   onClick={() => {
@@ -407,4 +396,3 @@ export default function Home() {
     </div >
   );
 }
-

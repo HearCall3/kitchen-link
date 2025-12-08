@@ -18,7 +18,7 @@ const containerStyle = {
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
-const mapOption = {disableDefaultUI: true}
+const mapOption = { disableDefaultUI: true }
 
 // 定数は外に出す（変更なし）
 const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
@@ -31,13 +31,15 @@ const circleOptions = {
     fillColor: '#FF0000', // 塗りつぶしの色
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
-
 interface PostMapProps {
     onDialogOpen: (data: string) => void;
 }
+export default function OpinionMap({ onDialogOpen }: PostMapProps) {
+    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
 
-export default function PollMap({ onDialogOpen }: PostMapProps) {
-// export default function PollMap() {
+    const handleOpinionTransition = () => {
+        onDialogOpen("poll"); // ← ここでアンケート作成を開く
+    };
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -47,12 +49,6 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
 
     const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
-    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
-
-
-    const handleOpinionTransition = () => {
-        onDialogOpen("post");
-    }
 
     useEffect(() => {
         if (!map || !isLoaded) return;
@@ -78,6 +74,7 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                 zoom={14}
 
             >
+                {/* アンケートの作成 */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{ pointerEvents: 'auto' }}>
@@ -91,12 +88,16 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                                     background: 'white', padding: '8px 12px', borderRadius:
                                         '6px', border: '1px solid #ccc', whiteSpace: 'nowrap',
                                 }}
-                            onClick={handleOpinionTransition}
+                                onClick={handleOpinionTransition}
                             >
-                                アンケートを作成</button>
+                                アンケート作成</button>
                         </OverlayView>
                     )}
                 </div>
+                {/* アンケートの回答のピン */}
+                {/* ～ */}
+
+                
             </GoogleMap>
         </>
     );
