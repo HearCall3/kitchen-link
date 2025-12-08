@@ -152,18 +152,6 @@ export default function Home() {
           />
         </div>
       </header>
-      {/* ===== フィルターチップ ===== */}
-      <div className="filter-chip-container">
-        {FILTER_ITEMS.map((item) => (
-          <button
-            key={item.key}
-            className={`filter-chip ${mapStatus === item.key ? "active" : ""}`}
-            onClick={() => setMapStatus(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
 
       {/* ===== ハンバーガーメニュー ===== */}
       {menuOpen && (
@@ -253,6 +241,18 @@ export default function Home() {
       {/* マップ */}
       <div className="map-wrapper">
         {mapList[mapStatus]}
+        {/* ===== フィルターチップ ===== */}
+        <div className="filter-chip-container">
+          {FILTER_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              className={`filter-chip ${mapStatus === item.key ? "active" : ""}`}
+              onClick={() => setMapStatus(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ===== ダイアログ ===== */}
