@@ -4,6 +4,13 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
+import * as crypto from 'crypto';
+
+// メールアドレスをSHA-256でハッシュ化する関数
+function hashEmail(email: string): string {
+    // メールアドレスは小文字に変換してからハッシュ化することで、大文字・小文字を区別しない検索を可能にする
+    return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
+}
 
 // FormDataから数値を安全にパースし、undefinedを返すユーティリティ
 function safeParseInt(value: FormDataEntryValue | null): number | undefined {
@@ -221,11 +228,14 @@ export async function deleteUser(accountId: string) {
 // 2. ストア（Store）CRUD
 // ----------------------------------------------------------------------
 
-/** 2-A. ストア作成 (Store Create) - 出店場所仮登録を削除 */
+/** 2-A. ストア作成 (Store Create) */
 export async function createStore(formData: FormData, email: string) {
     console.log(`[DB] START: Creating Store for email: ${email}`);
     const storeName = formData.get('storeName') as string;
     const introduction = formData.get('description') as string;
+    // ハッシュ値を使用
+    const hashedEmail = hashEmail(email);
+
 
     if (!storeName || !email) {
         return { error: '店舗名とメールアドレスは必須です。' };
@@ -234,7 +244,7 @@ export async function createStore(formData: FormData, email: string) {
     try {
         const newStore = await prisma.$transaction(async (tx) => {
 
-            const existingAccount = await tx.account.findUnique({ where: { email: email } });
+            const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.storeId) {
                 return { error: 'このメールアドレスは、既に出店者（Store）として登録済みです。' };
             }
@@ -256,7 +266,7 @@ export async function createStore(formData: FormData, email: string) {
             } else {
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
-                    data: { accountId: customAccountId, email: email, accountType: 'Store', storeId: customStoreId }
+                    data: { accountId: customAccountId, email: hashedEmail, accountType: 'Store', storeId: customStoreId }
                 });
             }
 
@@ -494,6 +504,102 @@ export async function deleteOpinion(id: string) {
     }
 }
 
+/** 3-D. 全意見の取得 (Get All Opinions with User Info) */
+export async function getAllOpinions() {
+    console.log(`[DB] START: Fetching all Opinions.`);
+    try {
+        const opinions = await prisma.postAnOpinion.findMany({
+            orderBy: { postedAt: 'desc' }, // 新しい順にソート
+            select: {
+                postAnOpinionId: true,
+                commentText: true,
+                latitude: true,
+                longitude: true,
+                postedAt: true,
+                // 作成者情報 (Account -> User -> Master Data) を取得
+                account: {
+                    select: {
+                        user: {
+                            select: {
+                                nickname: true,
+                                introduction: true,
+                                gender: { select: { genderName: true } },
+                                ageGroup: { select: { ageGroupName: true } },
+                                occupation: { select: { occupationName: true } }
+                            }
+                        },
+                        // Store情報 (ハイブリッドアカウントの場合、店舗名を取得)
+                        store: {
+                            select: { storeName: true }
+                        }
+                    }
+                },
+                // いいねの数
+                likes: {
+                    select: { accountId: true } 
+                },
+                // タグ情報
+                opinionTags: {
+                    select: {
+                        tag: {
+                            select: { tagName: true }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // クライアント側で扱いやすい形式にデータを加工
+        const processedOpinions = opinions.map(o => {
+            let creatorName = '匿名ユーザー';
+            let profile = { gender: '', age: '', occupation: '' }; // ★ プロフィールデータ用のオブジェクトを初期化
+
+            // ユーザー情報（一般利用者）を優先して処理
+            if (o.account?.user?.nickname) {
+
+                // ★ デバッグログを追加 ★
+                console.log("--- DEBUG OPINION PROFILE ---");
+                console.log("Nickname:", o.account.user.nickname);
+                console.log("Gender Data:", o.account.user.gender);
+                console.log("AgeGroup Data:", o.account.user.ageGroup);
+                console.log("Occupation Data:", o.account.user.occupation);
+                console.log("-----------------------------");
+
+                creatorName = o.account.user.nickname;
+                
+                // ★ ユーザー属性の値を抽出 ★
+                profile.gender = o.account.user.gender?.genderName || '未設定';
+                profile.age = o.account.user.ageGroup?.ageGroupName || '未設定';
+                profile.occupation = o.account.user.occupation?.occupationName || '未設定';
+            } 
+            // ユーザー情報がなく、ストア情報がある場合
+            else if (o.account?.store?.storeName) {
+                creatorName = o.account.store.storeName + ' (店舗)';
+                profile = { gender: '店舗', age: '', occupation: '' }; // 店舗の場合は属性をクリア
+            }
+
+            return {
+                opinionId: o.postAnOpinionId,
+                commentText: o.commentText,
+                latitude: o.latitude,
+                longitude: o.longitude,
+                postedAt: o.postedAt,
+                likeCount: o.likes.length,
+                creatorName: creatorName,
+                tags: o.opinionTags.map(ot => ot.tag.tagName),
+                profile: profile // ★ 処理されたプロフィール情報を含める ★
+            };
+        });
+
+        console.log(`[DB] END: Fetched ${opinions.length} Opinions.`);
+        return { success: true, opinions: processedOpinions };
+
+    } catch (error) {
+        console.error('Fetching opinions failed:', error);
+        return { success: false, error: '意見リストの取得に失敗しました。' };
+    }
+}
+
 
 // ----------------------------------------------------------------------
 // 4. アンケート（Question）と回答（Answer）
@@ -710,9 +816,12 @@ export async function toggleLike(formData: FormData) {
 // 6. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
 export async function findUserByEmail(email: string) {
+    const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+    
+    console.log(`[DB] START: Finding user by HASH.`);
     try {
         const account = await prisma.account.findUnique({
-            where: { email: email },
+            where: { email: hashedEmail },
             select: { accountId: true }
         });
 
@@ -776,5 +885,53 @@ export async function getAllTags() {
     } catch (error) {
         console.error('Fetching tags failed:', error);
         return { success: false, error: 'タグリストの取得に失敗しました。' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 9. アカウントデータ取得
+// ----------------------------------------------------------------------
+
+/** 9-A. アカウントIDからUserとStoreの詳細情報を取得 */
+export async function getUserAndStoreDetails(accountId: string) {
+    console.log(`[DB] START: Fetching User/Store Details for Account ID: ${accountId}`);
+    if (!accountId) {
+        return { success: false, error: 'アカウントIDが指定されていません。' };
+    }
+
+    try {
+        // Accountレコードを取得し、関連するUserとStoreの情報を取得（結合）
+        const account = await prisma.account.findUnique({
+            where: { accountId: accountId },
+            select: {
+                accountId: true,
+                email: true,
+                accountType: true,
+                // Userテーブルの全カラムではなく、必要なカラムとマスタデータの名前を選択
+                user: {
+                    select: {
+                        userId: true,
+                        nickname: true,
+                        introduction: true,
+                        gender: { select: { genderName: true } }, 
+                        ageGroup: { select: { ageGroupName: true } }, 
+                        occupation: { select: { occupationName: true } },
+                    }
+                }, 
+                // Storeテーブルの全カラムを取得
+                store: true, 
+            },
+        });
+
+        if (!account) {
+            return { success: false, error: '指定されたアカウントIDは見つかりませんでした。' };
+        }
+
+        console.log(`[DB] END: Fetched details for Account ID: ${accountId}`);
+        return { success: true, account };
+
+    } catch (error) {
+        console.error('Fetching account details failed:', error);
+        return { success: false, error: 'アカウント詳細情報の取得に失敗しました。' };
     }
 }

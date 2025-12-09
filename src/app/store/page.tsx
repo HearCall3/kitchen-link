@@ -67,7 +67,7 @@ export default function StoreRegisterPage() {
   return (
     <main className={styles["register-page"]}>
       <div className={styles["register-card"]}>
-        <h1 className={styles["register-title"]}>出店登録</h1>
+        <h1 className={styles["register-title"]}>ストア登録</h1>
         
         {/* ユーザーのGmailアカウント名を表示 */}
         {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
@@ -90,7 +90,7 @@ export default function StoreRegisterPage() {
             className={styles["register-textarea"]}
             required
           />
-          <input
+          {/* <input
             type="text"
             name="address"
             placeholder="出店場所"
@@ -98,7 +98,7 @@ export default function StoreRegisterPage() {
             onChange={handleChange}
             className={styles["register-input"]}
             required
-          />
+          /> */}
           <button type="submit" className={styles.registerBtn}>
             登録する
           </button>
