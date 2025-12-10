@@ -1,7 +1,15 @@
 // src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { findUserByEmail, findAccountDetailsByEmail } from "@/actions/db_access"; //
+import { findUserByEmail, findAccountDetailsByEmail } from "@/actions/db_access";
+import * as crypto from 'crypto';
+
+// --- Hashing Utility Function ---
+// db_access.tsと同じ関数を定義
+function hashEmail(email: string): string {
+    return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
+}
+// ----------------------------------
 
 const handler = NextAuth({
   providers: [
