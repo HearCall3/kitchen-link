@@ -8,7 +8,6 @@ import DeleteAccountButton from "@/components/DeleteAccountButton";
 export default function UserProfilePage() {
   const router = useRouter();
 
-  // フォームの state (省略)
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
@@ -27,15 +26,14 @@ export default function UserProfilePage() {
     setTimeout(() => router.push(path), 50);
   };
 
-  const menuWidth = "260px"; // サイドメニューの幅をCSSと合わせる
+  const menuWidth = "260px";
 
   return (
     <div className={styles.phoneFrame}>
 
-      {/* ★修正点 1: メニューが開いたときに contentShift クラスを適用する ★ */}
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
 
-        {/* ハンバーガーボタン (常に☰を表示) */}
+        {/* ハンバーガーボタン*/}
         <button
           className={styles.menuButton}
           onClick={toggleMenu}
@@ -43,7 +41,7 @@ export default function UserProfilePage() {
           ☰
         </button>
 
-        {/* オーバーレイ (クリックで閉じる機能と、暗くする背景を兼ねる) */}
+        {/* オーバーレイ */}
         {menuOpen && (
           <div
             className={styles.menuOverlay}
@@ -54,13 +52,10 @@ export default function UserProfilePage() {
         {/* サイドメニュー */}
         <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
 
-          {/* ★修正点 2: サイドメニュー内に閉じる「×」ボタンを配置 ★ */}
-          <button className={styles.closeMenuButton} onClick={toggleMenu}>
+          <button className={styles.closeMenuBtn} onClick={toggleMenu}>
             ×
           </button>
-
-          {/* ... メニュー項目 (省略せず記載) ... */}
-          <ul>
+          <ul className={styles.menuList}>
             <li>
               <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
             </li>
@@ -82,7 +77,6 @@ export default function UserProfilePage() {
           </ul>
         </div>
 
-        {/* コンテンツ (フォーム部分も省略せず記載) */}
         <h2 className={styles.title}>プロフィール設定</h2>
         <div className={styles.card}>
           {/* ニックネーム */}

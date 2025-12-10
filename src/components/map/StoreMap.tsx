@@ -38,19 +38,42 @@ export default function StoreMap() {
         // 2. マップにセット（これで表示されます）
         setMap(map);
     });
+    //クリックしたところにピンを指す
+    const [markerPos, setMarkerPos] = useState<{ lat: number, lng: number } | null>(null);
+    {
+    //     markerPos && (
+    //         // ピンのデザイン
+    //         <MarkerF
+    //             position={markerPos}
+    //             icon={{
+    //                 url: "/pin_orange.png",  // publicフォルダに画像を置く
+    //                 scaledSize: new google.maps.Size(40, 40), // サイズ調整
+    //                 anchor: new google.maps.Point(20, 40), // 先端の位置調整
+    //             }}
+    //         />
+        // )
+    }
 
     if (!isLoaded) return <div>Loading...</div>;
 
     return (
-        <>
-            <GoogleMap
-                mapContainerStyle={containerStyle}
-                options={mapOption}
-                center={center}
-                zoom={14}
-
-            >
-            </GoogleMap>
-        </>
+        <GoogleMap
+            mapContainerStyle={containerStyle}
+            options={mapOption}
+            center={center}
+            zoom={14}
+            onClick={(e) => {
+                if (!e.latLng) return;
+                setMarkerPos({
+                    lat: e.latLng.lat(),
+                    lng: e.latLng.lng(),
+                });
+            }}
+        >
+            {/* ★クリックされたらピン表示 */}
+            {markerPos && (
+                <MarkerF position={markerPos} />
+            )}
+        </GoogleMap>
     );
 }

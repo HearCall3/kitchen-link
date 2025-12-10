@@ -1,27 +1,48 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
 
 export default function StoreProfileEditPage() {
+  const router = useRouter();
+
   const [storeName, setStoreName] = useState("");
   const [description, setDescription] = useState("");
   const [storeUrl, setStoreUrl] = useState("");
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSave = () => {
     alert("店舗プロフィールを保存しました！（テスト版）");
     console.log({ storeName, description, storeUrl });
   };
 
+  const handleLogin = () => setIsLoggedIn(true);
+  const handleLogout = () => setIsLoggedIn(false);
+
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  const handleMenuClick = (path: string) => {
+    setMenuOpen(false);
+    setTimeout(() => router.push(path), 50);
+  };
+
   return (
     <div className={styles["phone-frame"]}>
       <div className={styles["phone-content"]}>
-        
         {/* タイトル */}
         <h2 className={styles.title}>店舗プロフィール設定</h2>
 
+        <div className={`home-button ${menuOpen ? "contentShift" : ""}`}>
+          <button onClick={() => router.push("/")} title="ホームに戻る">
+            ←
+          </button>
+        </div>
+
+        {/* 入力フォーム */}
         <div className={styles.container}>
-          
           {/* 店舗名 */}
           <div>
             <label className={styles.label}>店舗名</label>

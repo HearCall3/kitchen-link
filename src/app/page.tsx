@@ -3,8 +3,7 @@
 import './style.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
-import Image from "next/image";
+import { useSession, signIn, signOut } from "next-auth/react";
 import OpinionMap from "../components/map/OpinionMap";
 import PollMap from "../components/map/PollMap";
 import StoreMap from "../components/map/StoreMap";
@@ -21,7 +20,6 @@ import { useSession } from "next-auth/react";
 
 
 export default function Home() {
-  const router = useRouter();
 
   // セッションからメールアドレスを取得
   const { data: session } = useSession();
@@ -250,8 +248,9 @@ const [text, setText] = useState(""); // ★ 意見コメント
   // ====== アンケート作成 ======
   const [createOpen, setCreateOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
-  const [optionOne, setOptionOne] = useState("");
-  const [optionTwo, setOptionTwo] = useState("");
+  //選択肢（２こ）
+  const [option1, setOption1] = useState("");
+  const [option2, setOption2] = useState("");
 
 
   const createPoll = async () => {
@@ -317,7 +316,7 @@ const [text, setText] = useState(""); // ★ 意見コメント
         setCreateOpen(true);
         break;
     }
-  }
+  };
 
   const FILTER_ITEMS = [
     { label: "キッチンカー", key: "store" },
@@ -330,11 +329,10 @@ const [text, setText] = useState(""); // ★ 意見コメント
     poll: <PollMap onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
+  console.log("Session user:", session?.user);
 
   return (
-
-    <div className="phone-frame">
-
+    <div className="frame">
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
@@ -350,19 +348,6 @@ const [text, setText] = useState(""); // ★ 意見コメント
           />
         </div>
       </header>
-      {/* ===== フィルターチップ ===== */}
-      <div className="filter-chip-container">
-        {FILTER_ITEMS.map((item) => (
-          <button
-            key={item.key}
-            className={`filter-chip ${mapStatus === item.key ? "active" : ""}`}
-            onClick={() => setMapStatus(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
 
       {/* ===== ハンバーガーメニュー ===== */}
       {menuOpen && (
@@ -379,206 +364,222 @@ const [text, setText] = useState(""); // ★ 意見コメント
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          <li
-            className="border-b p-3 hover:bg-gray-100"
-            onClick={() => router.push("/register")}
-          >出店登録</li>
-          {/* ログインしたら「ログアウト」
-          未ログインなら「ログイン」 */}
-          {!isLoggedIn ? (
+          {/* 店舗ログイン */}
+          {session?.user?.role === "store" && (
+            <li
+              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+              onClick={() => router.push("/register")}
+            >
+              出店登録
+            </li>
+          )}
+
+
+          {!session ? (
             <li
               className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
-              onClick={handleLogin}
+              onClick={() => signIn("google", { callbackUrl: "/login" })}
             >
               ログイン
             </li>
           ) : (
             <li
-              className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer"
-              onClick={handleLogout}
+              className="border-b p-3 hover:bg-gray-100 text-red-600 cursor-pointer"
+              onClick={() => signOut({ callbackUrl: "/" })}
             >
               ログアウト
             </li>
-
           )}
         </ul>
       </div>
 
-      {/* ==== オーバーレイ（背景クリックで閉じる） ==== */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-40 z-30"
-          onClick={() => setMenuOpen(false)}
-        ></div>
-      )}
-
-      {/* マップ */}
-      <div className="map-container z-10 relative">
-        {mapList[mapStatus]}
-      </div>
-
-      {/* ===== アンケート作成ボタン ===== */}
-      <button
-        onClick={() => setCreateOpen(true)}
-        className="submit-btn mb-2"
-      >
-        アンケートを作成
-      </button>
-
-      {/* ===== アクションボタン ===== */}
-      <div className="flex flex-col items-center gap-4 p-4">
-        {/* <button className="submit-btn flex flex-col items-center" onClick={openPoll}>
-          アンケートに回答する
-        </button> */}
-
-        <button onClick={() => setPostOpen(true)} className="submit-btn">
-          意見を投稿する
-        </button>
-      </div>
-
-      {/* ===== ★ 追加: アンケート一覧表示エリア ★ ===== */}
-      <div className="p-4 pt-0">
-        <h3 className="text-lg font-bold mb-3 text-gray-700 border-b pb-1">公開中のアンケート</h3>
-        {questions.length === 0 ? (
-          <p className="text-gray-500">現在、公開されているアンケートはありません。</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {questions.map((q) => (
-              <div key={q.questionId} className="p-3 border rounded-lg shadow-sm bg-white">
-                <p className="text-sm text-gray-500">店舗名: {q.storeName}</p>
-                <p className="font-semibold text-base mb-2">{q.questionText}</p>
-                <div className="text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span>1. {q.option1Text}</span>
-                    <span className="font-mono text-blue-600">{q.option1Count} 票</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>2. {q.option2Text}</span>
-                    <span className="font-mono text-blue-600">{q.option2Count} 票</span>
-                  </div>
-                </div>
-                <p className="text-xs text-right text-gray-400 mt-2">合計 {q.totalAnswers} 回答</p>
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => handleAnswerClick(q)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-sm"
-                  >
-                    回答する
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
-      {/* ★ 表示条件を answerPollOpen と selectedQuestion に修正 ★ */}
-      {answerPollOpen && selectedQuestion && (
+      {/*ログイン画面下から出す*/}
+      {showLoginPrompt && (
         <>
-          <div className="dialog-overlay" onClick={() => setAnswerPollOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
-            <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
-            <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
+          {/* 背景オーバーレイ */}
+          <div
+            className="dialog-overlay"
+            onClick={() => setShowLoginPrompt(false)}
+          />
 
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setSelectedOption(1)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 1 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
-                  }`}
-              >
-                {selectedQuestion.option1Text}
-              </button>
-              <button
-                onClick={() => setSelectedOption(2)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 2 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
-                  }`}
-              >
-                {selectedQuestion.option2Text}
-              </button>
-            </div>
+          {/* ログインモーダル */}
+          <div className="login-prompt-dialog">
+            <h1 className="login-title">Kitchen Link</h1>
 
-            {/* ★ 確認: 回答を送信 ボタンに handleAnswerSubmit が設定されている ★ */}
             <button
-              onClick={handleAnswerSubmit}
-              disabled={selectedOption === null}
-              className={`submit-btn mt-4 ${selectedOption === null ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className="login-btn"
+              onClick={() => signIn("google", { callbackUrl: "/user" })}
             >
-              回答を送信
+              Googleでユーザーログイン
             </button>
-          </div>
-        </>
-      )}
 
-      {/* ===== アンケート作成ダイアログ ===== */}
-      {createOpen && (
-        <>
-          <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
-            <h3>アンケートを作成</h3>
-            <input
-              type="text"
-              value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="質問を入力してください"
-            />
-            <input
-              type="text"
-              value={optionOne}
-              onChange={(e) => setOptionOne(e.target.value)}
-              placeholder='回答１'
+            <button
+              className="login-btn"
+              onClick={() => signIn("google", { callbackUrl: "/store" })}
             >
-            </input>
-            <input
-              type="text"
-              value={optionTwo}
-              onChange={(e) => setOptionTwo(e.target.value)}
-              placeholder='回答2'>
-            </input>
-            <button onClick={() => {
-              if (newQuestion && optionOne && optionTwo)
-                createPoll()
-            }} className="submit-btn">作成</button>
+              Googleで店舗ログイン
+            </button>
           </div>
         </>
       )
       }
 
-      {/* ===== 意見投稿ダイアログ ===== */}
+      {/* ==== オーバーレイ（背景クリックで閉じる） ==== */}
+      {
+        menuOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 z-30"
+            onClick={() => setMenuOpen(false)}
+          ></div>
+        )
+      }
+
+      {/* マップ */}
+      <div className="map-wrapper">
+        {mapList[mapStatus]}
+        {/* ===== フィルターチップ ===== */}
+        <div className="filter-chip-container">
+          {FILTER_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              className={`filter-chip ${mapStatus === item.key ? "active" : ""}`}
+              onClick={() => setMapStatus(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ===== ダイアログ ===== */}
+      {
+        pollOpen && (
+          <>
+            {/* アンケート回答画面 */}
+            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
+              <h3>この店にまた来たいですか？</h3>
+              {!voted ? (
+                <div className="vote-buttons">
+                  <button className="yes" onClick={() => handleVote("yes")}>はい</button>
+                  <button className="no" onClick={() => handleVote("no")}>いいえ</button>
+                </div>
+              ) : (
+                <>
+                  <div className="result-bar">
+                    <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
+                    <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
+                  </div>
+                  <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p>
+                </>
+              )}
+            </div>
+          </>
+        )
+      }
+      {
+        createOpen && (
+          <>
+            {/* アンケート作成 */}
+            <div className="dialog-overlay" onClick={() => setCreateOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
+              <h3>アンケートを作成</h3>
+
+              {/* 質問入力 */}
+              <input
+                type="text"
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                placeholder="質問を入力してください"
+                className="mb-2 p-2 border rounded w-full"
+              />
+
+              {/* 選択肢1 */}
+              <input
+                type="text"
+                value={option1}
+                onChange={(e) => setOption1(e.target.value)}
+                placeholder="選択肢1"
+                className="mb-2 p-2 border rounded w-full"
+              />
+
+              {/* 選択肢2 */}
+              <input
+                type="text"
+                value={option2}
+                onChange={(e) => setOption2(e.target.value)}
+                placeholder="選択肢2"
+                className="mb-4 p-2 border rounded w-full"
+              />
+
+              {/* 作成ボタン */}
+              <button
+                onClick={createPoll}
+                className="submit-btn w-full"
+              >
+                作成
+              </button>
+            </div>
+          </>
+        )
+      }
+
       {
         postOpen && (
           <>
-            <div className="dialog-overlay" onClick={() => setPostOpen(false)} />
+            {/* ===== 意見投稿 ===== */}
+            <div
+              className="dialog-overlay"
+              onClick={() => setPostOpen(false)}
+            />
             <div className="poll-dialog active">
-              <button className="close-btn" onClick={() => setPostOpen(false)}>×</button>
+              <button
+                className="close-btn"
+                onClick={() => setPostOpen(false)}
+              >
+                ×
+              </button>
+
               <h3>意見を投稿</h3>
+
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="お店についての意見を入力..."
               />
-              <div className="form-controls">
-                {/* ------------------------------- */}
-                {/* プルダウンメニュー (タグ選択) */}
-                {/* ------------------------------- */}
-                <div className="flex gap-2 mb-3">
-                  <select
-                    value={selectedTag}
-                    onChange={(e) => setSelectedTag(e.target.value)}
-                    className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+              {/* ジャンル選択UI */}
+              <div className="genre-container">
+                選択：
+                {genres.map((g) => (
+                  <button
+                    key={g}
+                    className={`genre-btn ${selectedGenres.includes(g) ? "selected" : ""
+                      }`}
+                    onClick={() => {
+                      if (selectedGenres.includes(g)) {
+                        setSelectedGenres(
+                          selectedGenres.filter((item) => item !== g)
+                        );
+                      } else {
+                        setSelectedGenres([...selectedGenres, g]);
+                      }
+                    }}
                   >
-                    {/* optionsのリストをレンダリング */}
-                    {tags.map((tag) => (
-                      <option key={tag.value} value={tag.value}>
-                        {tag.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {g}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 mb-3">
                 <button
-                  onClick={handleOpinionSubmit}
+                  onClick={() => {
+                    console.log("投稿する:", {
+                      text,
+                      genres: selectedGenres,
+                    });
+                    setPostOpen(false);
+                  }}
                   className="submit-btn"
                 >
                   投稿する
@@ -587,6 +588,7 @@ const [text, setText] = useState(""); // ★ 意見コメント
             </div>
           </>
         )
-      }</div >
-  )
+      }
+    </div >
+  );
 }
