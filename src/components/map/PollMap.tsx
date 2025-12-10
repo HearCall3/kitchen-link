@@ -79,7 +79,23 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                 zoom={14}
 
             >
-                {/* アンケートの作成 */}
+
+                 {/* アンケート回答ピンアイコン todo */}
+                {/* <MarkerF
+                    key={`marker-${data.lat}-${isOpen}`}
+                    position={{ lat: data.lat, lng: data.lon }}
+                    onClick={() => toggleLabel(data.lat)}
+                    label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
+                    icon={{
+                        url: "/pin.png",        // 画像パス (public フォルダに置くのがおすすめ)
+                        scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                        anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
+                    }}
+                /> */}
+
+                {/* アンケートの作成 アイコン作成todo*/}
+
+                
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{ pointerEvents: 'auto' }}>
@@ -102,7 +118,7 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                 {/* アンケートの回答のピン */}
                 {/* ～ */}
 
-                
+
             </GoogleMap>
         </>
     );

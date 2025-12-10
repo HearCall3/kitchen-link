@@ -79,6 +79,10 @@ export default function Home() {
     if (data === "poll") setCreateOpen(true);
   };
 
+  // ====== 絞り込みジャンル ======
+  const [searchActive, setSearchActive] = useState(false);
+
+
   // 1. ログイン状態チェック
   useEffect(() => {
     const checkLoginStatus = () => {
@@ -235,7 +239,7 @@ export default function Home() {
   const createPoll = async () => {
     const storeId = session?.user?.storeId;
     if (!storeId) {
-      alert("出店者としてログインしているか確認してください。");
+      // alert("出店者としてログインしているか確認してください。");
       return;
     }
     if (!newQuestion || !optionOne || !optionTwo || !latLng) {
@@ -316,6 +320,44 @@ export default function Home() {
         </div>
       </header>
 
+      {/* 検索の絞り込みボタン */}
+      {searchActive && (
+        <div className="bg-white px-3 py-2 shadow-md overflow-x-auto flex gap-2">
+          {genres.map((tag) => (
+            <div
+              key={tag}
+              onClick={() => setFilter(tag)}
+              className="px-3 py-1 bg-gray-200 rounded-full text-sm whitespace-nowrap cursor-pointer hover:bg-gray-300"
+            >
+              {tag}
+            </div>
+          ))}
+          )
+
+
+          <div className="flex gap-2 overflow-x-auto mb-4">
+            {genres.map((tag) => (
+              <div
+                key={tag}
+                onClick={() => setFilter(tag)}
+                className="px-3 py-2 bg-gray-200 rounded-full text-sm whitespace-nowrap"
+              >
+                {tag}
+              </div>
+            ))}
+          </div>
+
+          {/* 絞り込み結果リスト（仮） */}
+          {/* <div>
+            {filteredSpots?.map((spot) => (
+              <div key={spot.id} className="p-2 border-b">{spot.name}</div>
+            ))}
+          </div> */}
+        </div>
+      )
+      }
+
+
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
@@ -323,9 +365,17 @@ export default function Home() {
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/register")}>
+          {/* 店舗ログインなら表示 todo*/}
+          {/* {storeId && ( */}
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => router.push("/register")}
+          >
             出店登録
           </li>
+          {/* )} */}
+
+
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
               ログイン
@@ -339,42 +389,45 @@ export default function Home() {
       </div>
 
       {/*ログイン画面下から出す*/}
-      {showLoginPrompt && (
-        <>
-          {/* 背景オーバーレイ */}
-          <div
-            className="dialog-overlay"
-            onClick={() => setShowLoginPrompt(false)}
-          />
-          {/* ログインモーダル */}
-          <div className="login-prompt-dialog">
-            <h1 className="login-title">Kitchen Link</h1>
+      {
+        showLoginPrompt && (
+          <>
+            {/* 背景オーバーレイ */}
+            <div
+              className="dialog-overlay"
+              onClick={() => setShowLoginPrompt(false)}
+            />
+            {/* ログインモーダル */}
+            <div className="login-prompt-dialog">
+              <h1 className="login-title">Kitchen Link</h1>
 
-            <button
-              className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/user" })}
-            >
-              Googleでユーザーログイン
-            </button>
+              <button
+                className="login-btn"
+                onClick={() => signIn("google", { callbackUrl: "/user" })}
+              >
+                Googleでユーザーログイン
+              </button>
 
-            <button
-              className="login-btn"
-              onClick={() => signIn("google", { callbackUrl: "/store" })}
-            >
-              Googleで店舗ログイン
-            </button>
-          </div>
-        </>
-      )
+              <button
+                className="login-btn"
+                onClick={() => signIn("google", { callbackUrl: "/store" })}
+              >
+                Googleで店舗ログイン
+              </button>
+            </div>
+          </>
+        )
       }
 
       {/* オーバーレイ */}
-      {menuOpen && (
-        <div
-          className="menu-overlay"
-          onClick={() => setMenuOpen(false)}
-        ></div>
-      )}
+      {
+        menuOpen && (
+          <div
+            className="menu-overlay"
+            onClick={() => setMenuOpen(false)}
+          ></div>
+        )
+      }
 
       {/* マップ */}
       <div className="map-wrapper">
@@ -457,7 +510,8 @@ export default function Home() {
         )
       }
 
-      {
+      {/* アンケート回答画面 todo */}
+      {/* {
         pollOpen && (
           <>
             <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
@@ -471,7 +525,7 @@ export default function Home() {
             </div>
           </>
         )
-      }
+      } */}
 
       {
         createOpen && (

@@ -24,10 +24,10 @@ const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
 
 // 円のスタイル設定
 const circleOptions = {
-    strokeColor: '#FF0000', // 線の色
+    strokeColor: '#ff9500ff', // 線の色
     strokeOpacity: 0.8,
     strokeWeight: 2,
-    fillColor: '#FF0000', // 塗りつぶしの色
+    fillColor: '#ff880056', // 塗りつぶしの色
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
@@ -239,6 +239,14 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
                                 position={{ lat: data.lat, lng: data.lon }}
                                 onClick={() => toggleLabel(data.lat)} // ★クリックでトグル
                                 label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
+
+                            // todo
+                            // 意見投稿ピンの画像
+                            // icon={{
+                            //     url: "/pin.png",
+                            //     scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                            //     anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
+                            // }}
                             />
 
                             <Circle
@@ -260,14 +268,40 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
                 })}
             </GoogleMap>
 
-            <div style={{ padding: 20 }}>
-                <h3>抽出された意見 ({extractedOpinions.length}件)</h3>
-                <ul>
-                    {extractedOpinions.map((op, i) => (
-                        <li key={i}>{op}</li>
-                    ))}
-                </ul>
+            <div
+                style={{
+                    // position: "absolute",
+                    // top: 20,
+                    // right: 20,
+                    // width: 300,      // 幅
+                    // maxHeight: "80vh", // 高さの最大値
+                    // backgroundColor: "white",
+                    // borderRadius: 12,
+                    // boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    // padding: 16,
+                    // display: "flex",
+                    // flexDirection: "column",
+                }}
+            >
+                <h3 style={{ marginBottom: 12, fontSize: 18, fontWeight: "bold" }}>
+                    抽出された意見 ({extractedOpinions.length}件)
+                </h3>
+                <div
+                    style={{
+                        overflowY: "auto",
+                        flex: 1, // 残りの高さをスクロール領域に割り当て
+                    }}
+                >
+                    <ul style={{ paddingLeft: 16 }}>
+                        {extractedOpinions.map((op, i) => (
+                            <li key={i} style={{ marginBottom: 8 }}>
+                                {op}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
+
         </>
     );
 }
