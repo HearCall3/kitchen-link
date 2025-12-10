@@ -7,6 +7,15 @@
   height: 100%;
   background: rgba(0, 0, 0, 0.4);
   z-index: 90;
+
+}
+/* 全デバイスでスクロールバーを完全非表示 */
+body::-webkit-scrollbar {
+  display: none;
+}
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ====== ヘッダー ====== */
@@ -136,6 +145,11 @@ header input {
   min-height: 100vh;
   height: auto;
 }
+/* スクロールバーを表示しない */
+.no-scroll {
+  overflow: hidden;
+}
+
 
 .side-menu.open {
   left: 0;
@@ -485,11 +499,11 @@ header input {
   border-radius: 15px 15px 0 0;
   /* 上だけ丸くする */
   box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
-  z-index: 110;
   text-align: center;
   overflow-y: auto;
   /* 内容が多い場合スクロール */
   animation: slide-up 0.4s ease-out;
+  position: fixed; z-index: 999
 }
 
 /* 下からスライドアニメーション */
