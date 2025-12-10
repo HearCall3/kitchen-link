@@ -467,7 +467,7 @@ export default function Home() {
     poll: <PollMap onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
-  console.log("Session user:", session?.user);
+  // console.log("Session user:", session?.user);
 
   return (
     <div className="frame">
@@ -702,13 +702,7 @@ export default function Home() {
               </div>
               <div className="flex gap-2 mb-3">
                 <button
-                  onClick={() => {
-                    console.log("投稿する:", {
-                      text,
-                      genres: selectedGenres,
-                    });
-                    setPostOpen(false);
-                  }}
+                  onClick={handleOpinionSubmit}
                   className="submit-btn"
                 >
                   投稿する
