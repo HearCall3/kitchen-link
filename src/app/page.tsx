@@ -18,8 +18,6 @@ import {
   getAllOpinions,
   getUserAndStoreDetails
 } from "@/actions/db_access";
-// next-auth から useSession をインポート
-import { useSession } from "next-auth/react";
 
 
 export default function Home() {
@@ -40,6 +38,7 @@ export default function Home() {
   const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]); // タグリスト (動的取得)
 
   // ====== アンケート回答 States ======
+  const [pollOpen, setPollOpen] = useState(false);
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -51,10 +50,52 @@ export default function Home() {
   // ====== ログイン状態 (localStorage利用はそのまま残す) ======
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // ====== router ======
+  const router = useRouter();
+
+  // ====== 投稿・アンケート開閉 ======
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // const handleDialogOpen = (type: string) => {
+  //   if (!session) return setShowLoginPrompt(true);};
+
+  const handleOpenPollCreate = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setCreateOpen(true);
+  };
+
+  const handleOpenPollVote = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setPollOpen(true);
+  };
+
+  const handleOpenPost = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setPostOpen(true);
+  };
+
   // ====== 意見投稿 States ======
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const genres = [
+    "商品",
+    "値段",
+    "ボリューム",
+    "満足",
+    "その他",
+  ];
+
 
   // ====== アンケート作成 States ======
   const [createOpen, setCreateOpen] = useState(false);
@@ -135,6 +176,17 @@ export default function Home() {
         console.error(resultO.error);
       }
 
+      // 意見投稿のジャンル選択の定義＆中身
+      // const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+
+      const genres = [
+        "商品",
+        "値段",
+        "ボリューム",
+        "満足",
+        "その他",
+      ];
+
       // タグ取得
       const resultT = await getAllTags();
       if (resultT.success && resultT.tags) {
@@ -186,9 +238,10 @@ export default function Home() {
       }
       fetchUserDetails();
 
-    } else if (status === 'unauthenticated') {
-      console.log("--- ログアウト状態 ---");
     }
+    //  else if (status === 'unauthenticated') {
+    //   console.log("--- ログアウト状態 ---");
+    // }
   }, [session, status]);
 
   // --- Store Handlers ---
@@ -295,12 +348,13 @@ export default function Home() {
     const accountId = session.user.accountId;
     const questionId = selectedQuestion.questionId;
 
-  // ====== アンケート作成 ======
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newQuestion, setNewQuestion] = useState("");
-  //選択肢（２こ）
-  const [option1, setOption1] = useState("");
-  const [option2, setOption2] = useState("");
+    // ====== アンケート作成 ======
+    const [createOpen, setCreateOpen] = useState(false);
+    const [newQuestion, setNewQuestion] = useState("");
+    //選択肢（２こ）
+    const [option1, setOption1] = useState("");
+    const [option2, setOption2] = useState("");
+
     const formData = new FormData();
     formData.append('accountId', accountId);
     formData.append('questionId', questionId);
@@ -449,14 +503,13 @@ export default function Home() {
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
           {/* 店舗ログイン */}
-          {session?.user?.role === "store" && (
-            <li
-              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-              onClick={() => router.push("/register")}
-            >
-              出店登録
-            </li>
-          )}
+          {/* ログイン店なら表示 */}
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => router.push("/register")}
+          >
+            出店登録
+          </li>
 
 
           {!session ? (
@@ -544,20 +597,19 @@ export default function Home() {
             <div className="poll-dialog active">
               <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
               <h3>この店にまた来たいですか？</h3>
-              {!voted ? (
-                <div className="vote-buttons">
-                  <button className="yes" onClick={() => handleVote("yes")}>はい</button>
-                  <button className="no" onClick={() => handleVote("no")}>いいえ</button>
-                </div>
-              ) : (
-                <>
-                  <div className="result-bar">
+              <div className="vote-buttons">
+                <button className="yes">はい</button>
+                <button className="no">いいえ</button>
+              </div>
+              <>
+                {
+                  // 結果を表示 
+                  /* <div className="result-bar">
                     <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
                     <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
                   </div>
-                  <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p>
-                </>
-              )}
+                  <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p> */}
+              </>
             </div>
           </>
         )
@@ -583,28 +635,27 @@ export default function Home() {
               {/* 選択肢1 */}
               <input
                 type="text"
-                value={option1}
-                onChange={(e) => setOption1(e.target.value)}
+                value={optionOne}
+                onChange={(e) => setOptionOne(e.target.value)}
                 placeholder="選択肢1"
-                className="mb-2 p-2 border rounded w-full"
+                className="mb-4 p-2 border rounded w-full"
               />
-            
+
               {/* 選択肢2 */}
               <input
                 type="text"
-                value={option2}
-                onChange={(e) => setOption2(e.target.value)}
+                value={optionTwo}
+                onChange={(e) => setOptionTwo(e.target.value)}
                 placeholder="選択肢2"
                 className="mb-4 p-2 border rounded w-full"
               />
 
+
               {/* 作成ボタン */}
-              <button
-                onClick={createPoll}
-                className="submit-btn w-full"
-              >
-                作成
-              </button>
+              <button onClick={() => {
+                if (newQuestion && optionOne && optionTwo)
+                  createPoll()
+              }} className="submit-btn">作成</button>
             </div>
           </>
         )
@@ -636,24 +687,18 @@ export default function Home() {
               {/* ジャンル選択UI */}
               <div className="genre-container">
                 選択：
-                {genres.map((g) => (
-                  <button
-                    key={g}
-                    className={`genre-btn ${selectedGenres.includes(g) ? "selected" : ""
-                      }`}
-                    onClick={() => {
-                      if (selectedGenres.includes(g)) {
-                        setSelectedGenres(
-                          selectedGenres.filter((item) => item !== g)
-                        );
-                      } else {
-                        setSelectedGenres([...selectedGenres, g]);
-                      }
-                    }}
-                  >
-                    {g}
-                  </button>
-                ))}
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+                >
+                  {/* optionsのリストをレンダリング */}
+                  {tags.map((tag) => (
+                    <option key={tag.value} value={tag.value}>
+                      {tag.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2 mb-3">
                 <button
@@ -674,5 +719,5 @@ export default function Home() {
         )
       }
     </div >
-  );     
+  );
 }
