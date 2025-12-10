@@ -32,14 +32,11 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 interface PostMapProps {
-    onDialogOpen: (data: string) => void;
+    onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
 }
-export default function OpinionMap({ onDialogOpen }: PostMapProps) {
-    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
 
-    const handleOpinionTransition = () => {
-        onDialogOpen("poll"); // ← ここでアンケート作成を開く
-    };
+
+export default function PollMap({ onDialogOpen }: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -49,6 +46,14 @@ export default function OpinionMap({ onDialogOpen }: PostMapProps) {
 
     const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
+
+    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
+
+
+    const handleOpinionTransition = () => {
+        if (clickPos)
+            onDialogOpen("poll", clickPos);
+    }
 
     useEffect(() => {
         if (!map || !isLoaded) return;

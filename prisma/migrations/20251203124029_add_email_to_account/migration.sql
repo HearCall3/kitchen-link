@@ -23,6 +23,7 @@ CREATE TABLE "Stores" (
 -- CreateTable
 CREATE TABLE "Account" (
     "account_id" SERIAL NOT NULL,
+    "email" VARCHAR(100) NOT NULL,
     "account_type" VARCHAR(10) NOT NULL,
     "user_id" INTEGER,
     "store_id" INTEGER,
@@ -131,6 +132,9 @@ CREATE UNIQUE INDEX "Users_nickname_key" ON "Users"("nickname");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Stores_store_name_key" ON "Stores"("store_name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Account_email_key" ON "Account"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_user_id_key" ON "Account"("user_id");

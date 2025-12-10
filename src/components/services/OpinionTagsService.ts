@@ -61,4 +61,11 @@ export class OpinionTagsService {
       },
     });
   }
+
+  async getAllOpinionTags(): Promise<OpinionTags[]> {
+    return prisma.opinionTags.findMany({
+      include: { opinion: true, tag: true }, // 関連情報も取得
+      orderBy: { postAnOpinionId: 'desc' },
+    });
+  }
 }
