@@ -33,12 +33,11 @@ const circleOptions = {
 };
 
 interface PostMapProps {
-    onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
-    setSelectedQuestion: (questionId: string) => void;
+    onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
     questions: (any[]);
 }
 
-export default function PollMap({ onDialogOpen, questions, setSelectedQuestion}: PostMapProps) {
+export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -105,7 +104,7 @@ export default function PollMap({ onDialogOpen, questions, setSelectedQuestion}:
                             text: q.questionText,
                             className: "bg-white px-2 py-1 rounded shadow",
                         }}
-                         onClick={() => setSelectedQuestion(q.questionId)}
+                         onClick={() => onDialogOpen(q.questionId)}
                     />
                 ))}
                 <div

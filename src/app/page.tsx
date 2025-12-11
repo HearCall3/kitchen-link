@@ -21,7 +21,6 @@ import {
 export default function Home() {
   const { data: session, status } = useSession();
   const email = session?.user?.email;
-  const router = useRouter();
 
   // Map Statuses
   const mapStatuses = ['opinion', 'poll', 'store'] as const;
@@ -47,36 +46,6 @@ export default function Home() {
 
   // ====== router ======
   const router = useRouter();
-
-  // ====== 投稿・アンケート開閉 ======
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-  // const handleDialogOpen = (type: string) => {
-  //   if (!session) return setShowLoginPrompt(true);};
-
-  const handleOpenPollCreate = () => {
-    if (!session) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    setCreateOpen(true);
-  };
-
-  const handleOpenPollVote = () => {
-    if (!session) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    setPollOpen(true);
-  };
-
-  const handleOpenPost = () => {
-    if (!session) {
-      setShowLoginPrompt(true);
-      return;
-    }
-    setPostOpen(true);
-  };
 
   // ====== 意見投稿 States ======
   const [postOpen, setPostOpen] = useState(false);
@@ -308,14 +277,23 @@ export default function Home() {
   };
 
   // --- Map Handlers ---
-  const handleDialogOpen = (data: string, takelatLng: { lat: number, lng: number }) => {
-    setLatLng(takelatLng);
+  const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
+
+    if (!session) {//ログインしてなかったらログインに誘導
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    if(takeLatLng){
+    setLatLng(takeLatLng);
     switch (data) {
       case ("post"): setPostOpen(true); break;
       case ("poll"): setCreateOpen(true); break;
     }
   };
-
+    setAnswerPollOpen(true);
+    setSelectedQuestion(questions.find(q => q.questionId === data))
+  }
   // const handleLogin = () => router.push("/login");
   // const handleLogout = () => {
   //   localStorage.removeItem("isLoggedIn");
@@ -330,14 +308,9 @@ export default function Home() {
     { label: "意見", key: "opinion" },
   ] as const;
 
-   const handleQuestionOpen = (questionId: string) => {
-    setAnswerPollOpen(true);
-    setSelectedQuestion(questions.find(q => q.questionId === questionId)
-)
-  }
   const mapList = {
-    opinion: <OpinionMap opinions={opinions}onDialogOpen={handleDialogOpen} />,
-    poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} setSelectedQuestion={handleQuestionOpen} />,
+    opinion: <OpinionMap opinions={opinions} onDialogOpen={handleDialogOpen} />,
+    poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
   // スクロールバーを表示しない
@@ -376,7 +349,7 @@ export default function Home() {
               {tag}
             </div>
           ))}
-          )
+          
 
 
           <div className="flex gap-2 overflow-x-auto mb-4">
@@ -489,7 +462,7 @@ export default function Home() {
 
       {/* ===== ダイアログ ===== */}
 
-       {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
+      {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
       {/* ★ 表示条件を answerPollOpen と selectedQuestion に修正 ★ */}
       {answerPollOpen && selectedQuestion && (
         <>
@@ -528,55 +501,55 @@ export default function Home() {
         </>
       )}
 
-        postOpen && (
-          <>
-            {/* ===== 意見投稿 ===== */}
-            <div
-              className="dialog-overlay"
+      {postOpen && (
+        <>
+          {/* ===== 意見投稿 ===== */}
+          <div
+            className="dialog-overlay"
+            onClick={() => setPostOpen(false)}
+          />
+          <div className="poll-dialog active">
+            <button
+              className="close-btn"
               onClick={() => setPostOpen(false)}
+            >
+              ×
+            </button>
+
+            <h3>意見を投稿</h3>
+
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="お店についての意見を入力..."
             />
-            <div className="poll-dialog active">
-              <button
-                className="close-btn"
-                onClick={() => setPostOpen(false)}
+            {/* ジャンル選択UI */}
+            <div className="genre-container">
+              選択：
+              <select
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
               >
-                ×
-              </button>
-
-              <h3>意見を投稿</h3>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="お店についての意見を入力..."
-              />
-              {/* ジャンル選択UI */}
-              <div className="genre-container">
-                選択：
-                <select
-                  value={selectedTag}
-                  onChange={(e) => setSelectedTag(e.target.value)}
-                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
-                >
-                  {/* optionsのリストをレンダリング */}
-                  {tags.map((tag) => (
-                    <option key={tag.value} value={tag.value}>
-                      {tag.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={handleOpinionSubmit}
-                  className="submit-btn"
-                >
-                  投稿する
-                </button>
-              </div>
+                {/* optionsのリストをレンダリング */}
+                {tags.map((tag) => (
+                  <option key={tag.value} value={tag.value}>
+                    {tag.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </>
-        )
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={handleOpinionSubmit}
+                className="submit-btn"
+              >
+                投稿する
+              </button>
+            </div>
+          </div>
+        </>
+      )
       }
 
       {/* アンケート回答画面 todo */}
