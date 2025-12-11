@@ -462,9 +462,14 @@ export default function Home() {
     { label: "意見", key: "opinion" },
   ] as const;
 
+   const handleQuestionOpen = (questionId: string) => {
+    setAnswerPollOpen(true);
+    setSelectedQuestion(questions.find(q => q.questionId === questionId)
+)
+  }
   const mapList = {
-    opinion: <OpinionMap onDialogOpen={handleDialogOpen} />,
-    poll: <PollMap onDialogOpen={handleDialogOpen} />,
+    opinion: <OpinionMap opinions={opinions}onDialogOpen={handleDialogOpen} />,
+    poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} setSelectedQuestion={handleQuestionOpen} />,
     store: <StoreMap />
   };
   // console.log("Session user:", session?.user);
@@ -589,31 +594,72 @@ export default function Home() {
       </div>
 
       {/* ===== ダイアログ ===== */}
+
+       {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
+      {/* ★ 表示条件を answerPollOpen と selectedQuestion に修正 ★ */}
+      {answerPollOpen && selectedQuestion && (
+        <>
+          <div className="dialog-overlay" onClick={() => setAnswerPollOpen(false)} />
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
+            <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
+            <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setSelectedOption(1)}
+                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 1 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                {selectedQuestion.option1Text}
+              </button>
+              <button
+                onClick={() => setSelectedOption(2)}
+                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 2 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                {selectedQuestion.option2Text}
+              </button>
+            </div>
+
+            {/* ★ 確認: 回答を送信 ボタンに handleAnswerSubmit が設定されている ★ */}
+            <button
+              onClick={handleAnswerSubmit}
+              disabled={selectedOption === null}
+              className={`submit-btn mt-4 ${selectedOption === null ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              回答を送信
+            </button>
+          </div>
+        </>
+      )}
+
+
       {
-        pollOpen && (
-          <>
-            {/* アンケート回答画面 */}
-            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-            <div className="poll-dialog active">
-              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
-              <h3>この店にまた来たいですか？</h3>
-              <div className="vote-buttons">
-                <button className="yes">はい</button>
-                <button className="no">いいえ</button>
-              </div>
-              <>
-                {
+        // pollOpen && (
+        //   <>
+        //     {/* アンケート回答画面 */}
+        //     <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
+        //     <div className="poll-dialog active">
+        //       <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
+        //       <h3>この店にまた来たいですか？</h3>
+        //       <div className="vote-buttons">
+        //         <button className="yes">はい</button>
+        //         <button className="no">いいえ</button>
+        //       </div>
+        //       <>
+        //         {
                   // 結果を表示 
                   /* <div className="result-bar">
                     <div className="yes-bar" style={{ width: `${yesPercent}%` }}>{yesPercent.toFixed(0)}%</div>
                     <div className="no-bar" style={{ width: `${noPercent}%` }}>{noPercent.toFixed(0)}%</div>
                   </div>
                   <p className="result-text">はい: {votes.yes}票 / いいえ: {votes.no}票</p> */}
-              </>
+              {/* </>
             </div>
           </>
         )
-      }
+      } */}
       {
         createOpen && (
           <>
