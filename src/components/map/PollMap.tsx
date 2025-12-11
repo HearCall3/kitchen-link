@@ -31,10 +31,10 @@ const circleOptions = {
     fillColor: '#FF0000', // 塗りつぶしの色
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
-
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
 }
+
 
 export default function PollMap({ onDialogOpen }: PostMapProps) {
 
@@ -46,6 +46,7 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
 
     const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
+
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
 
 
@@ -78,6 +79,7 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                 zoom={14}
 
             >
+                {/* アンケートの作成 */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{ pointerEvents: 'auto' }}>
@@ -93,10 +95,14 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                                 }}
                                 onClick={handleOpinionTransition}
                             >
-                                アンケートを作成</button>
+                                アンケート作成</button>
                         </OverlayView>
                     )}
                 </div>
+                {/* アンケートの回答のピン */}
+                {/* ～ */}
+
+                
             </GoogleMap>
         </>
     );

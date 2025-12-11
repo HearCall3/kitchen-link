@@ -20,10 +20,10 @@ export default function StoreRegisterPage() {
   const [form, setForm] = useState({
     storeName: "",
     description: "",
-    address: "",
+    storeUrl: "",
   });
 
-  
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,27 +31,27 @@ export default function StoreRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // --- デバッグログ: 試行開始 ---
     console.log("--- Store Registration Attempt ---");
-    console.log("Session Email:", email); 
+    console.log("Session Email:", email);
 
     if (!email) {
       alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
       router.push("/login");
       return;
     }
-    
+
     const formData = new FormData(e.target as HTMLFormElement);
     const storeName = formData.get('storeName');
     console.log("Form Store Name:", storeName); // 入力された店舗名を確認
-    
+
 
     // DB登録アクション呼び出し
-    const result = await createStore(formData, email); 
+    const result = await createStore(formData, email);
 
     // --- デバッグログ: サーバーアクションの結果 ---
-    console.log("Server Action Result:", result); 
+    console.log("Server Action Result:", result);
 
     if (result.success) {
       console.log("店舗登録データ:", form);
@@ -63,47 +63,52 @@ export default function StoreRegisterPage() {
       alert(`登録失敗: ${result.error}`);
     }
   };
-
   return (
-    <main className={styles["register-page"]}>
-      <div className={styles["register-card"]}>
-        <h1 className={styles["register-title"]}>ストア登録</h1>
-        
-        {/* ユーザーのGmailアカウント名を表示 */}
-        {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
+    <div>
+      {/* ユーザーのGmailアカウント名を表示 */}
+      {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
 
-        <form onSubmit={handleSubmit} className={styles["register-form"]}>
-          <input
-            type="text"
-            name="storeName"
-            placeholder="店舗名"
-            value={form.storeName}
-            onChange={handleChange}
-            className={styles["register-input"]}
-            required
-          />
-          <textarea
-            name="description"
-            placeholder="店舗の紹介"
-            value={form.description}
-            onChange={handleChange}
-            className={styles["register-textarea"]}
-            required
-          />
-          {/* <input
-            type="text"
-            name="address"
-            placeholder="出店場所"
-            value={form.address}
-            onChange={handleChange}
-            className={styles["register-input"]}
-            required
-          /> */}
-          <button type="submit" className={styles.registerBtn}>
-            登録する
-          </button>
-        </form>
+      {/* ==== メインコンテンツ ==== */}
+      <div className={styles.storeTheme}>
+        <div className={styles.registerCard}>
+          <h2 className={styles.registerTitle}>店舗情報入力</h2>
+
+          <div className={styles.registerForm}>
+            <form onSubmit={handleSubmit} className={styles.registerForm}>
+            <input
+              type="text"
+              className={styles.registerInput}
+              name="storeName"
+              placeholder="店舗名"
+              value={form.storeName}
+              onChange={handleChange}
+              required
+            />
+
+            <textarea
+              name="description"
+              placeholder="説明（任意）"
+              value={form.description}
+              onChange={handleChange}
+              className={styles.registerTextarea}
+              required
+            />
+
+            <input
+              type="url"
+              className={styles.registerInput}
+              placeholder="店舗URL（任意）"
+              value={form.storeUrl}
+              onChange={handleChange}
+            />
+
+            <button type="submit" className={styles.registerBtn}>
+              登録する
+            </button>
+            </form>
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

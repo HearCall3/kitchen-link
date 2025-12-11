@@ -1,14 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import styles from "./style.module.css";
-import DeleteAccountButton from "@/components/DeleteAccountButton";
+import {
+  getUserAndStoreDetails,
+  updateUser
+} from "@/actions/db_access";
+// import DeleteAccountButton from "@/components/DeleteAccountButton";
+
+// --- マスタデータとフォーム値のマッピング ---
+// DBから来る値（日本語）を、フォームの value（英語キー）に変換するためのマップ。
+const GENDER_MAP: { [key: string]: string } = { '男性': 'male', '女性': 'female', 'その他': 'other' };
+const JOB_MAP: { [key: string]: string } = { '学生': 'student', '会社員': 'company', 'アルバイト・パート': 'part-time', 'フリーランス': 'freelancer', '公務員': 'public', '無職': 'unemployed', 'その他': 'other' };
+
+// 保存時に日本語に戻す
+const REVERSE_GENDER_MAP = Object.fromEntries(Object.entries(GENDER_MAP).map(([k, v]) => [v, k]));
+const REVERSE_JOB_MAP = Object.fromEntries(Object.entries(JOB_MAP).map(([k, v]) => [v, k]));
+
+
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // フォームの state (省略)
+  // ★ 状態管理のためのStateを追加 ★
+  const [isLoading, setIsLoading] = useState(true);
+  const [originalData, setOriginalData] = useState<any>(null);
+
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
@@ -27,15 +47,124 @@ export default function UserProfilePage() {
     setTimeout(() => router.push(path), 50);
   };
 
-  const menuWidth = "260px"; // サイドメニューの幅をCSSと合わせる
+  // --- データのフェッチと初期値設定 ---
+  useEffect(() => {
+    const accountId = session?.user?.accountId;
+
+    if (status === 'authenticated' && accountId) {
+      async function fetchAndSetData() {
+        setIsLoading(true);
+        const result = await getUserAndStoreDetails(accountId!);
+
+        if (result.success && result.account?.user) {
+          const user = result.account.user;
+          setOriginalData(user); // 生データを保存
+
+          // ★ 取得した値をStateの初期値に設定 ★
+          setNickname(user.nickname || '');
+
+          // 性別
+          const dbGenderName = user.gender?.genderName || '';
+          setGender(GENDER_MAP[dbGenderName] || '');
+
+          // 年代
+          const dbAgeGroupName = user.ageGroup?.ageGroupName || '';
+          setAgeGroup(dbAgeGroupName || '');
+          // ★ 追加デバッグログ ★
+          console.log(`[DEBUG] DB Age Group Name: '${dbAgeGroupName}'`);
+          console.log(`[DEBUG] Form Age Group Value: '${dbAgeGroupName || ''}'`);
+
+          // 職業
+          const dbJobName = user.occupation?.occupationName || '';
+          setJob(JOB_MAP[dbJobName] || '');
+        } else {
+          console.error("プロフィールデータの取得に失敗しました:", result.error);
+        }
+        setIsLoading(false);
+      }
+      fetchAndSetData();
+    } else if (status === 'unauthenticated') {
+      setIsLoading(false);
+      // router.push('/login'); // 必要に応じてリダイレクト
+    }
+  }, [session, status]);
+
+  // --- 更新処理ハンドラー ---
+const handleSaveProfile = async () => {
+    const accountId = session?.user?.accountId; 
+    
+    if (!accountId || isLoading) {
+        alert("ログイン情報が見つからないか、データ読み込み中です。");
+        return;
+    }
+
+    if (!nickname) {
+        alert("ニックネームは必須です。");
+        return;
+    }
+
+    // マッピング処理をここに記述
+    const dataToSave = {
+        nickname: nickname,
+        // 性別: フォーム値 -> DB名に変換
+        genderName: REVERSE_GENDER_MAP[gender] || gender || null, 
+        // 年代: フォーム値 -> DB名（年代は値が同じなのでそのまま）
+        ageGroupName: ageGroup || null,
+        // 職業: フォーム値 -> DB名に変換
+        occupationName: REVERSE_JOB_MAP[job] || job || null, 
+    };
+    
+    // FormDataを作成し、データを格納
+    const formData = new FormData();
+    formData.append('nickname', dataToSave.nickname);
+    
+    if (dataToSave.genderName) {
+        formData.append('genderName', dataToSave.genderName);
+    }
+    if (dataToSave.ageGroupName) {
+        formData.append('ageGroupName', dataToSave.ageGroupName);
+    }
+    if (dataToSave.occupationName) {
+        formData.append('occupationName', dataToSave.occupationName);
+    }
+    
+    console.log("Saving data via FormData:", Object.fromEntries(formData));
+
+    try {
+        // ★ サーバーアクションの呼び出し: accountIdをstringで渡す
+        const result = await updateUser(String(accountId), formData); 
+
+        if (result.success) {
+            alert("保存しました！");
+            // 成功した場合、ページデータを再取得するためにリロード
+            window.location.reload(); 
+        } else {
+            alert(`保存に失敗しました: ${result.error || '不明なエラー'}`);
+        }
+    } catch (error) {
+        console.error("更新エラー:", error);
+        alert("サーバーとの通信中にエラーが発生しました。");
+    }
+};
+
+
+  // --- ローディング/非認証時の表示 ---
+  if (isLoading || status === 'loading') {
+    return <div className={styles.phoneFrame}><h2 className={styles.title}>読み込み中...</h2></div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return <div className={styles.phoneFrame}><h2 className={styles.title}>ログインしてください</h2></div>;
+  }
+
+  const menuWidth = "260px";
 
   return (
     <div className={styles.phoneFrame}>
 
-      {/* ★修正点 1: メニューが開いたときに contentShift クラスを適用する ★ */}
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
 
-        {/* ハンバーガーボタン (常に☰を表示) */}
+        {/* ハンバーガーボタン*/}
         <button
           className={styles.menuButton}
           onClick={toggleMenu}
@@ -43,7 +172,7 @@ export default function UserProfilePage() {
           ☰
         </button>
 
-        {/* オーバーレイ (クリックで閉じる機能と、暗くする背景を兼ねる) */}
+        {/* オーバーレイ */}
         {menuOpen && (
           <div
             className={styles.menuOverlay}
@@ -54,13 +183,10 @@ export default function UserProfilePage() {
         {/* サイドメニュー */}
         <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
 
-          {/* ★修正点 2: サイドメニュー内に閉じる「×」ボタンを配置 ★ */}
-          <button className={styles.closeMenuButton} onClick={toggleMenu}>
+          <button className={styles.closeMenuBtn} onClick={toggleMenu}>
             ×
           </button>
-
-          {/* ... メニュー項目 (省略せず記載) ... */}
-          <ul>
+          <ul className={styles.menuList}>
             <li>
               <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
             </li>
@@ -82,7 +208,6 @@ export default function UserProfilePage() {
           </ul>
         </div>
 
-        {/* コンテンツ (フォーム部分も省略せず記載) */}
         <h2 className={styles.title}>プロフィール設定</h2>
         <div className={styles.card}>
           {/* ニックネーム */}
@@ -152,15 +277,15 @@ export default function UserProfilePage() {
             </select>
           </div>
 
-          <button className={styles.btn} onClick={() => alert("保存しました！")}>
+          <button className={styles.btn} onClick={handleSaveProfile} disabled={isLoading}>
             保存する
           </button>
         </div>
       </div>
-      <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+      {/* <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
         <h2>危険区域</h2>
         <DeleteAccountButton />
-      </div>
+      </div> */}
     </div>
   );
 }
