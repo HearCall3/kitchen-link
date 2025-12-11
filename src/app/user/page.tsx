@@ -99,7 +99,10 @@ export default function UserRegisterPage() {
             <option value="20s">20代</option>
             <option value="30s">30代</option>
             <option value="40s">40代</option>
-            <option value="50s">50代以上</option>
+            <option value="50s">50代</option>
+            <option value="60s">60代</option>
+            <option value="70s">70代</option>
+            <option value="80s">80代以上</option>
           </select>
 
           <select

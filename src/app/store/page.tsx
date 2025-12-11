@@ -20,10 +20,10 @@ export default function StoreRegisterPage() {
   const [form, setForm] = useState({
     storeName: "",
     description: "",
-    address: "",
+    storeUrl: "",
   });
 
-  
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,27 +31,27 @@ export default function StoreRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // --- デバッグログ: 試行開始 ---
     console.log("--- Store Registration Attempt ---");
-    console.log("Session Email:", email); 
+    console.log("Session Email:", email);
 
     if (!email) {
       alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
       router.push("/login");
       return;
     }
-    
+
     const formData = new FormData(e.target as HTMLFormElement);
     const storeName = formData.get('storeName');
     console.log("Form Store Name:", storeName); // 入力された店舗名を確認
-    
+
 
     // DB登録アクション呼び出し
-    const result = await createStore(formData, email); 
+    const result = await createStore(formData, email);
 
     // --- デバッグログ: サーバーアクションの結果 ---
-    console.log("Server Action Result:", result); 
+    console.log("Server Action Result:", result);
 
     if (result.success) {
       console.log("店舗登録データ:", form);
@@ -66,44 +66,49 @@ export default function StoreRegisterPage() {
   return (
     <div>
       {/* ユーザーのGmailアカウント名を表示 */}
-        {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
-      
+      {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
+
       {/* ==== メインコンテンツ ==== */}
       <div className={styles.storeTheme}>
         <div className={styles.registerCard}>
           <h2 className={styles.registerTitle}>店舗情報入力</h2>
 
           <div className={styles.registerForm}>
+            <form onSubmit={handleSubmit} className={styles.registerForm}>
             <input
               type="text"
               className={styles.registerInput}
+              name="storeName"
               placeholder="店舗名"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
+              value={form.storeName}
+              onChange={handleChange}
               required
             />
 
             <textarea
-              className={styles.registerTextarea}
+              name="description"
               placeholder="説明（任意）"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            ></textarea>
+              value={form.description}
+              onChange={handleChange}
+              className={styles.registerTextarea}
+              required
+            />
 
             <input
               type="url"
               className={styles.registerInput}
               placeholder="店舗URL（任意）"
-              value={storeUrl}
-              onChange={(e) => setStoreUrl(e.target.value)}
+              value={form.storeUrl}
+              onChange={handleChange}
             />
 
-            <button onClick={handleSave} className={styles.registerBtn}>
+            <button type="submit" className={styles.registerBtn}>
               登録する
             </button>
+            </form>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

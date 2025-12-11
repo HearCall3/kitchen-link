@@ -45,6 +45,39 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
+  // ====== router ======
+  const router = useRouter();
+
+  // ====== 投稿・アンケート開閉 ======
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // const handleDialogOpen = (type: string) => {
+  //   if (!session) return setShowLoginPrompt(true);};
+
+  const handleOpenPollCreate = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setCreateOpen(true);
+  };
+
+  const handleOpenPollVote = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setPollOpen(true);
+  };
+
+  const handleOpenPost = () => {
+    if (!session) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setPostOpen(true);
+  };
+
   // ====== 意見投稿 States ======
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
@@ -105,6 +138,7 @@ export default function Home() {
       if (resultO.success && resultO.opinions) setOpinions(resultO.opinions);
       else console.error(resultO.error);
 
+      // タグ取得
       const resultT = await getAllTags();
       if (resultT.success && resultT.tags) setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
       else console.error(resultT.error);
@@ -133,7 +167,11 @@ export default function Home() {
         }
       }
       fetchUserDetails();
+
     }
+    //  else if (status === 'unauthenticated') {
+    //   console.log("--- ログアウト状態 ---");
+    // }
   }, [session, status]);
 
   // --- Store Handlers ---
@@ -219,6 +257,7 @@ export default function Home() {
     }
     const accountId = session.user.accountId;
     const questionId = selectedQuestion.questionId;
+
     const formData = new FormData();
     formData.append('accountId', accountId);
     formData.append('questionId', questionId);
@@ -291,9 +330,14 @@ export default function Home() {
     { label: "意見", key: "opinion" },
   ] as const;
 
+   const handleQuestionOpen = (questionId: string) => {
+    setAnswerPollOpen(true);
+    setSelectedQuestion(questions.find(q => q.questionId === questionId)
+)
+  }
   const mapList = {
-    opinion: <OpinionMap onDialogOpen={handleOpinionTransition} />,
-    poll: <PollMap onDialogOpen={handleOpinionTransition} />,
+    opinion: <OpinionMap opinions={opinions}onDialogOpen={handleDialogOpen} />,
+    poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} setSelectedQuestion={handleQuestionOpen} />,
     store: <StoreMap />
   };
   // スクロールバーを表示しない
@@ -373,8 +417,6 @@ export default function Home() {
           >
             出店登録
           </li>
-          {/* )} */}
-
 
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
@@ -446,7 +488,46 @@ export default function Home() {
       </div>
 
       {/* ===== ダイアログ ===== */}
-      {
+
+       {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
+      {/* ★ 表示条件を answerPollOpen と selectedQuestion に修正 ★ */}
+      {answerPollOpen && selectedQuestion && (
+        <>
+          <div className="dialog-overlay" onClick={() => setAnswerPollOpen(false)} />
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
+            <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
+            <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setSelectedOption(1)}
+                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 1 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                {selectedQuestion.option1Text}
+              </button>
+              <button
+                onClick={() => setSelectedOption(2)}
+                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 2 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                {selectedQuestion.option2Text}
+              </button>
+            </div>
+
+            {/* ★ 確認: 回答を送信 ボタンに handleAnswerSubmit が設定されている ★ */}
+            <button
+              onClick={handleAnswerSubmit}
+              disabled={selectedOption === null}
+              className={`submit-btn mt-4 ${selectedOption === null ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              回答を送信
+            </button>
+          </div>
+        </>
+      )}
+
         postOpen && (
           <>
             {/* ===== 意見投稿 ===== */}
@@ -472,34 +553,22 @@ export default function Home() {
               {/* ジャンル選択UI */}
               <div className="genre-container">
                 選択：
-                {genres.map((g) => (
-                  <button
-                    key={g}
-                    className={`genre-btn ${selectedGenres.includes(g) ? "selected" : ""
-                      }`}
-                    onClick={() => {
-                      if (selectedGenres.includes(g)) {
-                        setSelectedGenres(
-                          selectedGenres.filter((item) => item !== g)
-                        );
-                      } else {
-                        setSelectedGenres([...selectedGenres, g]);
-                      }
-                    }}
-                  >
-                    {g}
-                  </button>
-                ))}
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+                >
+                  {/* optionsのリストをレンダリング */}
+                  {tags.map((tag) => (
+                    <option key={tag.value} value={tag.value}>
+                      {tag.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2 mb-3">
                 <button
-                  onClick={() => {
-                    console.log("投稿する:", {
-                      text,
-                      genres: selectedGenres,
-                    });
-                    setPostOpen(false);
-                  }}
+                  onClick={handleOpinionSubmit}
                   className="submit-btn"
                 >
                   投稿する

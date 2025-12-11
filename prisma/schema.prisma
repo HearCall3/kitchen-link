@@ -295,4 +295,3 @@ model Sequence {
 
   @@map("Sequence")
 }
-
