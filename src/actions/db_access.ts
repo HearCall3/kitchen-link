@@ -64,7 +64,8 @@ async function getAndIncrementCustomId(seqName: string, typeCode: string, tx: an
 
 /** 1-A. 利用者作成 (User Create) */
 export async function createUser(formData: FormData, email: string) {
-    console.log(`[DB] START: Creating User for email: ${email}`);
+    const hashedEmail = hashEmail(email); // ★ 追加: ハッシュ化 ★
+    console.log(`[DB] START: Creating User for email: ${hashedEmail}`);
     const nickname = formData.get('nickname') as string;
     const genderId = safeParseInt(formData.get('gender'));
     const ageGroupId = safeParseInt(formData.get('age'));
@@ -77,7 +78,7 @@ export async function createUser(formData: FormData, email: string) {
     try {
         const newUser = await prisma.$transaction(async (tx) => {
 
-            const existingAccount = await tx.account.findUnique({ where: { email: email } });
+            const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.userId) {
                 return { error: 'このメールアドレスは、既に一般利用者（User）として登録済みです。' };
             }
@@ -100,7 +101,7 @@ export async function createUser(formData: FormData, email: string) {
             } else {
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
-                    data: { accountId: customAccountId, email: email, accountType: 'User', userId: customUserId }
+                    data: { accountId: customAccountId, email: hashedEmail, accountType: 'User', userId: customUserId }
                 });
             }
             return user;
@@ -822,8 +823,8 @@ export async function toggleLike(formData: FormData) {
 // ----------------------------------------------------------------------
 export async function findUserByEmail(email: string) {
     const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+    console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
 
-    console.log(`[DB] START: Finding user by HASH.`);
     try {
         const account = await prisma.account.findUnique({
             where: { email: hashedEmail },
@@ -842,9 +843,12 @@ export async function findUserByEmail(email: string) {
 // 7. Account詳細の取得 (JWT格納用)
 // ----------------------------------------------------------------------
 export async function findAccountDetailsByEmail(email: string) {
+    const hashedEmail = hashEmail(email); 
+    console.log(`[DEBUG AUTH] Hashed Email (Details): ${hashedEmail}`);
+
     try {
         const account = await prisma.account.findUnique({
-            where: { email: email },
+            where: { email: hashedEmail },
             select: {
                 accountId: true,
                 userId: true,
