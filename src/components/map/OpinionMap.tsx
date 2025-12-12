@@ -5,9 +5,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
     GoogleMap,
     MarkerF,
-    InfoWindowF, // InfoWindow をインポート
     Circle,        // Circle をインポート
-    type Libraries,
     useJsApiLoader,
     OverlayView
 } from '@react-google-maps/api';
@@ -24,47 +22,20 @@ const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
 
 // 円のスタイル設定
 const circleOptions = {
-    strokeColor: '#FF0000', // 線の色
+    strokeColor: '#ff9500ff', // 線の色
     strokeOpacity: 0.8,
     strokeWeight: 2,
-    fillColor: '#FF0000', // 塗りつぶしの色
+    fillColor: '#ff880056', // 塗りつぶしの色
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
 
-interface testopinionData {
-    lat: number,
-    lon: number,
-    opinion: string,
-    radius: number;
-};
-const opinionList: testopinionData[] = [
-    { "lat": 35.6895, "lon": 139.6917, "opinion": "新宿駅周辺は活気があります。", "radius": 850 },
-    { "lat": 35.6580, "lon": 139.7016, "opinion": "渋谷のスクランブル交差点は有名です。", "radius": 950 },
-    { "lat": 35.7148, "lon": 139.7745, "opinion": "上野動物園のパンダは人気者。", "radius": 700 },
-    { "lat": 35.6812, "lon": 139.7671, "opinion": "東京駅丸の内口は美しい。", "radius": 900 },
-    { "lat": 35.6631, "lon": 139.7340, "opinion": "六本木ヒルズからの眺めは絶景。", "radius": 780 },
-    { "lat": 35.7000, "lon": 139.7780, "opinion": "秋葉原はアニメと電気街の聖地。", "radius": 650 },
-    { "lat": 35.6295, "lon": 139.7738, "opinion": "お台場はデートスポットに最適。", "radius": 1100 },
-    { "lat": 35.6738, "lon": 139.7100, "opinion": "原宿の竹下通りはいつも賑やか。", "radius": 820 },
-    { "lat": 35.7289, "lon": 139.7109, "opinion": "池袋サンシャインシティは楽しい。", "radius": 730 },
-    { "lat": 35.6453, "lon": 139.6787, "opinion": "世田谷公園は広々として気持ち良い。", "radius": 980 },
-    { "lat": 35.7056, "lon": 139.7516, "opinion": "神田明神は歴史を感じる場所。", "radius": 550 },
-    { "lat": 35.6940, "lon": 139.7031, "opinion": "都庁の展望台は無料で楽しめる。", "radius": 700 },
-    { "lat": 35.6605, "lon": 139.7291, "opinion": "表参道は高級ブランド店が多い。", "radius": 600 },
-    { "lat": 35.6898, "lon": 139.7407, "opinion": "皇居東御苑は静かで落ち着く。", "radius": 1050 },
-    { "lat": 35.6171, "lon": 139.7300, "opinion": "品川駅は新幹線の玄関口。", "radius": 880 },
-    { "lat": 35.7208, "lon": 139.7891, "opinion": "浅草寺は外国人観光客でいっぱい。", "radius": 750 },
-    { "lat": 35.6025, "lon": 139.6990, "opinion": "目黒川の桜並木は美しい。", "radius": 630 },
-    { "lat": 35.7380, "lon": 139.7045, "opinion": "王子駅周辺は落ち着いた雰囲気。", "radius": 500 },
-    { "lat": 35.6790, "lon": 139.7500, "opinion": "銀座は日本の高級ショッピング街。", "radius": 920 },
-    { "lat": 35.6700, "lon": 139.7850, "opinion": "月島のもんじゃ焼きは美味しい。", "radius": 580 }
-]
-
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
+
+    opinions: (any[]);
 }
-export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -82,25 +53,21 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
 
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
-        console.log("---- updateVisibleLabels ----");
 
         const bounds = mapInstance.getBounds();
         if (!bounds) return;
 
         // 範囲内のピンを絞り込み
-        const visiblePins = opinionList
+        const visiblePins = opinions
             .filter(pin => {
-                const pinLatLng = new window.google.maps.LatLng(pin.lat, pin.lon);
+                const pinLatLng = new window.google.maps.LatLng(pin.latitude, pin.longitude);
                 return bounds.contains(pinLatLng);
-
-
             })
             .slice(0, MAX_VISIBLE_LABELS); // 上限数でカット
-        console.log("→ MAX_VISIBLE_LABELS 適用後:" + visiblePins);
 
         // 絞り込んだピンの「lat」の配列で state を更新
-        setActiveLabelLats(visiblePins.map(pin => pin.lat));
-    }, []);
+        setActiveLabelLats(visiblePins.map(pin => pin.latitude));
+    }, [opinions]);
 
     const onLoad = useCallback((map: google.maps.Map) => {
         setMap(map);
@@ -116,6 +83,10 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
     const onUnmount = useCallback(() => {
         setMap(null);
     }, []);
+
+    useEffect(() => {
+        if (map) updateVisibleLabels(map);
+    }, [opinions, map, updateVisibleLabels]);
 
     const toggleLabel = (lat: number) => {
         setActiveLabelLats(prev => {
@@ -162,15 +133,15 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
             if (!bounds) return;
 
             // 2. opinionList (すべてのピン) を絞り込む
-            const filteredOpinions = opinionList
+            const filteredOpinions = opinions
                 .filter(pin => {
                     // ピンの座標
-                    const pinLatLng = new window.google.maps.LatLng(pin.lat, pin.lon);
+                    const pinLatLng = new window.google.maps.LatLng(pin.latitude, pin.longitude);
 
                     //ピンが範囲(bounds)に「含まれる(contains)」か判定
                     return bounds.contains(pinLatLng);
                 })
-                .map(pin => pin.opinion); // 5. 絞り込んだものから「意見(opinion)」だけを抜き出す
+                .map(pin => pin.commentText); // 5. 絞り込んだものから「意見(opinion)」だけを抜き出す
 
             //抽出した意見リストを state に保存
             setExtractedOpinions(filteredOpinions);
@@ -228,31 +199,40 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
                     )}
                 </div>
 
-                {map && opinionList.map((data) => {
+                {map && opinions.map((data) => {
 
-                    const isOpen = activeLabelLats.includes(data.lat);
+                    const isOpen = activeLabelLats.includes(data.latitude);
 
                     return (
-                        <React.Fragment key={data.lat}>
+                        <React.Fragment key={data.opinionId}>
                             <MarkerF
-                                key={`marker-${data.lat}-${isOpen}`}
-                                position={{ lat: data.lat, lng: data.lon }}
-                                onClick={() => toggleLabel(data.lat)} // ★クリックでトグル
-                                label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
+
+                                key={`marker-${data.latitude}-${isOpen}`}
+                                position={{ lat: data.latitude, lng: data.longitude }}
+                                onClick={() => toggleLabel(data.latitude)} // ★クリックでトグル
+                                label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
 
-                            <Circle
+                            {/* 
+                            todo 
+                            意見投稿ピンの画像
+                            icon={{
+                            url: "/pin.png",
+                            scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                            anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
+
+                            < Circle
                                 onLoad={(circle) => {
-                                    circleRefs.current[data.lat] = circle;
+                                    circleRefs.current[data.latitude] = circle;
                                 }}
                                 onUnmount={() => {
                                     // Reactのライフサイクルに合わせて地図から削除
-                                    const c = circleRefs.current[data.lat];
+                                    const c = circleRefs.current[data.latitude];
                                     if (c) c.setMap(null);
-                                    delete circleRefs.current[data.lat];
+                                    delete circleRefs.current[data.latitude];
                                 }}
-                                center={{ lat: data.lat, lng: data.lon }}
-                                radius={data.radius}
+                                center={{ lat: data.latitude, lng: data.longitude }}
+                                radius={500}
                                 options={{ ...circleOptions, clickable: false }}
                             />
                         </React.Fragment>
@@ -260,14 +240,40 @@ export default function OpinionMap({ onDialogOpen }: OpinionMapProps) {
                 })}
             </GoogleMap>
 
-            <div style={{ padding: 20 }}>
-                <h3>抽出された意見 ({extractedOpinions.length}件)</h3>
-                <ul>
-                    {extractedOpinions.map((op, i) => (
-                        <li key={i}>{op}</li>
-                    ))}
-                </ul>
+            <div
+                style={{
+                    // position: "absolute",
+                    // top: 20,
+                    // right: 20,
+                    // width: 300,      // 幅
+                    // maxHeight: "80vh", // 高さの最大値
+                    // backgroundColor: "white",
+                    // borderRadius: 12,
+                    // boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    // padding: 16,
+                    // display: "flex",
+                    // flexDirection: "column",
+                }}
+            >
+                <h3 style={{ marginBottom: 12, fontSize: 18, fontWeight: "bold" }}>
+                    抽出された意見 ({extractedOpinions.length}件)
+                </h3>
+                <div
+                    style={{
+                        overflowY: "auto",
+                        flex: 1, // 残りの高さをスクロール領域に割り当て
+                    }}
+                >
+                    <ul style={{ paddingLeft: 16 }}>
+                        {extractedOpinions.map((op, i) => (
+                            <li key={i} style={{ marginBottom: 8 }}>
+                                {op}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
+
         </>
     );
 }

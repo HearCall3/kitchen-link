@@ -1,7 +1,19 @@
-// src/app/types/next-auth.d.ts
-import "next-auth";
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+
+
+const handler = NextAuth({
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+});
+
+export { handler as GET, handler as POST };
 
 declare module "next-auth" {
   interface Session {

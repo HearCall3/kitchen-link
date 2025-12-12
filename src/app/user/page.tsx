@@ -25,7 +25,10 @@ export default function UserRegisterPage() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,21 +63,22 @@ export default function UserRegisterPage() {
         {/* ユーザーのGmailアカウント名を表示 */}
         {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#f97316' }}>({email} で登録)</p>}
 
-        <form onSubmit={handleSubmit} className={styles["register-form"]}>
+        <form className={styles["register-form"]} onSubmit={handleSubmit}>
           <input
             type="text"
             name="nickname"
             placeholder="ニックネーム"
+            className={styles["register-input"]}
             value={form.nickname}
             onChange={handleChange}
-            className={styles["register-input"]}
             required
           />
+
           <select
             name="gender"
+            className={styles["register-input"]}
             value={form.gender}
             onChange={handleChange}
-            className={styles["register-input"]}
             required
           >
             <option value="">性別を選択</option>
@@ -82,16 +86,16 @@ export default function UserRegisterPage() {
             <option value="female">女性</option>
             <option value="other">その他</option>
           </select>
+
           <select
             name="ageGroup"
+            className={styles["register-input"]}
             value={form.ageGroup}
             onChange={handleChange}
-            className={styles["register-input"]}
             required
           >
             <option value="">年代を選択</option>
-            <option value="under10">10歳未満</option>
-            <option value="10s">10代</option>
+            <option value="teen">10代</option>
             <option value="20s">20代</option>
             <option value="30s">30代</option>
             <option value="40s">40代</option>
@@ -100,11 +104,12 @@ export default function UserRegisterPage() {
             <option value="70s">70代</option>
             <option value="80s">80代以上</option>
           </select>
+
           <select
             name="occupation"
+            className={styles["register-input"]}
             value={form.occupation}
             onChange={handleChange}
-            className={styles["register-input"]}
             required
           >
             <option value="">職業を選択</option>
@@ -112,12 +117,12 @@ export default function UserRegisterPage() {
             <option value="company">会社員</option>
             <option value="part-time">アルバイト・パート</option>
             <option value="freelancer">フリーランス</option>
-            <option value="government">公務員</option>
+            <option value="public">公務員</option>
             <option value="unemployed">無職</option>
             <option value="other">その他</option>
           </select>
 
-          <button type="submit" className={styles.registerBtn}>
+          <button type="submit" className={styles["registerBtn"]}>
             登録する
           </button>
         </form>

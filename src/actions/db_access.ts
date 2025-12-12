@@ -825,7 +825,6 @@ export async function findUserByEmail(email: string) {
     const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
     console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
 
-    console.log(`[DB] START: Finding user by HASH.`);
     try {
         const account = await prisma.account.findUnique({
             where: { email: hashedEmail },
@@ -880,7 +879,8 @@ export async function getAllTags() {
                 tagId: true,
                 tagName: true,
             },
-            orderBy: { tagId: 'asc' },        });
+            orderBy: { tagId: 'asc' },
+        });
 
         console.log(`[DB] END: Fetched ${tags.length} Tags.`);
         // クライアント側で扱いやすいよう、tagNameをvalue/labelとして利用する

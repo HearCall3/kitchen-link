@@ -33,10 +33,11 @@ const circleOptions = {
 };
 
 interface PostMapProps {
-    onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
+    onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
+    questions: (any[]);
 }
 
-export default function PollMap({ onDialogOpen }: PostMapProps) {
+export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -44,7 +45,6 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
         libraries: libraries,
     });
 
-    const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
 
@@ -78,6 +78,35 @@ export default function PollMap({ onDialogOpen }: PostMapProps) {
                 zoom={14}
 
             >
+
+                 {/* アンケート回答ピンアイコン todo */}
+                {/* <MarkerF
+                    key={`marker-${data.lat}-${isOpen}`}
+                    position={{ lat: data.lat, lng: data.lon }}
+                    onClick={() => toggleLabel(data.lat)}
+                    label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
+                    icon={{
+                        url: "/pin.png",        // 画像パス (public フォルダに置くのがおすすめ)
+                        scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                        anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
+                    }}
+                /> */}
+
+                {/* アンケートの作成 アイコン作成todo*/}
+                {questions.map((q) => (
+                    <MarkerF
+                        key={q.questionId}
+                        position={{
+                            lat: Number(q.latitude),
+                            lng: Number(q.longitude),
+                        }}
+                        label={{
+                            text: q.questionText,
+                            className: "bg-white px-2 py-1 rounded shadow",
+                        }}
+                         onClick={() => onDialogOpen(q.questionId)}
+                    />
+                ))}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{ pointerEvents: 'auto' }}>
