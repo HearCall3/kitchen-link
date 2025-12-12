@@ -3,7 +3,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 
 // メールアドレスをSHA-256でハッシュ化する関数
@@ -64,7 +64,8 @@ async function getAndIncrementCustomId(seqName: string, typeCode: string, tx: an
 
 /** 1-A. 利用者作成 (User Create) */
 export async function createUser(formData: FormData, email: string) {
-    console.log(`[DB] START: Creating User for email: ${email}`);
+    const hashedEmail = hashEmail(email); // ★ 追加: ハッシュ化 ★
+    console.log(`[DB] START: Creating User for email: ${hashedEmail}`);
     const nickname = formData.get('nickname') as string;
     const genderId = safeParseInt(formData.get('gender'));
     const ageGroupId = safeParseInt(formData.get('age'));
@@ -77,7 +78,7 @@ export async function createUser(formData: FormData, email: string) {
     try {
         const newUser = await prisma.$transaction(async (tx) => {
 
-            const existingAccount = await tx.account.findUnique({ where: { email: email } });
+            const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.userId) {
                 return { error: 'このメールアドレスは、既に一般利用者（User）として登録済みです。' };
             }
@@ -100,7 +101,7 @@ export async function createUser(formData: FormData, email: string) {
             } else {
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
-                    data: { accountId: customAccountId, email: email, accountType: 'User', userId: customUserId }
+                    data: { accountId: customAccountId, email: hashedEmail, accountType: 'User', userId: customUserId }
                 });
             }
             return user;
@@ -127,13 +128,13 @@ export async function createUser(formData: FormData, email: string) {
 /** 1-B. 利用者更新 (User Update) */
 export async function updateUser(accountId: string, formData: FormData) {
     console.log(`[DB] START: Updating User for Account ID: ${accountId}`);
-    const introduction = formData.get('introduction') as string;
-    const genderId = safeParseInt(formData.get('genderCode'));
-    const ageGroupCode = safeParseInt(formData.get('ageGroupCode'));
-    const occupationCode = safeParseInt(formData.get('occupationCode'));
+    const nickname = formData.get('nickname') as string;
+    const genderName = formData.get('genderName') as string;
+    const ageGroupName = formData.get('ageGroupName') as string;
+    const occupationName = formData.get('occupationName') as string;
 
     const existingAccount = await prisma.account.findUnique({
-        where: { accountId: accountId },
+        where: { accountId: accountId }, // Stringのまま使用
         select: { userId: true }
     });
 
@@ -143,28 +144,33 @@ export async function updateUser(accountId: string, formData: FormData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const userData: Prisma.UserUpdateInput = { introduction: introduction };
+            // 2. マスタデータ名からIDを取得 (トランザクションクライアントtxを使用)
+            const genderId = await getMasterIdByName(tx, 'Gender', genderName);
+            const ageGroupId = await getMasterIdByName(tx, 'AgeGroup', ageGroupName);
+            const occupationId = await getMasterIdByName(tx, 'Occupation', occupationName);
 
-            if (genderId !== undefined) { userData.gender = { connect: { genderId: genderId } }; }
-            if (ageGroupCode !== undefined) { userData.ageGroup = { connect: { ageGroupId: ageGroupCode } }; }
-            if (occupationCode !== undefined) { userData.occupation = { connect: { occupationId: occupationCode } }; }
+            // 3. 更新するデータを構築
+            const userData: Prisma.UserUpdateInput = {
+                nickname: nickname,
+            };
 
+            // IDが取得できた場合のみconnect句を設定
+            if (genderId !== null) { userData.gender = { connect: { genderId: genderId } }; }
+            if (ageGroupId !== null) { userData.ageGroup = { connect: { ageGroupId: ageGroupId } }; }
+            if (occupationId !== null) { userData.occupation = { connect: { occupationId: occupationId } }; }
+
+            // 4. Userテーブルを更新
             await tx.user.update({
-                // ★ 修正: ロジックでnullチェック済みのため、非nullアサーションを使用
-                where: { userId: existingAccount.userId! },
+                where: { userId: existingAccount.userId! }, // userIdもString型
                 data: userData,
             });
             console.log(`[DB] User ID ${existingAccount.userId} updated.`);
         });
 
-        revalidatePath('/db');
         return { success: true };
 
     } catch (error) {
-        console.error('User update failed:', error);
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-            return { error: '更新に失敗: 選択されたマスタデータIDが存在しません。' };
-        }
+        // ... (エラー処理は省略) ...
         return { error: '利用者アカウント情報の更新に失敗しました。' };
     } finally {
         console.log(`[DB] END: Updating User.`);
@@ -536,7 +542,7 @@ export async function getAllOpinions() {
                 },
                 // いいねの数
                 likes: {
-                    select: { accountId: true } 
+                    select: { accountId: true }
                 },
                 // タグ情報
                 opinionTags: {
@@ -548,7 +554,7 @@ export async function getAllOpinions() {
                 }
             }
         });
-        
+
         // クライアント側で扱いやすい形式にデータを加工
         const processedOpinions = opinions.map(o => {
             let creatorName = '匿名ユーザー';
@@ -566,12 +572,12 @@ export async function getAllOpinions() {
                 console.log("-----------------------------");
 
                 creatorName = o.account.user.nickname;
-                
+
                 // ★ ユーザー属性の値を抽出 ★
                 profile.gender = o.account.user.gender?.genderName || '未設定';
                 profile.age = o.account.user.ageGroup?.ageGroupName || '未設定';
                 profile.occupation = o.account.user.occupation?.occupationName || '未設定';
-            } 
+            }
             // ユーザー情報がなく、ストア情報がある場合
             else if (o.account?.store?.storeName) {
                 creatorName = o.account.store.storeName + ' (店舗)';
@@ -817,7 +823,8 @@ export async function toggleLike(formData: FormData) {
 // ----------------------------------------------------------------------
 export async function findUserByEmail(email: string) {
     const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
-    
+    console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
+
     console.log(`[DB] START: Finding user by HASH.`);
     try {
         const account = await prisma.account.findUnique({
@@ -837,9 +844,12 @@ export async function findUserByEmail(email: string) {
 // 7. Account詳細の取得 (JWT格納用)
 // ----------------------------------------------------------------------
 export async function findAccountDetailsByEmail(email: string) {
+    const hashedEmail = hashEmail(email); 
+    console.log(`[DEBUG AUTH] Hashed Email (Details): ${hashedEmail}`);
+
     try {
         const account = await prisma.account.findUnique({
-            where: { email: email },
+            where: { email: hashedEmail },
             select: {
                 accountId: true,
                 userId: true,
@@ -870,16 +880,15 @@ export async function getAllTags() {
                 tagId: true,
                 tagName: true,
             },
-            orderBy: { tagId: 'asc' }, 
-        });
-        
+            orderBy: { tagId: 'asc' },        });
+
         console.log(`[DB] END: Fetched ${tags.length} Tags.`);
         // クライアント側で扱いやすいよう、tagNameをvalue/labelとして利用する
         const formattedTags = tags.map(t => ({
             value: t.tagName,
             label: t.tagName,
         }));
-        
+
         return { success: true, tags: formattedTags };
 
     } catch (error) {
@@ -913,13 +922,13 @@ export async function getUserAndStoreDetails(accountId: string) {
                         userId: true,
                         nickname: true,
                         introduction: true,
-                        gender: { select: { genderName: true } }, 
-                        ageGroup: { select: { ageGroupName: true } }, 
+                        gender: { select: { genderName: true } },
+                        ageGroup: { select: { ageGroupName: true } },
                         occupation: { select: { occupationName: true } },
                     }
-                }, 
+                },
                 // Storeテーブルの全カラムを取得
-                store: true, 
+                store: true,
             },
         });
 
@@ -934,4 +943,31 @@ export async function getUserAndStoreDetails(accountId: string) {
         console.error('Fetching account details failed:', error);
         return { success: false, error: 'アカウント詳細情報の取得に失敗しました。' };
     }
+}
+
+/** マスタテーブルの名前からIDを取得する関数 */
+async function getMasterIdByName(client: PrismaClient | any, modelName: 'Gender' | 'AgeGroup' | 'Occupation', name: string) {
+    if (!name) return null;
+
+    const fieldMap = {
+        Gender: 'genderName',
+        AgeGroup: 'ageGroupName',
+        Occupation: 'occupationName',
+    };
+    const fieldName = fieldMap[modelName];
+
+    const whereClause: any = {};
+    whereClause[fieldName] = name;
+
+    // PrismaClientのインスタンスから、キャメルケースのモデル名を取得します。
+    // 例: client.gender.findFirst(...)
+    const modelAccessor = modelName.charAt(0).toLowerCase() + modelName.slice(1); // 'Gender' -> 'gender'
+    
+    const record = await client[modelAccessor].findFirst({
+        where: whereClause,
+        // IDフィールド名も modelKey に合わせて修正
+        select: { [`${modelAccessor}Id`]: true }, 
+    });
+
+    return record ? record[`${modelAccessor}Id`] : null;
 }
