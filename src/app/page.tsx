@@ -309,7 +309,7 @@ export default function Home() {
   ] as const;
 
   const mapList = {
-    opinion: <OpinionMap opinions={opinions} onDialogOpen={handleDialogOpen} />,
+    opinion: <OpinionMap opinions={opinions} accountId={session?.user.accountId!} onDialogOpen={handleDialogOpen} />,
     poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };

@@ -32,10 +32,10 @@ const circleOptions = {
 
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
-
     opinions: (any[]);
+    accountId: string;
 }
-export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, accountId }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -49,8 +49,7 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
-
-
+    const [opinionOpen, setOpinionOpen] = useState<any>(null);
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
 
@@ -87,18 +86,6 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
     useEffect(() => {
         if (map) updateVisibleLabels(map);
     }, [opinions, map, updateVisibleLabels]);
-
-    const toggleLabel = (lat: number) => {
-        setActiveLabelLats(prev => {
-            if (prev.includes(lat)) {
-                // 含まれていれば消す（閉じる）
-                return prev.filter(l => l !== lat);
-            } else {
-                // 含まれていなければ足す（開く）
-                return [...prev, lat];
-            }
-        });
-    };
 
     const MAX_VISIBLE_LABELS = 5;
 
@@ -159,6 +146,11 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
 
     if (!isLoaded) return <div>Loading...</div>;
 
+    const handleLikeClick = (accountId: string, opinionId: string) => {
+        alert(accountId)
+        alert(opinionId)//ここにライクボタンを押した時の処理
+    }
+
     return (
         <>
             <GoogleMap
@@ -209,10 +201,9 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
 
                                 key={`marker-${data.latitude}-${isOpen}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => toggleLabel(data.latitude)} // ★クリックでトグル
+                                onClick={() => setOpinionOpen(data)} // ★クリックでトグル
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
-
                             {/* 
                             todo 
                             意見投稿ピンの画像
@@ -273,7 +264,26 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
                     </ul>
                 </div>
             </div>
-
+            {opinionOpen &&
+                <>
+                    {console.log(opinionOpen)}
+                    <p>コメント：{opinionOpen.commentText}</p>
+                    <p>いいね数：{opinionOpen.likeCount}</p>
+                    <p>タグ：{opinionOpen.tags}</p>
+                    <p>投稿時刻：{opinionOpen.postedAt.toLocaleString()}</p>
+                    <p>性別：{opinionOpen?.profile.gender}</p>
+                    <p>年齢：{opinionOpen?.profile.age}</p>
+                    <p>職業：{opinionOpen?.profile.occupation}</p>
+                    <button
+                        style={{
+                            background: '#cee6c1', padding: '8px 12px', borderRadius:
+                                '6px', border: '1px solid #000', whiteSpace: 'nowrap',
+                        }}
+                        onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
+                            いいね
+                    </button>
+                </>
+            }
         </>
     );
 }
