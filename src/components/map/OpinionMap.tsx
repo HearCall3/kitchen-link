@@ -35,7 +35,7 @@ interface OpinionMapProps {
 
     opinions: (any[]);
 }
-export default function OpinionMap({ onDialogOpen, opinions}: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -53,7 +53,6 @@ export default function OpinionMap({ onDialogOpen, opinions}: OpinionMapProps) {
 
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
-        console.log("---- updateVisibleLabels ----");
 
         const bounds = mapInstance.getBounds();
         if (!bounds) return;
@@ -63,14 +62,12 @@ export default function OpinionMap({ onDialogOpen, opinions}: OpinionMapProps) {
             .filter(pin => {
                 const pinLatLng = new window.google.maps.LatLng(pin.latitude, pin.longitude);
                 return bounds.contains(pinLatLng);
-
             })
             .slice(0, MAX_VISIBLE_LABELS); // 上限数でカット
-        console.log("→ MAX_VISIBLE_LABELS 適用後:" + visiblePins);
 
         // 絞り込んだピンの「lat」の配列で state を更新
         setActiveLabelLats(visiblePins.map(pin => pin.latitude));
-    }, []);
+    }, [opinions]);
 
     const onLoad = useCallback((map: google.maps.Map) => {
         setMap(map);
@@ -86,6 +83,10 @@ export default function OpinionMap({ onDialogOpen, opinions}: OpinionMapProps) {
     const onUnmount = useCallback(() => {
         setMap(null);
     }, []);
+
+    useEffect(() => {
+        if (map) updateVisibleLabels(map);
+    }, [opinions, map, updateVisibleLabels]);
 
     const toggleLabel = (lat: number) => {
         setActiveLabelLats(prev => {
@@ -210,18 +211,17 @@ export default function OpinionMap({ onDialogOpen, opinions}: OpinionMapProps) {
                                 position={{ lat: data.latitude, lng: data.longitude }}
                                 onClick={() => toggleLabel(data.latitude)} // ★クリックでトグル
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
-        
-                            // todo
-                            // 意見投稿ピンの画像
-                            // icon={{
-                            //     url: "/pin.png",
-                            //     scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                            //     anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
-                            // 
-                            }}
-                           />
+                            />
 
-                            <Circle
+                            {/* 
+                            todo 
+                            意見投稿ピンの画像
+                            icon={{
+                            url: "/pin.png",
+                            scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                            anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
+
+                            < Circle
                                 onLoad={(circle) => {
                                     circleRefs.current[data.latitude] = circle;
                                 }}
