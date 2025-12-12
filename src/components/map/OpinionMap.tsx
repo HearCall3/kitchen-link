@@ -32,10 +32,10 @@ const circleOptions = {
 
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
-
     opinions: (any[]);
+    accountId: string;
 }
-export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, accountId }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -145,6 +145,11 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
     }, [map, isLoaded]); // mapが変わるたびに作り直す
 
     if (!isLoaded) return <div>Loading...</div>;
+
+    const handleLikeClick = (accountId: string, opinionId: string) => {
+        alert(accountId)
+        alert(opinionId)//ここにライクボタンを押した時の処理
+    }
 
     return (
         <>
@@ -269,11 +274,16 @@ export default function OpinionMap({ onDialogOpen, opinions }: OpinionMapProps) 
                     <p>性別：{opinionOpen?.profile.gender}</p>
                     <p>年齢：{opinionOpen?.profile.age}</p>
                     <p>職業：{opinionOpen?.profile.occupation}</p>
+                    <button
+                        style={{
+                            background: '#cee6c1', padding: '8px 12px', borderRadius:
+                                '6px', border: '1px solid #000', whiteSpace: 'nowrap',
+                        }}
+                        onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
+                            いいね
+                    </button>
                 </>
-
             }
         </>
-
-
     );
 }
