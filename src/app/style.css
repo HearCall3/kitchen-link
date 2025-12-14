@@ -550,3 +550,12 @@ header input {
   transform: translateY(0);
   box-shadow: 0 4px 8px rgba(255, 127, 80, 0.2);
 }
+/* style.css の末尾に追加 */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* スクロールを許可 */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
