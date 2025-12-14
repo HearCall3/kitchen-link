@@ -14,7 +14,7 @@ import {
 
 const containerStyle = {
     width: "100%",
-    height: "400px",
+    height: "100%",
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import './style.css';
 
 import {
     GoogleMap,
@@ -14,7 +15,7 @@ import { toggleLike } from "@/actions/db_access";
 
 const containerStyle = {
     width: "100%",
-    height: "400px",
+    height: "100%",
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
@@ -44,10 +45,11 @@ type filters = {
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
     opinions: (any[]);
-    accountId: string;
-    filter: filters;
+    onExtract: (opinions: string[]) => void;
 }
-export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }: OpinionMapProps) {
+
+export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId, filter }: OpinionMapProps) {
+
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -63,10 +65,12 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
     const [opinionOpen, setOpinionOpen] = useState<any>(null);
 
+  
     // 新しい状態として、意見データ全体を内部で管理するための state を追加
-    // opinions prop は初期値として使用し、更新は internalOpinions で行う
+    // opinions prop は初期値として使用し、更新は internalOpinions で行う//???
     const [internalOpinions, setInternalOpinions] = useState(opinions);
 
+  
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
 
@@ -105,6 +109,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
     }, [opinions, map, updateVisibleLabels]);
 
     const MAX_VISIBLE_LABELS = 5;
+
 
     const handleOpinionTransition = () => {
         if (clickPos) {
@@ -148,7 +153,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                 .map(pin => pin.commentText); // 5. 絞り込んだものから「意見(opinion)」だけを抜き出す
 
             //抽出した意見リストを state に保存
-            setExtractedOpinions(filteredOpinions);
+            onExtract(filteredOpinions);
 
             //描画した四角形を地図から消す (お好みで)
             newShape.setMap(null);
@@ -279,6 +284,15 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                     // 🚨 意見IDは postAnOpinionId フィールドを参照
                     const opinionId = data.postAnOpinionId; 
 
+                    // 文字数で枠の大きさを決める
+                    const text = data.commentText;
+                    const len = text.length;
+
+                    let sizeClass = "bubble-sm";
+                    if (len > 20) sizeClass = "bubble-md";
+                    if (len > 50) sizeClass = "bubble-lg";
+                    if (len > 90) sizeClass = "bubble-xl";
+
                     return (
                         <React.Fragment key={data.opinionId}> 
                             <MarkerF
@@ -287,13 +301,32 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                                 onClick={() => setOpinionOpen(data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
-                            {/* 
-                            todo 
-                            意見投稿ピンの画像
-                            icon={{
-                            url: "/pin.png",
-                            scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                            anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
+
+                            {/* ピン */}
+                            <MarkerF
+                                position={{ lat: data.latitude, lng: data.longitude }}
+                                onClick={() => toggleLabel(data.latitude)}
+                            // icon={{
+                            //     url: "/pin.png",
+                            //     scaledSize: new google.maps.Size(40, 40),
+                            //     anchor: new google.maps.Point(20, 40),
+                            // }}
+                            />
+
+                            {/* 吹き出し */}
+                            {isOpen && (
+                                <OverlayView
+                                    position={{ lat: data.latitude, lng: data.longitude }}
+                                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                >
+                                    <div className={`opinion-bubble ${sizeClass}`}>
+                                        <div className="bubble-content">
+                                            {data.commentText}
+                                        </div>
+                                    </div>
+                                </OverlayView>
+                            )}
+
 
                             <CircleF
                                 key={data.opinionId}
@@ -306,30 +339,8 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                 })}
             </GoogleMap>
 
-            <div
-                style={{
-                    // position: "absolute",
-                    // top: 20,
-                    // right: 20,
-                    // width: 300,      // 幅
-                    // maxHeight: "80vh", // 高さの最大値
-                    // backgroundColor: "white",
-                    // borderRadius: 12,
-                    // boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    // padding: 16,
-                    // display: "flex",
-                    // flexDirection: "column",
-                }}
-            >
-                <h3 style={{ marginBottom: 12, fontSize: 18, fontWeight: "bold" }}>
-                    抽出された意見 ({extractedOpinions.length}件)
-                </h3>
-                <div
-                    style={{
-                        overflowY: "auto",
-                        flex: 1, // 残りの高さをスクロール領域に割り当て
-                    }}
-                >
+            <div>
+                <div>
                     <ul style={{ paddingLeft: 16 }}>
                         {extractedOpinions.map((op, i) => (
                             <li key={i} style={{ marginBottom: 8 }}>

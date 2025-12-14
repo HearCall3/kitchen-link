@@ -14,7 +14,7 @@ import {
 
 const containerStyle = {
     width: "100%",
-    height: "400px",
+    height: "100%",
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
@@ -37,7 +37,7 @@ interface PostMapProps {
     questions: (any[]);
 }
 
-export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
+export default function PollMap({ onDialogOpen, questions }: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -79,7 +79,7 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
 
             >
 
-                 {/* アンケート回答ピンアイコン todo */}
+                {/* アンケート回答ピンアイコン todo */}
                 {/* <MarkerF
                     key={`marker-${data.lat}-${isOpen}`}
                     position={{ lat: data.lat, lng: data.lon }}
@@ -100,11 +100,17 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
                             lat: Number(q.latitude),
                             lng: Number(q.longitude),
                         }}
+                        icon={{
+                            url: "/icon/poll.png",        // 画像パス (public フォルダに置くのがおすすめ)
+                            scaledSize: new google.maps.Size(30, 30), // サイズ調整
+                            anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
+                            labelOrigin: new window.google.maps.Point(50, 20),
+                        }}
                         label={{
                             text: q.questionText,
-                            className: "bg-white px-2 py-1 rounded shadow",
+                            className: "poll-label",
                         }}
-                         onClick={() => onDialogOpen(q.questionId)}
+                        onClick={() => onDialogOpen(q.questionId)}
                     />
                 ))}
                 <div
