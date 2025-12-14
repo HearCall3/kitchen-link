@@ -763,16 +763,14 @@ export async function getAllQuestions() {
 // ----------------------------------------------------------------------
 
 /** 5-A. いいね操作 (Toggle Like) */
-export async function toggleLike(formData: FormData) {
+export async function toggleLike(accountId: string, opinionId: string) {
     console.log(`[DB] START: Toggling Like.`);
-    const accountId = formData.get('accountId') as string;
-    const opinionId = formData.get('opinionId') as string;
-
-    if (!accountId || !opinionId) {
+    console.log(`[DB DEBUG] Account ID: ${accountId}`);
+    console.log(`[DB DEBUG] Opinion ID: ${opinionId}`); if (!accountId || !opinionId) {
         return { error: 'アカウントIDと意見IDは必須です。' };
     }
 
-    // ★ 修正: 複合主キーの命名規則に従い、スキーマの @@id([postAnOpinionId, accountId]) から命名
+    // 複合主キーの命名規則に従い、スキーマの @@id([postAnOpinionId, accountId]) から命名
     const compositeWhere = {
         postAnOpinionId_accountId: {
             accountId: accountId,
@@ -781,19 +779,20 @@ export async function toggleLike(formData: FormData) {
     };
 
     try {
-        // 既存のいいねを検索
+        let isLiked: boolean; // トグル後の状態を保持
+
+        // 1. 既存のいいねがあるかチェック
         const existingLike = await prisma.pressLike.findUnique({
             where: compositeWhere,
         });
 
         if (existingLike) {
-            // 既にいいねがある場合 -> 削除（いいね解除）
+            // 2. いいねが存在する場合: 削除 (アンライク)
             await prisma.pressLike.delete({ where: compositeWhere });
+            isLiked = false; // 削除したので、新しい状態は「いいねなし」
             console.log(`[DB] Like removed by Account ${accountId}.`);
-            revalidatePath('/db/like');
-            return { success: true, action: 'removed' };
         } else {
-            // いいねがない場合 -> 作成（いいね追加）
+            // 3. いいねが存在しない場合: 作成 (ライク)
             await prisma.pressLike.create({
                 data: {
                     postAnOpinionId: opinionId,
@@ -801,10 +800,25 @@ export async function toggleLike(formData: FormData) {
                     likedAt: new Date(),
                 },
             });
+            isLiked = true; // 作成したので、新しい状態は「いいねあり」
             console.log(`[DB] Like added by Account ${accountId}.`);
-            revalidatePath('/db/like');
-            return { success: true, action: 'added' };
         }
+
+        // 💡 4. 更新後のいいね数を集計 (意見リスト全体は不要)
+        const newLikeCount = await prisma.pressLike.count({
+            where: {
+                postAnOpinionId: opinionId, // この意見IDに絞ってカウント
+            },
+        });
+
+        // revalidatePath('/db/like'); // キャッシュ無効化は必要に応じて残す
+
+        // 💡 5. クライアントが必要な情報のみを返す
+        return {
+            success: true,
+            isLiked: isLiked,
+            likeCount: newLikeCount
+        };
 
     } catch (error) {
         console.error('Toggle Like failed:', error);
@@ -831,6 +845,7 @@ export async function findUserByEmail(email: string) {
             select: { accountId: true }
         });
 
+        console.log("findUserByEmail is finish!!!!!!!!")
         return { exists: !!account };
 
     } catch (error) {
@@ -843,7 +858,7 @@ export async function findUserByEmail(email: string) {
 // 7. Account詳細の取得 (JWT格納用)
 // ----------------------------------------------------------------------
 export async function findAccountDetailsByEmail(email: string) {
-    const hashedEmail = hashEmail(email); 
+    const hashedEmail = hashEmail(email);
     console.log(`[DEBUG AUTH] Hashed Email (Details): ${hashedEmail}`);
 
     try {
@@ -962,11 +977,11 @@ async function getMasterIdByName(client: PrismaClient | any, modelName: 'Gender'
     // PrismaClientのインスタンスから、キャメルケースのモデル名を取得します。
     // 例: client.gender.findFirst(...)
     const modelAccessor = modelName.charAt(0).toLowerCase() + modelName.slice(1); // 'Gender' -> 'gender'
-    
+
     const record = await client[modelAccessor].findFirst({
         where: whereClause,
         // IDフィールド名も modelKey に合わせて修正
-        select: { [`${modelAccessor}Id`]: true }, 
+        select: { [`${modelAccessor}Id`]: true },
     });
 
     return record ? record[`${modelAccessor}Id`] : null;

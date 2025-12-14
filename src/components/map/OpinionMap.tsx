@@ -10,6 +10,8 @@ import {
     OverlayView
 } from '@react-google-maps/api';
 
+import { toggleLike } from "@/actions/db_access";
+
 const containerStyle = {
     width: "100%",
     height: "400px",
@@ -50,6 +52,11 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
     const [opinionOpen, setOpinionOpen] = useState<any>(null);
+
+    // 新しい状態として、意見データ全体を内部で管理するための state を追加
+    // opinions prop は初期値として使用し、更新は internalOpinions で行う
+    const [internalOpinions, setInternalOpinions] = useState(opinions);
+
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
 
@@ -144,12 +151,64 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
         };
     }, [map, isLoaded]); // mapが変わるたびに作り直す
 
+    // opinions prop が変更されたら internalOpinions を同期
+    useEffect(() => {
+        setInternalOpinions(opinions);
+    }, [opinions]);
+
     if (!isLoaded) return <div>Loading...</div>;
 
-    const handleLikeClick = (accountId: string, opinionId: string) => {
-        alert(accountId)
-        alert(opinionId)//ここにライクボタンを押した時の処理
+    const handleLikeClick = async (accountId: string, opinionId: string) => {
+        console.log("[LikeClick] Start.")
+        // alert(accountId)
+        // alert(opinionId)//ここにライクボタンを押した時の処理
+        if (!accountId) {
+            alert('ログインしていません。いいねを行うにはログインが必要です。');
+            return;
+        }
+
+        try {
+            const result = await toggleLike(accountId, opinionId);
+
+            if (result.success) {
+                const { isLiked, likeCount } = result;
+
+                setInternalOpinions(prevOpinions =>
+                    prevOpinions.map(op => {
+                        // 意見IDでマッチング
+                        if (op.opinionId === opinionId) {
+
+                            // 開いている意見パネルの情報を更新
+                            if (opinionOpen && op.opinionId === opinionId) {
+                                setOpinionOpen({
+                                    ...opinionOpen,
+                                    likeCount: likeCount,
+                                    isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
+                                });
+                            }
+
+                            // 意見リストの当該レコードを更新
+                            return {
+                                ...op,
+                                likeCount: likeCount,
+                            };
+                        }
+                        return op;
+                    })
+                );
+
+            } else {
+                alert(result.error || 'いいね処理に失敗しました。');
+            }
+
+        } catch (error) {
+            console.error('いいね処理中のエラー:', error);
+            alert('いいね処理中に予期せぬエラーが発生しました。');
+        }
+
     }
+
+    if (!isLoaded) return <div>Loading...</div>;
 
     return (
         <>
@@ -193,15 +252,16 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
 
                 {map && opinions.map((data) => {
 
+                    // 🚨 意見IDは postAnOpinionId フィールドを参照
+                    const opinionId = data.postAnOpinionId; 
                     const isOpen = activeLabelLats.includes(data.latitude);
 
                     return (
-                        <React.Fragment key={data.opinionId}>
+                        <React.Fragment key={opinionId}> 
                             <MarkerF
-
-                                key={`marker-${data.latitude}-${isOpen}`}
+                                key={`marker-${opinionId}`} 
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)} // ★クリックでトグル
+                                onClick={() => setOpinionOpen(data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
                             {/* 
@@ -213,11 +273,11 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
                             anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
 
                             < Circle
+                                key={`circle-${opinionId}`}
                                 onLoad={(circle) => {
                                     circleRefs.current[data.latitude] = circle;
                                 }}
                                 onUnmount={() => {
-                                    // Reactのライフサイクルに合わせて地図から削除
                                     const c = circleRefs.current[data.latitude];
                                     if (c) c.setMap(null);
                                     delete circleRefs.current[data.latitude];
@@ -280,7 +340,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
                                 '6px', border: '1px solid #000', whiteSpace: 'nowrap',
                         }}
                         onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
-                            いいね
+                        いいね
                     </button>
                 </>
             }
