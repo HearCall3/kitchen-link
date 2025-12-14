@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
     GoogleMap,
     MarkerF,
-    Circle,        // Circle をインポート
+    CircleF,        // Circle をインポート
     useJsApiLoader,
     OverlayView
 } from '@react-google-maps/api';
@@ -29,13 +29,23 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
+type filters = {
+    tag: string | null;
+    minLikes: number | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+    gender: string | null;
+    occupation: string | null;
+    ageRange: string | null;
+};
 
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
     opinions: (any[]);
     accountId: string;
+    filter: filters;
 }
-export default function OpinionMap({ onDialogOpen, opinions, accountId }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }: OpinionMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -44,7 +54,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
     });
 
     const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
-    const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
+    const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [key: string]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
@@ -65,7 +75,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
             .slice(0, MAX_VISIBLE_LABELS); // 上限数でカット
 
         // 絞り込んだピンの「lat」の配列で state を更新
-        setActiveLabelLats(visiblePins.map(pin => pin.latitude));
+        setActiveLabelLats(visiblePins.map(pin => pin.opinionId));
     }, [opinions]);
 
     const onLoad = useCallback((map: google.maps.Map) => {
@@ -146,6 +156,20 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
 
     if (!isLoaded) return <div>Loading...</div>;
 
+    const filteredOpinions = opinions.filter((op) => {
+        if (filter.tag && !op.tags.includes(filter.tag)) return false;
+        if (filter.minLikes !== null && op.likeCount < filter.minLikes) return false;
+        if (filter.gender && op.profile.gender !== filter.gender) return false;
+        if (filter.occupation && op.profile.occupation !== filter.occupation) return false;
+        if (filter.ageRange && op.profile.age !== filter.ageRange) return false;
+
+        if (filter.dateFrom && new Date(op.postedAt) < filter.dateFrom) return false;
+        if (filter.dateTo && new Date(op.postedAt) > filter.dateTo) return false;
+
+        return true;
+    });
+
+
     const handleLikeClick = (accountId: string, opinionId: string) => {
         alert(accountId)
         alert(opinionId)//ここにライクボタンを押した時の処理
@@ -191,15 +215,15 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
                     )}
                 </div>
 
-                {map && opinions.map((data) => {
+                {map && filteredOpinions.map((data) => {
 
-                    const isOpen = activeLabelLats.includes(data.latitude);
+                    const isOpen = activeLabelLats.includes(data.opinionId);
 
                     return (
                         <React.Fragment key={data.opinionId}>
                             <MarkerF
 
-                                key={`marker-${data.latitude}-${isOpen}`}
+                                key={`marker-${data.opinionId}-${isOpen}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
                                 onClick={() => setOpinionOpen(data)} // ★クリックでトグル
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
@@ -212,16 +236,8 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
                             scaledSize: new google.maps.Size(40, 40), // サイズ調整
                             anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
 
-                            < Circle
-                                onLoad={(circle) => {
-                                    circleRefs.current[data.latitude] = circle;
-                                }}
-                                onUnmount={() => {
-                                    // Reactのライフサイクルに合わせて地図から削除
-                                    const c = circleRefs.current[data.latitude];
-                                    if (c) c.setMap(null);
-                                    delete circleRefs.current[data.latitude];
-                                }}
+                            <CircleF
+                                key={data.opinionId}
                                 center={{ lat: data.latitude, lng: data.longitude }}
                                 radius={500}
                                 options={{ ...circleOptions, clickable: false }}
@@ -280,7 +296,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId }: Opinio
                                 '6px', border: '1px solid #000', whiteSpace: 'nowrap',
                         }}
                         onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
-                            いいね
+                        いいね
                     </button>
                 </>
             }
