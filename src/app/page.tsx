@@ -15,7 +15,8 @@ import {
   answerQuestion,
   getAllTags,
   getAllOpinions,
-  getUserAndStoreDetails
+  getUserAndStoreDetails,
+  getAllStoreSchedules
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -31,6 +32,10 @@ export default function Home() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [opinions, setOpinions] = useState<any[]>([]);
   const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]);
+
+  // ★ 修正 1: スケジュールデータ State の追加 ★
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   // ====== アンケート回答 States ======
   const [pollOpen, setPollOpen] = useState(false);
@@ -92,6 +97,7 @@ export default function Home() {
   // 2. データ取得
   useEffect(() => {
     async function fetchData() {
+      // 既存のデータ取得 (Questions, Opinions, Tags) ...
       const resultQ = await getAllQuestions();
       if (resultQ.success && resultQ.questions) setQuestions(resultQ.questions);
       else console.error(resultQ.error);
@@ -100,10 +106,20 @@ export default function Home() {
       if (resultO.success && resultO.opinions) setOpinions(resultO.opinions);
       else console.error(resultO.error);
 
-      // タグ取得
       const resultT = await getAllTags();
       if (resultT.success && resultT.tags) setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
       else console.error(resultT.error);
+
+      // ★ 修正 2: スケジュールデータの取得と State への格納 ★
+      const resultS = await getAllStoreSchedules();
+      if (resultS.success && resultS.schedules) {
+        setSchedules(resultS.schedules);
+        setScheduleError(null);
+      } else {
+        setSchedules([]);
+        setScheduleError(resultS.error || 'スケジュールの取得中に不明なエラーが発生しました。');
+        console.error(resultS.error);
+      }
     }
     fetchData();
   }, []);
@@ -131,9 +147,9 @@ export default function Home() {
       fetchUserDetails();
 
     }
-    //  else if (status === 'unauthenticated') {
-    //   console.log("--- ログアウト状態 ---");
-    // }
+    else if (status === 'unauthenticated') {
+      console.log("--- ログアウト状態 ---");
+    }
   }, [session, status]);
 
   // --- Store Handlers ---
@@ -282,7 +298,7 @@ export default function Home() {
   //   alert("ログアウトしました");
   // };
 
-   const [filters, setFilters] = useState<{
+  const [filters, setFilters] = useState<{
     tag: string | null;
     minLikes: number | null;
     dateFrom: Date | null;
@@ -311,6 +327,50 @@ export default function Home() {
     poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
+
+  // --------------------------------------------------
+  // ここで関数を呼び出して出店情報をとってくる＋表示させる
+  // --------------------------------------------------
+  // ★ 修正 3: スケジュールリストのレンダリング関数を定義 ★
+  const renderScheduleList = () => {
+
+    // エラー表示
+    if (scheduleError) {
+      return <div className="p-4 text-red-600 bg-red-100 border border-red-300">🚨 データ読み込みエラー: {scheduleError}</div>;
+    }
+
+    // データなし
+    if (!schedules || schedules.length === 0) {
+      return <div className="p-4 text-center text-gray-500 bg-gray-50 border-t">📅 現在、出店スケジュールはありません。</div>;
+    }
+
+    // リスト表示
+    return (
+      <div className="schedule-list-container p-4 bg-white border-t border-gray-200">
+        <h2 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📅 今後の出店スケジュール</h2>
+        <ul className="space-y-3">
+          {schedules.map((schedule) => (
+            <li key={schedule.id} className="flex items-center p-3 bg-gray-50 rounded-lg shadow-sm">
+              {/* 日付 (左側) */}
+              <div className="date-box font-mono text-lg text-blue-600 font-semibold mr-4 min-w-[100px]">
+                {schedule.date}
+              </div>
+              {/* 情報 (右側) */}
+              <div className="info-box flex-1">
+                <strong className="block text-base text-gray-900">{schedule.storeName}</strong>
+                <p className="text-xs text-gray-500 mt-1">
+                  📍
+                  {schedule.locationName || '場所未定'}
+                  ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   // スクロールバーを表示しない
   // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
   //   if (menuOpen) document.body.classList.add("no-scroll");
@@ -547,7 +607,7 @@ export default function Home() {
           {/* {storeId && ( */}
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => router.push("/register")}
+            onClick={() => router.push("/Register")}
           >
             出店登録
           </li>
@@ -619,6 +679,11 @@ export default function Home() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ★ 修正 4: マップの下に出店スケジュールリストを呼び出し ★ */}
+      <div className="schedule-list-area">
+        {renderScheduleList()}
       </div>
 
       {/* ===== ダイアログ ===== */}

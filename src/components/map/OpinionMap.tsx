@@ -295,7 +295,7 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                             scaledSize: new google.maps.Size(40, 40), // サイズ調整
                             anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
 
-                            < Circle
+                            < CircleF
                                 key={`circle-${opinionId}`}
                                 onLoad={(circle) => {
                                     circleRefs.current[data.latitude] = circle;

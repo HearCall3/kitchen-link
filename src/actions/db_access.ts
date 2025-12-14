@@ -833,7 +833,115 @@ export async function toggleLike(accountId: string, opinionId: string) {
 }
 
 // ----------------------------------------------------------------------
-// 6. ユーザーの存在確認 (認証コールバック用)
+// 6. 出店スケジュール (Store Opening Information) CRUD
+// ----------------------------------------------------------------------
+
+const SEQUENCE_NAME_SCHEDULE = 'store_opening_info_seq'; // 💡 論理的な名前に変更 (または SEQUENCE_NAME_OPENING を再利用)
+const SCHEDULE_TYPE_CODE = '04'; // 💡 StoreOpeningInformationのType Codeを'04'と仮定
+
+interface RegisterScheduleData {
+    storeId: string;
+    latitude: number;
+    longitude: number;
+    scheduledDate: string; // YYYY-MM-DD 形式
+}
+
+/** 6-A. 出店スケジュール登録 (StoreOpeningInformation Create) */
+export async function registerStoreSchedule(data: RegisterScheduleData) {
+    const { storeId, latitude, longitude, scheduledDate } = data;
+    console.log(`[DB] START: Registering Store Schedule for Store ID: ${storeId}`);
+
+    if (!storeId || !scheduledDate || isNaN(latitude) || isNaN(longitude)) {
+        return { success: false, error: '必須データ（ストアID、日付、座標）が不足しています。' };
+    }
+
+    try {
+        const newSchedule = await prisma.$transaction(async (tx) => {
+            
+            // ... (既存の storeId 存在チェックは省略) ...
+
+            const dateObj = new Date(scheduledDate);
+            if (isNaN(dateObj.getTime())) {
+                return { error: '無効な日付形式です。' };
+            }
+            
+            // 2. カスタムIDの生成 (SEQUENCE_NAME_OPENING/'04'を使用)
+            // 💡 既存の定数 SEQUENCE_NAME_OPENING を使って '04' を Type Code と仮定します
+            const customScheduleId = await getAndIncrementCustomId(SEQUENCE_NAME_OPENING, '04', tx); 
+            console.log(`[DB] Generated Schedule ID: ${customScheduleId}`);
+
+            // 3. StoreOpeningInformation レコードを作成
+            const schedule = await tx.storeOpeningInformation.create({
+                data: {
+                    storeOpeningInformationId: customScheduleId,
+                    storeId: storeId,
+                    latitude: latitude,
+                    longitude: longitude,
+                    
+                    // ★ 修正点: scheduledDate -> openingDate ★
+                    openingDate: dateObj, 
+                    locationName: null, // locationNameはオプションとしてnullを許容
+                },
+            });
+            
+            return schedule;
+        });
+
+        // 成功時の処理
+        revalidatePath('/'); 
+        return { success: true, schedule: newSchedule };
+
+    } catch (error) {
+        console.error('Store schedule registration failed:', error);
+        return { success: false, error: '出店スケジュールの登録に失敗しました。' };
+    } finally {
+        console.log(`[DB] END: Registering Store Schedule.`);
+    }
+}
+
+/** 6-B. 全出店スケジュール取得 (Get All Store Schedules) */
+export async function getAllStoreSchedules() {
+    console.log(`[DB] START: Fetching all Store Schedules.`);
+    try {
+        const schedules = await prisma.storeOpeningInformation.findMany({
+            orderBy: { openingDate: 'asc' }, // 古い日付から新しい日付へソート
+            select: {
+                storeOpeningInformationId: true,
+                latitude: true,
+                longitude: true,
+                openingDate: true,
+                locationName: true,
+                // ストア名を取得するために Store テーブルを結合
+                store: {
+                    select: {
+                        storeName: true,
+                        storeId: true,
+                    }
+                }
+            }
+        });
+
+        // クライアント側で扱いやすい形式に加工
+        const processedSchedules = schedules.map(s => ({
+            id: s.storeOpeningInformationId,
+            storeName: s.store.storeName,
+            storeId: s.store.storeId,
+            date: s.openingDate.toISOString().split('T')[0], // 日付のみ (YYYY-MM-DD)
+            location: { lat: s.latitude, lng: s.longitude },
+            locationName: s.locationName,
+        }));
+
+        console.log(`[DB] END: Fetched ${schedules.length} Store Schedules.`);
+        return { success: true, schedules: processedSchedules };
+
+    } catch (error) {
+        console.error('Fetching store schedules failed:', error);
+        return { success: false, error: '出店スケジュールリストの取得に失敗しました。' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 7. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
 export async function findUserByEmail(email: string) {
     const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
@@ -855,7 +963,7 @@ export async function findUserByEmail(email: string) {
 }
 
 // ----------------------------------------------------------------------
-// 7. Account詳細の取得 (JWT格納用)
+// 8. Account詳細の取得 (JWT格納用)
 // ----------------------------------------------------------------------
 export async function findAccountDetailsByEmail(email: string) {
     const hashedEmail = hashEmail(email);
@@ -882,7 +990,7 @@ export async function findAccountDetailsByEmail(email: string) {
 
 
 // ----------------------------------------------------------------------
-// 8. マスタデータ取得
+// 9. マスタデータ取得
 // ----------------------------------------------------------------------
 
 /** 8-A. 全タグの取得 (Get All Tags) */
@@ -913,7 +1021,7 @@ export async function getAllTags() {
 }
 
 // ----------------------------------------------------------------------
-// 9. アカウントデータ取得
+// 10. アカウントデータ取得
 // ----------------------------------------------------------------------
 
 /** 9-A. アカウントIDからUserとStoreの詳細情報を取得 */
