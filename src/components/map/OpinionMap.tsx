@@ -18,7 +18,7 @@ const containerStyle = {
 const center = { lat: 35.681236, lng: 139.767125 };
 
 // 定数は外に出す（変更なし）
-const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
+const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
 
 // 円のスタイル設定
 const circleOptions = {
