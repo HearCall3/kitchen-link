@@ -33,7 +33,9 @@ export default function Home() {
   const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]);
 
   // ====== アンケート回答 States ======
-  const [pollOpen, setPollOpen] = useState(false);
+  // 結果表示
+  const [showResult, setShowResult] = useState(false);
+
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -84,6 +86,13 @@ export default function Home() {
   // ====== 絞り込みジャンル ======
   const [searchActive, setSearchActive] = useState(false);
 
+  // ====== 意見抽出シート ======
+  const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
+  const [showExtractPanel, setShowExtractPanel] = useState(false);
+  const handleExtract = (opinions: string[]) => {
+    setExtractedOpinions(opinions);
+    setShowExtractPanel(true);
+  };
 
   // 1. ログイン状態チェック
   useEffect(() => {
@@ -138,9 +147,6 @@ export default function Home() {
       fetchUserDetails();
 
     }
-    //  else if (status === 'unauthenticated') {
-    //   console.log("--- ログアウト状態 ---");
-    // }
   }, [session, status]);
 
   // --- Store Handlers ---
@@ -236,6 +242,8 @@ export default function Home() {
     if (result.success) {
       // alert("アンケートに回答しました！");
       setAnswerPollOpen(false);
+      // 結果表示ダイヤログを呼ぶ
+      setShowResult(true);
       const fetchResult = await getAllQuestions();
       if (fetchResult.success && fetchResult.questions) setQuestions(fetchResult.questions);
     } else {
@@ -272,9 +280,9 @@ export default function Home() {
       const fetchResult = await getAllQuestions();
       if (fetchResult.success && fetchResult.questions) setQuestions(fetchResult.questions);
     } else {
-      // alert(`アンケート作成に失敗しました: ${result.error}`);
+      alert(`アンケート作成に失敗しました: ${result.error}`);
     }
-  };
+  }
 
   // --- Map Handlers ---
   const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
@@ -284,13 +292,13 @@ export default function Home() {
       return;
     }
 
-    if(takeLatLng){
-    setLatLng(takeLatLng);
-    switch (data) {
-      case ("post"): setPostOpen(true); break;
-      case ("poll"): setCreateOpen(true); break;
-    }
-  };
+    if (takeLatLng) {
+      setLatLng(takeLatLng);
+      switch (data) {
+        case ("post"): setPostOpen(true); break;
+        case ("poll"): setCreateOpen(true); break;
+      }
+    };
     setAnswerPollOpen(true);
     setSelectedQuestion(questions.find(q => q.questionId === data))
   }
@@ -309,7 +317,12 @@ export default function Home() {
   ] as const;
 
   const mapList = {
-    opinion: <OpinionMap opinions={opinions} onDialogOpen={handleDialogOpen} />,
+    opinion: (
+      <OpinionMap
+        opinions={opinions}
+        onDialogOpen={handleDialogOpen}
+        onExtract={handleExtract}
+      />),
     poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
@@ -349,7 +362,7 @@ export default function Home() {
               {tag}
             </div>
           ))}
-          
+
 
 
           <div className="flex gap-2 overflow-x-auto mb-4">
@@ -472,17 +485,17 @@ export default function Home() {
             <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
             <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
 
-            <div className="flex flex-col gap-3">
+            <div className="poll-options">
               <button
                 onClick={() => setSelectedOption(1)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 1 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                className={`poll-option ${selectedOption === 1 ? "selected left" : "left"
                   }`}
               >
                 {selectedQuestion.option1Text}
               </button>
               <button
                 onClick={() => setSelectedOption(2)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 2 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                className={`poll-option ${selectedOption === 2 ? "selected right" : "right"
                   }`}
               >
                 {selectedQuestion.option2Text}
@@ -500,6 +513,71 @@ export default function Home() {
           </div>
         </>
       )}
+
+      {/* 結果表示ダイヤログ */}
+      {showResult && selectedQuestion && (
+        <>
+          <div className="dialog-overlay" onClick={() => setShowResult(false)} />
+
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setShowResult(false)}>
+              ×
+            </button>
+
+            <h3 className="text-lg font-bold mb-6 text-center">
+              投票結果
+            </h3>
+
+            {(() => {
+              // ===== 仮データ（後でDBに置き換え）=====
+              // ===== TODO　DB連携 =====
+              const leftCount = 32;
+              const rightCount = 18;
+              const total = leftCount + rightCount || 1;
+
+              const leftRate = Math.round((leftCount / total) * 100);
+              const rightRate = Math.round((rightCount / total) * 100);
+
+              return (
+                <div className="result-wrapper">
+                  {/* ラベル */}
+                  <div className="result-labels">
+                    <span className="result-labels-left">{selectedQuestion.option1Text}</span>
+                    <span className="result-labels-right">{selectedQuestion.option2Text}</span>
+                  </div>
+
+                  {/* グラフ */}
+
+                  <div className="result-bar">
+                    {/* 左 */}
+                    <div
+                      className="result-left"
+                      style={{ width: `${leftRate}%` }}
+                    >
+                      <span className="result-text">
+                        {leftRate}%（{leftCount}票）
+                      </span>
+                    </div>
+
+                    {/* 右 */}
+                    <div
+                      className="result-right"
+                      style={{ width: `${rightRate}%` }}
+                    >
+                      <span className="result-text">
+                        {rightRate}%（{rightCount}票）
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </>
+      )}
+
+
+
 
       {postOpen && (
         <>
@@ -523,7 +601,7 @@ export default function Home() {
               onChange={(e) => setText(e.target.value)}
               placeholder="お店についての意見を入力..."
             />
-            {/* ジャンル選択UI */}
+            {/* ジャンル選択 */}
             <div className="genre-container">
               選択：
               <select
@@ -602,6 +680,26 @@ export default function Home() {
           </>
         )
       }
-    </div >
+      {showExtractPanel && (
+        <div className="extract-panel">
+          <div className="panel-header">
+            <span>抽出された意見 ({extractedOpinions.length}件)</span>
+            <button onClick={() => setShowExtractPanel(false)}>×</button>
+          </div>
+
+          <div className="panel-body">
+            {extractedOpinions.length === 0 ? (
+              <p className="empty-text">意見がありません</p>
+            ) : (
+              extractedOpinions.map((op, i) => (
+                <div key={i} className="opinion-item">
+                  {op}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
