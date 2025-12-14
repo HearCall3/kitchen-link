@@ -15,7 +15,8 @@ import {
   answerQuestion,
   getAllTags,
   getAllOpinions,
-  getUserAndStoreDetails
+  getUserAndStoreDetails,
+  getAllStoreSchedules
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -31,6 +32,10 @@ export default function Home() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [opinions, setOpinions] = useState<any[]>([]);
   const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]);
+
+  // ★ 修正 1: スケジュールデータ State の追加 ★
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   // ====== アンケート回答 States ======
   // 結果表示
@@ -70,21 +75,9 @@ export default function Home() {
   const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
   const [filter, setFilter] = useState("");
 
-  // ====== 投稿・アンケート開閉 ======
-  const handleOpinionTransition = (data: string, pos: { lat: number, lng: number }) => {
-    setLatLng(pos);
-
-    if (!session) {  // 未ログインなら
-      setShowLoginPrompt(true);
-      return;
-    }
-
-    if (data === "post") setPostOpen(true);
-    if (data === "poll") setCreateOpen(true);
-  };
-
   // ====== 絞り込みジャンル ======
   const [searchActive, setSearchActive] = useState(false);
+
 
   // ====== 意見抽出シート ======
   const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
@@ -93,6 +86,13 @@ export default function Home() {
     setExtractedOpinions(opinions);
     setShowExtractPanel(true);
   };
+
+  // --- Map Handlers ---
+  const FILTER_ITEMS = [
+    { label: "キッチンカー", key: "store" },
+    { label: "アンケート", key: "poll" },
+    { label: "意見", key: "opinion" },
+  ] as const;
 
   // 1. ログイン状態チェック
   useEffect(() => {
@@ -108,6 +108,7 @@ export default function Home() {
   // 2. データ取得
   useEffect(() => {
     async function fetchData() {
+      // 既存のデータ取得 (Questions, Opinions, Tags) ...
       const resultQ = await getAllQuestions();
       if (resultQ.success && resultQ.questions) setQuestions(resultQ.questions);
       else console.error(resultQ.error);
@@ -116,10 +117,20 @@ export default function Home() {
       if (resultO.success && resultO.opinions) setOpinions(resultO.opinions);
       else console.error(resultO.error);
 
-      // タグ取得
       const resultT = await getAllTags();
       if (resultT.success && resultT.tags) setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
       else console.error(resultT.error);
+
+      // ★ 修正 2: スケジュールデータの取得と State への格納 ★
+      const resultS = await getAllStoreSchedules();
+      if (resultS.success && resultS.schedules) {
+        setSchedules(resultS.schedules);
+        setScheduleError(null);
+      } else {
+        setSchedules([]);
+        setScheduleError(resultS.error || 'スケジュールの取得中に不明なエラーが発生しました。');
+        console.error(resultS.error);
+      }
     }
     fetchData();
   }, []);
@@ -214,17 +225,6 @@ export default function Home() {
     }
   };
 
-  // --- Answer Handlers ---
-  const handleAnswerClick = (question: any) => {
-    if (!session?.user?.accountId) {
-      // alert("ログインしているか確認してください。");
-      return;
-    }
-    setSelectedQuestion(question);
-    setSelectedOption(null);
-    setAnswerPollOpen(true);
-  };
-
   const handleAnswerSubmit = async () => {
     if (!session?.user?.accountId || !selectedQuestion || selectedOption === null) {
       alert("回答情報が不完全です。");
@@ -284,7 +284,6 @@ export default function Home() {
     }
   }
 
-  // --- Map Handlers ---
   const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
 
     if (!session) {//ログインしてなかったらログインに誘導
@@ -310,27 +309,86 @@ export default function Home() {
   //   alert("ログアウトしました");
   // };
 
-  const FILTER_ITEMS = [
-    { label: "キッチンカー", key: "store" },
-    { label: "アンケート", key: "poll" },
-    { label: "意見", key: "opinion" },
-  ] as const;
+  const [filters, setFilters] = useState<{
+    tag: string | null;
+    minLikes: number | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+    gender: string | null;
+    occupation: string | null;
+    ageRange: string | null;
+  }>({
+    tag: null,
+    minLikes: null,
+    dateFrom: null,
+    dateTo: null,
+    gender: null,
+    occupation: null,
+    ageRange: null,
+  });
+
+  const formatDateInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+  const [appliedFilters, setAppliedFilters] = useState<typeof filters>(filters);
 
   const mapList = {
-    opinion: (
-      <OpinionMap
-        opinions={opinions}
-        onDialogOpen={handleDialogOpen}
-        onExtract={handleExtract}
-      />),
+
+    opinion: <OpinionMap opinions={opinions}
+      accountId={session?.user.accountId!}
+      filter={appliedFilters}
+      onDialogOpen={handleDialogOpen} 
+      onExtract={handleExtract} />,
     poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
     store: <StoreMap />
   };
+
+  // --------------------------------------------------
+  // ここで関数を呼び出して出店情報をとってくる＋表示させる
+  // --------------------------------------------------
+  // ★ 修正 3: スケジュールリストのレンダリング関数を定義 ★
+  const renderScheduleList = () => {
+
+    // エラー表示
+    if (scheduleError) {
+      return <div className="p-4 text-red-600 bg-red-100 border border-red-300">🚨 データ読み込みエラー: {scheduleError}</div>;
+    }
+
+    // データなし
+    if (!schedules || schedules.length === 0) {
+      return <div className="p-4 text-center text-gray-500 bg-gray-50 border-t">📅 現在、出店スケジュールはありません。</div>;
+    }
+
+    // リスト表示
+    return (
+      <div className="schedule-list-container p-4 bg-white border-t border-gray-200">
+        <h2 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📅 今後の出店スケジュール</h2>
+        <ul className="space-y-3">
+          {schedules.map((schedule) => (
+            <li key={schedule.id} className="flex items-center p-3 bg-gray-50 rounded-lg shadow-sm">
+              {/* 日付 (左側) */}
+              <div className="date-box font-mono text-lg text-blue-600 font-semibold mr-4 min-w-[100px]">
+                {schedule.date}
+              </div>
+              {/* 情報 (右側) */}
+              <div className="info-box flex-1">
+                <strong className="block text-base text-gray-900">{schedule.storeName}</strong>
+                <p className="text-xs text-gray-500 mt-1">
+                  📍
+                  {schedule.locationName || '場所未定'}
+                  ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   // スクロールバーを表示しない
-  useEffect(() => {
-    if (menuOpen) document.body.classList.add("no-scroll");
-    else document.body.classList.remove("no-scroll");
-  }, [menuOpen]);
+  // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
+  //   if (menuOpen) document.body.classList.add("no-scroll");
+  //   else document.body.classList.remove("no-scroll");
+  // }, [menuOpen]);
 
   return (
     <div className="frame">
@@ -350,6 +408,172 @@ export default function Home() {
         </div>
       </header>
 
+      <>
+        <div
+          style={{
+            position: "fixed",
+            bottom: 20,
+            right: 20,
+            padding: 16,
+            background: "white",
+            border: "1px solid #ccc",
+            borderRadius: 8,
+            zIndex: 99999,
+            width: 200,
+            pointerEvents: "auto"
+          }}
+          // コンテナクリックで地図に伝搬させたくない場合
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h4>フィルター</h4>
+
+          {/* タグ */}
+          <div style={{ marginBottom: 10 }}>
+            <label>タグ</label>
+            <select
+              style={{ width: "100%" }}
+              // value をバインド（null -> 空文字）
+              value={filters.tag ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
+              }
+            >
+              <option value="">---</option>
+              <option value="食品">食品</option>
+              <option value="設備">設備</option>
+              <option value="値段">値段</option>
+              <option value="ボリューム">ボリューム</option>
+              <option value="満足">満足</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          {/* 性別 */}
+          <div style={{ marginBottom: 10 }}>
+            <label>性別</label>
+            <select
+              style={{ width: "100%" }}
+              value={filters.gender ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
+              }
+            >
+              <option value="">---</option>
+              <option value="男性">男性</option>
+              <option value="女性">女性</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          {/* 職業 */}
+          <div style={{ marginBottom: 10 }}>
+            <label>職業</label>
+            <select
+              style={{ width: "100%" }}
+              value={filters.occupation ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
+              }
+            >
+              <option value="">---</option>
+              <option value="学生">学生</option>
+              <option value="会社員">会社員</option>
+              <option value="アルバイト・パート">アルバイト・パート</option>
+              <option value="フリーランス">フリーランス</option>
+              <option value="公務員">公務員</option>
+              <option value="無職">無職</option>
+              <option value="フリーター">フリーター</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          {/* 年齢 */}
+          <div style={{ marginBottom: 10 }}>
+            <label>年齢</label>
+            <select
+              style={{ width: "100%" }}
+              value={filters.ageRange ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
+              }
+            >
+              <option value="">---</option>
+              <option value="10代">10歳未満</option>
+              <option value="20代">20代</option>
+              <option value="30代">30代</option>
+              <option value="40代">40代</option>
+              <option value="40代">50代</option>
+              <option value="40代">60代</option>
+              <option value="40代">70代</option>
+              <option value="40代">80代以上</option>
+            </select>
+          </div>
+
+          {/* 最低いいね数 */}
+          <div style={{ marginBottom: 10 }}>
+            <label>最低いいね数</label>
+            <input
+              type="number"
+              min="0"
+              style={{ width: "100%" }}
+              // value を空文字または数値で渡す
+              value={filters.minLikes ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  minLikes: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+            />
+          </div>
+
+          {/* 日付（以降） */}
+          <div style={{ marginBottom: 10 }}>
+            <label>日付（以降）</label>
+            <input
+              type="date"
+              style={{ width: "100%" }}
+              // Date -> YYYY-MM-DD 文字列にして value に渡す
+              value={formatDateInput(filters.dateFrom)}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  dateFrom: e.target.value ? new Date(e.target.value) : null,
+                }))
+              }
+            />
+          </div>
+
+          <button
+            style={{
+              marginTop: 10,
+              width: "100%",
+              padding: 6,
+              background: "#eee",
+              border: "1px solid #ccc",
+            }}
+            onClick={() =>
+              setFilters({
+                tag: null,
+                gender: null,
+                occupation: null,
+                ageRange: null,
+                minLikes: null,
+                dateFrom: null,
+                dateTo: null,
+              })
+            }
+          >
+            リセット
+          </button>
+          <button
+            onClick={() => setAppliedFilters(filters)}
+          >
+            適用
+          </button>
+        </div>
+      </>
+
       {/* 検索の絞り込みボタン */}
       {searchActive && (
         <div className="bg-white px-3 py-2 shadow-md overflow-x-auto flex gap-2">
@@ -362,8 +586,6 @@ export default function Home() {
               {tag}
             </div>
           ))}
-
-
 
           <div className="flex gap-2 overflow-x-auto mb-4">
             {genres.map((tag) => (
@@ -399,7 +621,7 @@ export default function Home() {
           {/* {storeId && ( */}
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => router.push("/register")}
+            onClick={() => router.push("/Register")}
           >
             出店登録
           </li>
@@ -471,6 +693,11 @@ export default function Home() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ★ 修正 4: マップの下に出店スケジュールリストを呼び出し ★ */}
+      <div className="schedule-list-area">
+        {renderScheduleList()}
       </div>
 
       {/* ===== ダイアログ ===== */}
@@ -629,23 +856,6 @@ export default function Home() {
         </>
       )
       }
-
-      {/* アンケート回答画面 todo */}
-      {/* {
-        pollOpen && (
-          <>
-            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-            <div className="poll-dialog active">
-              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
-              <h3>この店にまた来たいですか？</h3>
-              <div className="vote-buttons">
-                <button className="yes">はい</button>
-                <button className="no">いいえ</button>
-              </div>
-            </div>
-          </>
-        )
-      } */}
 
       {
         createOpen && (
