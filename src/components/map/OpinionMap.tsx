@@ -280,9 +280,9 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                     const opinionId = data.postAnOpinionId; 
 
                     return (
-                        <React.Fragment key={opinionId}> 
+                        <React.Fragment key={data.opinionId}> 
                             <MarkerF
-                                key={`marker-${opinionId}`} 
+                                key={`marker-${data.opinionId}`} 
                                 position={{ lat: data.latitude, lng: data.longitude }}
                                 onClick={() => setOpinionOpen(data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
@@ -295,16 +295,8 @@ export default function OpinionMap({ onDialogOpen, opinions, accountId, filter }
                             scaledSize: new google.maps.Size(40, 40), // サイズ調整
                             anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる}*/}
 
-                            < CircleF
-                                key={`circle-${opinionId}`}
-                                onLoad={(circle) => {
-                                    circleRefs.current[data.latitude] = circle;
-                                }}
-                                onUnmount={() => {
-                                    const c = circleRefs.current[data.latitude];
-                                    if (c) c.setMap(null);
-                                    delete circleRefs.current[data.latitude];
-                                }}
+                            <CircleF
+                                key={data.opinionId}
                                 center={{ lat: data.latitude, lng: data.longitude }}
                                 radius={500}
                                 options={{ ...circleOptions, clickable: false }}

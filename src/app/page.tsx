@@ -470,6 +470,7 @@ export default function Home() {
               <option value="公務員">公務員</option>
               <option value="無職">無職</option>
               <option value="フリーター">フリーター</option>
+              <option value="その他">その他</option>
             </select>
           </div>
 
