@@ -6,10 +6,12 @@ import './style.css';
 import {
     GoogleMap,
     MarkerF,
-    Circle,        // Circle をインポート
+    CircleF,        // Circle をインポート
     useJsApiLoader,
     OverlayView
 } from '@react-google-maps/api';
+
+import { toggleLike } from "@/actions/db_access";
 
 const containerStyle = {
     width: "100%",
@@ -19,7 +21,7 @@ const containerStyle = {
 const center = { lat: 35.681236, lng: 139.767125 };
 
 // 定数は外に出す（変更なし）
-const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
+const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
 
 // 円のスタイル設定
 const circleOptions = {
@@ -30,15 +32,24 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
+type filters = {
+    tag: string | null;
+    minLikes: number | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+    gender: string | null;
+    occupation: string | null;
+    ageRange: string | null;
+};
 
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
-
     opinions: (any[]);
     onExtract: (opinions: string[]) => void;
-
 }
-export default function OpinionMap({ onDialogOpen, opinions, onExtract }: OpinionMapProps) {
+
+export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId, filter }: OpinionMapProps) {
+
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -47,12 +58,19 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
     });
 
     const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
-    const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [lat: number]: google.maps.Circle }>({});
+    const [activeLabelLats, setActiveLabelLats] = useState<number[]>([]); const circleRefs = useRef<{ [key: string]: google.maps.Circle }>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
+    const [opinionOpen, setOpinionOpen] = useState<any>(null);
 
+  
+    // 新しい状態として、意見データ全体を内部で管理するための state を追加
+    // opinions prop は初期値として使用し、更新は internalOpinions で行う//???
+    const [internalOpinions, setInternalOpinions] = useState(opinions);
+
+  
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
 
@@ -68,7 +86,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
             .slice(0, MAX_VISIBLE_LABELS); // 上限数でカット
 
         // 絞り込んだピンの「lat」の配列で state を更新
-        setActiveLabelLats(visiblePins.map(pin => pin.latitude));
+        setActiveLabelLats(visiblePins.map(pin => pin.opinionId));
     }, [opinions]);
 
     const onLoad = useCallback((map: google.maps.Map) => {
@@ -89,18 +107,6 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
     useEffect(() => {
         if (map) updateVisibleLabels(map);
     }, [opinions, map, updateVisibleLabels]);
-
-    const toggleLabel = (lat: number) => {
-        setActiveLabelLats(prev => {
-            if (prev.includes(lat)) {
-                // 含まれていれば消す（閉じる）
-                return prev.filter(l => l !== lat);
-            } else {
-                // 含まれていなければ足す（開く）
-                return [...prev, lat];
-            }
-        });
-    };
 
     const MAX_VISIBLE_LABELS = 5;
 
@@ -160,6 +166,75 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
         };
     }, [map, isLoaded]); // mapが変わるたびに作り直す
 
+    // opinions prop が変更されたら internalOpinions を同期
+    useEffect(() => {
+        setInternalOpinions(opinions);
+    }, [opinions]);
+
+    if (!isLoaded) return <div>Loading...</div>;
+
+    const filteredOpinions = opinions.filter((op) => {
+        if (filter.tag && !op.tags.includes(filter.tag)) return false;
+        if (filter.minLikes !== null && op.likeCount < filter.minLikes) return false;
+        if (filter.gender && op.profile.gender !== filter.gender) return false;
+        if (filter.occupation && op.profile.occupation !== filter.occupation) return false;
+        if (filter.ageRange && op.profile.age !== filter.ageRange) return false;
+
+        if (filter.dateFrom && new Date(op.postedAt) < filter.dateFrom) return false;
+        if (filter.dateTo && new Date(op.postedAt) > filter.dateTo) return false;
+
+        return true;
+    });
+  
+    const handleLikeClick = async (accountId: string, opinionId: string) => {
+        console.log("[LikeClick] Start.")
+        // alert(accountId)
+        // alert(opinionId)//ここにライクボタンを押した時の処理
+        if (!accountId) {
+            alert('ログインしていません。いいねを行うにはログインが必要です。');
+            return;
+        }
+
+        try {
+            const result = await toggleLike(accountId, opinionId);
+
+            if (result.success) {
+                const { isLiked, likeCount } = result;
+
+                setInternalOpinions(prevOpinions =>
+                    prevOpinions.map(op => {
+                        // 意見IDでマッチング
+                        if (op.opinionId === opinionId) {
+
+                            // 開いている意見パネルの情報を更新
+                            if (opinionOpen && op.opinionId === opinionId) {
+                                setOpinionOpen({
+                                    ...opinionOpen,
+                                    likeCount: likeCount,
+                                    isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
+                                });
+                            }
+
+                            // 意見リストの当該レコードを更新
+                            return {
+                                ...op,
+                                likeCount: likeCount,
+                            };
+                        }
+                        return op;
+                    })
+                );
+
+            } else {
+                alert(result.error || 'いいね処理に失敗しました。');
+            }
+
+        } catch (error) {
+            console.error('いいね処理中のエラー:', error);
+            alert('いいね処理中に予期せぬエラーが発生しました。');
+        }
+
+    }
 
     if (!isLoaded) return <div>Loading...</div>;
 
@@ -203,9 +278,11 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
                     )}
                 </div>
 
-                {map && opinions.map((data) => {
+                {map && filteredOpinions.map((data) => {
 
-                    const isOpen = activeLabelLats.includes(data.latitude);
+                    const isOpen = activeLabelLats.includes(data.opinionId);
+                    // 🚨 意見IDは postAnOpinionId フィールドを参照
+                    const opinionId = data.postAnOpinionId; 
 
                     // 文字数で枠の大きさを決める
                     const text = data.commentText;
@@ -217,12 +294,11 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
                     if (len > 90) sizeClass = "bubble-xl";
 
                     return (
-                        <React.Fragment key={data.opinionId}>
+                        <React.Fragment key={data.opinionId}> 
                             <MarkerF
-
-                                key={`marker-${data.latitude}-${isOpen}`}
+                                key={`marker-${data.opinionId}`} 
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => toggleLabel(data.latitude)} // ★クリックでトグル
+                                onClick={() => setOpinionOpen(data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
 
@@ -249,19 +325,11 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
                                         </div>
                                     </div>
                                 </OverlayView>
-
                             )}
 
-                            < Circle
-                                onLoad={(circle) => {
-                                    circleRefs.current[data.latitude] = circle;
-                                }}
-                                onUnmount={() => {
-                                    // Reactのライフサイクルに合わせて地図から削除
-                                    const c = circleRefs.current[data.latitude];
-                                    if (c) c.setMap(null);
-                                    delete circleRefs.current[data.latitude];
-                                }}
+
+                            <CircleF
+                                key={data.opinionId}
                                 center={{ lat: data.latitude, lng: data.longitude }}
                                 radius={500}
                                 options={{ ...circleOptions, clickable: false }}
@@ -282,7 +350,26 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract }: Opinio
                     </ul>
                 </div>
             </div>
-
+            {opinionOpen &&
+                <>
+                    {console.log(opinionOpen)}
+                    <p>コメント：{opinionOpen.commentText}</p>
+                    <p>いいね数：{opinionOpen.likeCount}</p>
+                    <p>タグ：{opinionOpen.tags}</p>
+                    <p>投稿時刻：{opinionOpen.postedAt.toLocaleString()}</p>
+                    <p>性別：{opinionOpen?.profile.gender}</p>
+                    <p>年齢：{opinionOpen?.profile.age}</p>
+                    <p>職業：{opinionOpen?.profile.occupation}</p>
+                    <button
+                        style={{
+                            background: '#cee6c1', padding: '8px 12px', borderRadius:
+                                '6px', border: '1px solid #000', whiteSpace: 'nowrap',
+                        }}
+                        onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
+                        いいね
+                    </button>
+                </>
+            }
         </>
     );
 }
