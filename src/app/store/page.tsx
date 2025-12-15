@@ -78,6 +78,9 @@ export default function StoreRegisterPage() {
     }
 
     const formData = new FormData(e.target as HTMLFormElement);
+    for (let [key, value] of formData.entries()) {
+    console.log(`${key}: ${value}`); // storeUrl が含まれているか確認
+}
     const storeName = formData.get('storeName');
     console.log("Form Store Name:", storeName); // 入力された店舗名を確認
 

@@ -452,7 +452,10 @@ export default function Home() {
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
-            プロフィール
+            ユーザープロフィール
+          </li>
+          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_store")}>
+            ストアプロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
           {/* 店舗ログインなら表示 todo*/}
