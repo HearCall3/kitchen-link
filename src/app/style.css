@@ -23,6 +23,77 @@ header {
   flex-shrink: 0;
 }
 
+/*===== 検索バー =====*/
+
+/* ======閉じるボタン====== */
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #e76f24;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/*==== フィルター・検索ボタン共通 ====*/
+.filter-btn,
+.search-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  /* 丸ボタン */
+  border: none;
+  background-color: white;
+  /* 濃いオレンジ */
+  color: black;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin: 5px;
+}
+
+.filter-btn:hover,
+.search-btn:hover {
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+/* =======検索バー全体======== */
+.search-bar {
+  display: flex;
+  flex: 1;
+  background-color: #fff8f0;
+  /* 薄オレンジ系 */
+  border-radius: 9999px;
+  /* 丸く */
+  overflow: hidden;
+  align-items: center;
+  padding-right: 0.25rem;
+  border: 1px solid #f0a050;
+}
+
+/* 検索入力 */
+.search-bar input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  color: #333;
+  font-size: 1rem;
+  background-color: #fff8f0;
+}
+
+/* 検索ボタン */
+.search-bar .search-btn {
+  margin-left: 0.25rem;
+  padding: 0.5rem 1rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+/*  */
+
 .menuIcon {
   font-size: 28px;
   margin-right: 12px;

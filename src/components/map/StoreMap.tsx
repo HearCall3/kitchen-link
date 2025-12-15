@@ -65,11 +65,12 @@ export default function StoreMap({ schedule, filterKeyword }: storeProps) {
                             lat: Number(q.location.lat),
                             lng: Number(q.location.lng),
                         }}
-                        // icon={{
-                        //      url: "/pin_orange.png",  // publicフォルダに画像を置く
-                        //      scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                        //      anchor: new google.maps.Point(20, 40), // 先端の位置調整
-                        // }}
+                        icon={{
+                            url: "/icon/kitchen.png",  // publicフォルダに画像を置く
+                            scaledSize: new google.maps.Size(40, 30), // サイズ調整
+                            anchor: new google.maps.Point(20, 40), // 先端の位置調整
+                            labelOrigin: new window.google.maps.Point(50, 30),
+                        }}
                         label={{
                             text: q.storeName,
                         }}

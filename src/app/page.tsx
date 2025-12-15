@@ -381,12 +381,6 @@ export default function Home() {
     );
   };
 
-  // スクロールバーを表示しない
-  // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
-  //   if (menuOpen) document.body.classList.add("no-scroll");
-  //   else document.body.classList.remove("no-scroll");
-  // }, [menuOpen]);
-
   return (
     <div className="frame">
       {/* ===== ヘッダー ===== */}
@@ -395,7 +389,7 @@ export default function Home() {
           {menuOpen ? "✕" : "☰"}
         </div>
         <button
-          className="text-2xl mr-3 cursor-pointer"
+          className="filter-btn"
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filter"
         >フィルター
@@ -412,7 +406,7 @@ export default function Home() {
           {/* ★ 検索ボタンを追加 */}
           <button
             onClick={() => setSearchKeyword(filterKeyword)}
-            className="p-2 text-gray-500 hover:text-orange-500 transition-colors"
+            className="search-btn"
           >
             検索
           </button>
@@ -431,22 +425,12 @@ export default function Home() {
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
           {/* 店舗ログインなら表示 TODO*/}
           {/* {storeId && ( */}
-<<<<<<< HEAD
-            <li
-              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-              onClick={() => router.push("/register")}
-            >
-              出店登録
-            </li>
-          {/* )} */}
-=======
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
             onClick={() => router.push("/register")}
           >
             出店登録
           </li>
->>>>>>> 6d05d0383d8b1a5f637c16fe76d46b9a01ce0659
 
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
@@ -681,6 +665,7 @@ export default function Home() {
 
       {isFilterOpen && (
         <>
+        {/* フィルター */}
           {/* 背景の黒み (クリックで閉じる) */}
           <div
             className="dialog-overlay"
@@ -702,9 +687,9 @@ export default function Home() {
 
             {/* タグ */}
             <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">タグ</label>
+              <label className="block text-sm font-bold mb-1">タグの選択</label>
               <select
-                className="w-full p-2 border rounded"
+                className="select-tag"
                 value={filters.tag ?? ""}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, tag: e.target.value || null }))

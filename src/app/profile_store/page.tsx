@@ -11,8 +11,6 @@ export default function StoreProfileEditPage() {
   const [description, setDescription] = useState("");
   const [storeUrl, setStoreUrl] = useState("");
 
-  const [menuOpen] = useState(false);
-
   const handleSave = () => {
     alert("店舗プロフィールを保存しました！（テスト版）");
     console.log({ storeName, description, storeUrl });
@@ -24,9 +22,13 @@ export default function StoreProfileEditPage() {
         {/* タイトル */}
         <h2 className={styles.title}>店舗プロフィール設定</h2>
 
-        <div className={`home-button ${menuOpen ? "contentShift" : ""}`}>
-          <button  className="icon-button" onClick={() => router.push("/")} title="ホームに戻る">
-              <img src="/icon/home.png"  width={20} height={20} />
+        <div className={`home-button`}>
+          <button
+            className={styles.iconButton}
+            onClick={() => router.push("/")}
+            title="ホームに戻る"
+          >
+            ✕
           </button>
         </div>
 
