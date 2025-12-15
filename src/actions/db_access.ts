@@ -916,6 +916,8 @@ export async function getAllStoreSchedules() {
                     select: {
                         storeName: true,
                         storeId: true,
+                        storeUrl: true,
+                        introduction: true
                     }
                 }
             }
@@ -929,6 +931,10 @@ export async function getAllStoreSchedules() {
             date: s.openingDate.toISOString().split('T')[0], // 日付のみ (YYYY-MM-DD)
             location: { lat: s.latitude, lng: s.longitude },
             locationName: s.locationName,
+            storeDetails:{
+                storeUrl: s.store.storeUrl,
+                introduction: s.store.introduction,
+            }
         }));
 
         console.log(`[DB] END: Fetched ${schedules.length} Store Schedules.`);

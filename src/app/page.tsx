@@ -373,6 +373,20 @@ export default function Home() {
                   {schedule.locationName || '場所未定'}
                   ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
                 </p>
+
+                {/* 2. ストア詳細情報（★追加部分） */}
+                {/* storeDetailsオブジェクトが存在する場合のみ表示 */}
+                {schedule.storeDetails && (
+                  <div className="store-details p-2 mt-2 bg-white border border-gray-200 rounded-md">
+                    <p className="text-sm font-medium text-gray-700">店舗情報</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      🏠 **ストアURL:** {schedule.storeDetails.storeUrl || '未登録'}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      📞 **説明:** {schedule.storeDetails.introduction || '未登録'}
+                    </p>
+                  </div>
+                )}
               </div>
             </li>
           ))}
