@@ -16,7 +16,9 @@ import {
   getAllTags,
   getAllOpinions,
   getUserAndStoreDetails,
-  getAllStoreSchedules
+  getAllStoreSchedules,
+  getQuestionAnswerCounts,
+  toggleLike
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -44,6 +46,7 @@ export default function Home() {
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [pollCounts, setPollCounts] = useState<{ count1: number, count2: number } | null>(null);
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -93,13 +96,25 @@ export default function Home() {
   const [filterKeyword, setFilterKeyword] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
 
+  const [clickedOpinion, setClickedOpinion] = useState<any>(null);
+  const [showClickedOpinion, setShowClickedOpinion] = useState(false);
 
-  // ====== 意見抽出シート ======
+  const [clickedStore, setClickedStore] = useState<any>([]);
+  const [showClickedStore, setShowClickedStore] = useState(false);
+
   const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
   const [showExtractPanel, setShowExtractPanel] = useState(false);
-  const handleExtract = (opinions: string[]) => {
-    setExtractedOpinions(opinions);
-    setShowExtractPanel(true);
+  const handleExtract = (type: string, data: []) => {
+    if (type === "opinionExtract") {
+      setExtractedOpinions(data);
+      setShowExtractPanel(true);
+    } else if (type === "opinionClick") {
+      setClickedOpinion(data);
+      setShowClickedOpinion(true);
+    } else if (type === "storeClick") {
+      setClickedStore(data);
+      setShowClickedStore(true);
+    }
   };
 
   // --- Map Handlers ---
@@ -259,6 +274,16 @@ export default function Home() {
     if (result.success) {
       // alert("アンケートに回答しました！");
       setAnswerPollOpen(false);
+
+      // ★ 追加: 回答後、集計結果を取得する ★
+      const countsResult = await getQuestionAnswerCounts(questionId);
+      if (countsResult.success && countsResult.counts) {
+        setPollCounts(countsResult.counts); // 結果をStateに保存
+      } else {
+        console.error("回答結果の取得に失敗しました:", countsResult.error);
+        setPollCounts({ count1: 0, count2: 0 }); // 失敗時は0で初期化
+      }
+
       // 結果表示ダイヤログを呼ぶ
       setShowResult(true);
       const fetchResult = await getAllQuestions();
@@ -301,6 +326,54 @@ export default function Home() {
     }
   }
 
+  const handleLikeClick = async (opinionId: string) => {
+    const accountId = session?.user.accountId
+    if (!accountId) {
+      alert('ログインしていません。いいねを行うにはログインが必要です。');
+      return;
+    }
+
+    try {
+      const result = await toggleLike(accountId, opinionId);
+
+      if (result.success) {
+        const { isLiked, likeCount } = result;
+
+        setOpinions(prevOpinions =>
+          prevOpinions.map(op => {
+            // 意見IDでマッチング
+            if (op.opinionId === opinionId) {
+
+              // 開いている意見パネルの情報を更新
+              if (showClickedOpinion && op.opinionId === opinionId) {
+                setShowClickedOpinion({
+                  ...clickedOpinion,
+                  likeCount: likeCount,
+                  isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
+                });
+              }
+
+              // 意見リストの当該レコードを更新
+              return {
+                ...op,
+                likeCount: likeCount,
+              };
+            }
+            return op;
+          })
+        );
+
+      } else {
+        alert(result.error || 'いいね処理に失敗しました。');
+      }
+
+    } catch (error) {
+      console.error('いいね処理中のエラー:', error);
+      alert('いいね処理中に予期せぬエラーが発生しました。');
+    }
+
+  }
+
   const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
 
     if (!session) {//ログインしてなかったらログインに誘導
@@ -335,7 +408,7 @@ export default function Home() {
       onExtract={handleExtract}
     />,
     poll: <PollMap questions={questions} filterKeyword={searchKeyword} onDialogOpen={handleDialogOpen} />,
-    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} />
+    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} onExtract={handleExtract} />
   };
 
   // --------------------------------------------------
@@ -373,6 +446,20 @@ export default function Home() {
                   {schedule.locationName || '場所未定'}
                   ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
                 </p>
+
+                {/* 2. ストア詳細情報（★追加部分） */}
+                {/* storeDetailsオブジェクトが存在する場合のみ表示 */}
+                {schedule.storeDetails && (
+                  <div className="store-details p-2 mt-2 bg-white border border-gray-200 rounded-md">
+                    <p className="text-sm font-medium text-gray-700">店舗情報</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      🏠 **ストアURL:** {schedule.storeDetails.storeUrl || '未登録'}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      📞 **説明:** {schedule.storeDetails.introduction || '未登録'}
+                    </p>
+                  </div>
+                )}
               </div>
             </li>
           ))}
@@ -503,7 +590,7 @@ export default function Home() {
 
       {/* ★ 修正 4: マップの下に出店スケジュールリストを呼び出し ★ */}
       <div className="schedule-list-area">
-        {renderScheduleList()}
+        {/* {renderScheduleList()} */}
       </div>
 
       {/* ===== ダイアログ ===== */}
@@ -564,8 +651,8 @@ export default function Home() {
             {(() => {
               // ===== 仮データ（後でDBに置き換え）=====
               // ===== TODO　DB連携 =====
-              const leftCount = 32;
-              const rightCount = 18;
+              const leftCount = pollCounts?.count1 || 0;
+              const rightCount = pollCounts?.count2 || 0;
               const total = leftCount + rightCount || 1;
 
               const leftRate = Math.round((leftCount / total) * 100);
@@ -882,6 +969,44 @@ export default function Home() {
           </div>
         </div>
       )}
+      {showClickedOpinion && (
+        <>
+          <div className="extract-panel">
+            <div className="panel-header">
+              <span>{clickedOpinion.commentText}</span>
+              <button onClick={() => setShowClickedOpinion(false)}>×</button>
+            </div>
+            <div className="panel-body">
+              <p>いいね数：{clickedOpinion.likeCount}</p>
+              <p>タグ：{clickedOpinion.tags}</p>
+              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+              <p>性別：{clickedOpinion?.profile.gender}</p>
+              <p>年齢：{clickedOpinion?.profile.age}</p>
+              <p>職業：{clickedOpinion?.profile.occupation}</p>
+              <button
+                className="like-button"
+                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+              >
+                いいね
+              </button>
+            </div>
+          </div>
+        </>
+      )
+      }
+      {showClickedStore && (
+        <div className="extract-panel">
+          <div className="panel-header">
+            <span>{clickedStore.storeName}</span>
+            <button onClick={() => setShowClickedStore(false)}>×</button>
+          </div>
+          <div className="panel-body">
+            <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
+            <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
+          </div>
+        </div>
+      )
+      }
     </div>
-  );
+  )
 }
