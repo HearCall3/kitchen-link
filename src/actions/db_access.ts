@@ -977,22 +977,49 @@ export async function getAllStoreSchedules() {
 // ----------------------------------------------------------------------
 // 7. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
-export async function findUserByEmail(email: string) {
-    const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+// 💡 認証コールバック用にID情報を含めた戻り値の型
+interface FindUserDetailsResult {
+    success: boolean; 
+    exists: boolean; 
+    error?: string;
+    accountId?: string | null;
+    userId?: string | null; 
+    storeId?: string | null; 
+}
+
+export async function findUserByEmail(email: string): Promise<FindUserDetailsResult> { // ★ 型を適用 ★
+    const hashedEmail = hashEmail(email);
     console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
 
     try {
         const account = await prisma.account.findUnique({
             where: { email: hashedEmail },
-            select: { accountId: true }
+            select: { 
+                accountId: true,
+                userId: true,
+                storeId: true,
+            }
         });
 
-        console.log("findUserByEmail is finish!!!!!!!!")
-        return { exists: !!account };
+        console.log("findUserByEmail (Details) is finish!!!!!!!!");
+        
+        const exists = !!account;
+        
+        if (!exists || !account) {
+            return { success: true, exists: false, accountId: null, userId: null, storeId: null };
+        }
+
+        return { 
+            success: true, 
+            exists: exists,
+            accountId: account.accountId,
+            userId: account.userId,
+            storeId: account.storeId,
+        };
 
     } catch (error) {
         console.error('Find user by email error:', error);
-        return { exists: false, error: 'DB search failed' };
+        return { success: false, exists: false, error: 'DB search failed' };
     }
 }
 
