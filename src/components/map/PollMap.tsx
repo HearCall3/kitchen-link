@@ -35,9 +35,10 @@ const circleOptions = {
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
     questions: (any[]);
+    filterKeyword: String;
 }
 
-export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -59,6 +60,10 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
         // 2. マップにセット（これで表示されます）
         setMap(map);
     });
+
+    const filterdQuestions = questions.filter((op) => {
+        if(op.questionText && op.questionText.includes(filterKeyword)) return true;
+    })
 
     if (!isLoaded) return <div>Loading...</div>;
 
@@ -93,7 +98,7 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
                 /> */}
 
                 {/* アンケートの作成 アイコン作成todo*/}
-                {questions.map((q) => (
+                {filterdQuestions.map((q) => (
                     <MarkerF
                         key={q.questionId}
                         position={{
