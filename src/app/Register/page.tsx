@@ -103,9 +103,15 @@ export default function StoreRegisterPage() {
       {/* ... (ヘッダー, マップ表示は省略) ... */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <button className={styles.menuButton} onClick={() => setMenuOpen(true)}>
-            ☰
-          </button>
+          <div className={`home-button`}>
+            <button
+              className={styles.iconButton}
+              onClick={() => router.push("/")}
+              title="ホームに戻る"
+            >
+              ✕
+            </button>
+          </div>
           <h1 className={styles.title}>出店登録</h1>
         </div>
       </header>
@@ -174,23 +180,7 @@ export default function StoreRegisterPage() {
 
           </div>
         </div>
-
       </div>
-
-      {/* ... (サイドメニューは省略) ... */}
-      {menuOpen && (
-        <>
-          <div className={styles.menuOverlay} onClick={() => setMenuOpen(false)} />
-          <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-            <button className={styles.closeMenuBtn} onClick={() => setMenuOpen(false)}>×</button>
-            <ul className={styles.menuList}>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/")}>ホーム</button></li>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/profile/user")}>プロフィール</button></li>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/Register")}>出店登録</button></li>
-            </ul>
-          </div>
-        </>
-      )}
     </div>
   );
 }

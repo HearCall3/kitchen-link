@@ -90,62 +90,62 @@ export default function UserProfilePage() {
   }, [session, status]);
 
   // --- 更新処理ハンドラー ---
-const handleSaveProfile = async () => {
-    const accountId = session?.user?.accountId; 
-    
+  const handleSaveProfile = async () => {
+    const accountId = session?.user?.accountId;
+
     if (!accountId || isLoading) {
-        alert("ログイン情報が見つからないか、データ読み込み中です。");
-        return;
+      alert("ログイン情報が見つからないか、データ読み込み中です。");
+      return;
     }
 
     if (!nickname) {
-        alert("ニックネームは必須です。");
-        return;
+      alert("ニックネームは必須です。");
+      return;
     }
 
     // マッピング処理をここに記述
     const dataToSave = {
-        nickname: nickname,
-        // 性別: フォーム値 -> DB名に変換
-        genderName: REVERSE_GENDER_MAP[gender] || gender || null, 
-        // 年代: フォーム値 -> DB名（年代は値が同じなのでそのまま）
-        ageGroupName: ageGroup || null,
-        // 職業: フォーム値 -> DB名に変換
-        occupationName: REVERSE_JOB_MAP[job] || job || null, 
+      nickname: nickname,
+      // 性別: フォーム値 -> DB名に変換
+      genderName: REVERSE_GENDER_MAP[gender] || gender || null,
+      // 年代: フォーム値 -> DB名（年代は値が同じなのでそのまま）
+      ageGroupName: ageGroup || null,
+      // 職業: フォーム値 -> DB名に変換
+      occupationName: REVERSE_JOB_MAP[job] || job || null,
     };
-    
+
     // FormDataを作成し、データを格納
     const formData = new FormData();
     formData.append('nickname', dataToSave.nickname);
-    
+
     if (dataToSave.genderName) {
-        formData.append('genderName', dataToSave.genderName);
+      formData.append('genderName', dataToSave.genderName);
     }
     if (dataToSave.ageGroupName) {
-        formData.append('ageGroupName', dataToSave.ageGroupName);
+      formData.append('ageGroupName', dataToSave.ageGroupName);
     }
     if (dataToSave.occupationName) {
-        formData.append('occupationName', dataToSave.occupationName);
+      formData.append('occupationName', dataToSave.occupationName);
     }
-    
+
     console.log("Saving data via FormData:", Object.fromEntries(formData));
 
     try {
-        // ★ サーバーアクションの呼び出し: accountIdをstringで渡す
-        const result = await updateUser(String(accountId), formData); 
+      // ★ サーバーアクションの呼び出し: accountIdをstringで渡す
+      const result = await updateUser(String(accountId), formData);
 
-        if (result.success) {
-            alert("保存しました！");
-            // 成功した場合、ページデータを再取得するためにリロード
-            window.location.reload(); 
-        } else {
-            alert(`保存に失敗しました: ${result.error || '不明なエラー'}`);
-        }
+      if (result.success) {
+        alert("保存しました！");
+        // 成功した場合、ページデータを再取得するためにリロード
+        window.location.reload();
+      } else {
+        alert(`保存に失敗しました: ${result.error || '不明なエラー'}`);
+      }
     } catch (error) {
-        console.error("更新エラー:", error);
-        alert("サーバーとの通信中にエラーが発生しました。");
+      console.error("更新エラー:", error);
+      alert("サーバーとの通信中にエラーが発生しました。");
     }
-};
+  };
 
 
   // --- ローディング/非認証時の表示 ---
@@ -164,13 +164,15 @@ const handleSaveProfile = async () => {
 
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
 
-        {/* ハンバーガーボタン*/}
-        <button
-          className={styles.menuButton}
-          onClick={toggleMenu}
-        >
-          ☰
-        </button>
+        <div className={`home-button`}>
+          <button
+            className={styles.iconButton}
+            onClick={() => router.push("/")}
+            title="ホームに戻る"
+          >
+            ✕
+          </button>
+        </div>
 
         {/* オーバーレイ */}
         {menuOpen && (
@@ -179,34 +181,6 @@ const handleSaveProfile = async () => {
             onClick={() => setMenuOpen(false)}
           />
         )}
-
-        {/* サイドメニュー */}
-        <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-
-          <button className={styles.closeMenuBtn} onClick={toggleMenu}>
-            ×
-          </button>
-          <ul className={styles.menuList}>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
-            </li>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/profile/user")}>プロフィール</button>
-            </li>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/Register")}>出店登録</button>
-            </li>
-            {!isLoggedIn ? (
-              <li>
-                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogin}>ログイン</button>
-              </li>
-            ) : (
-              <li>
-                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogout}>ログアウト</button>
-              </li>
-            )}
-          </ul>
-        </div>
 
         <h2 className={styles.title}>プロフィール設定</h2>
         <div className={styles.card}>

@@ -62,7 +62,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
     });
 
     const filterdQuestions = questions.filter((op) => {
-        if(op.questionText && op.questionText.includes(filterKeyword)) return true;
+        if (op.questionText && op.questionText.includes(filterKeyword)) return true;
     })
 
     if (!isLoaded) return <div>Loading...</div>;
@@ -82,19 +82,6 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
                 center={center}
                 zoom={14}
             >
-              
-                 {/* アンケート回答ピンアイコン todo */}
-                {/* <MarkerF
-                    key={`marker-${data.lat}-${isOpen}`}
-                    position={{ lat: data.lat, lng: data.lon }}
-                    onClick={() => toggleLabel(data.lat)}
-                    label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
-                    icon={{
-                        url: "/pin.png",        // 画像パス (public フォルダに置くのがおすすめ)
-                        scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                        anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
-                    }}
-                /> */}
 
                 {/* アンケートの作成 アイコン作成todo*/}
                 {filterdQuestions.map((q) => (
@@ -108,7 +95,14 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
                             text: q.questionText,
                             className: "bg-white px-2 py-1 rounded shadow",
                         }}
-                         onClick={() => onDialogOpen(q.questionId)}
+                        icon={{
+                            url: "/icon/poll.png",
+                            scaledSize: new google.maps.Size(30, 30),
+                            anchor: new google.maps.Point(20, 40),
+                            labelOrigin: new window.google.maps.Point(70, 20),
+                        }}
+
+                        onClick={() => onDialogOpen(q.questionId)}
                     />
                 ))}
                 <div
