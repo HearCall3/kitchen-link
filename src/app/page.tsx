@@ -337,7 +337,7 @@ export default function Home() {
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
-          {menuOpen ? "×" : "☰"}
+          {menuOpen ? "✕" : "☰"}
         </div>
         <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center">
           <input
@@ -391,18 +391,20 @@ export default function Home() {
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
+          {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          {/* 店舗ログインなら表示 todo*/}
+          {/* 店舗ログインなら表示 TODO*/}
           {/* {storeId && ( */}
-          <li
-            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => router.push("/register")}
-          >
-            出店登録
-          </li>
+            <li
+              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+              onClick={() => router.push("/register")}
+            >
+              出店登録
+            </li>
+          {/* )} */}
 
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
@@ -629,23 +631,6 @@ export default function Home() {
         </>
       )
       }
-
-      {/* アンケート回答画面 todo */}
-      {/* {
-        pollOpen && (
-          <>
-            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-            <div className="poll-dialog active">
-              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
-              <h3>この店にまた来たいですか？</h3>
-              <div className="vote-buttons">
-                <button className="yes">はい</button>
-                <button className="no">いいえ</button>
-              </div>
-            </div>
-          </>
-        )
-      } */}
 
       {
         createOpen && (

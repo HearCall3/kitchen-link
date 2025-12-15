@@ -11,22 +11,11 @@ export default function StoreProfileEditPage() {
   const [description, setDescription] = useState("");
   const [storeUrl, setStoreUrl] = useState("");
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen] = useState(false);
 
   const handleSave = () => {
     alert("店舗プロフィールを保存しました！（テスト版）");
     console.log({ storeName, description, storeUrl });
-  };
-
-  const handleLogin = () => setIsLoggedIn(true);
-  const handleLogout = () => setIsLoggedIn(false);
-
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-
-  const handleMenuClick = (path: string) => {
-    setMenuOpen(false);
-    setTimeout(() => router.push(path), 50);
   };
 
   return (
@@ -36,8 +25,8 @@ export default function StoreProfileEditPage() {
         <h2 className={styles.title}>店舗プロフィール設定</h2>
 
         <div className={`home-button ${menuOpen ? "contentShift" : ""}`}>
-          <button onClick={() => router.push("/")} title="ホームに戻る">
-            ←
+          <button  className="icon-button" onClick={() => router.push("/")} title="ホームに戻る">
+              <img src="/icon/home.png"  width={20} height={20} />
           </button>
         </div>
 
@@ -49,7 +38,7 @@ export default function StoreProfileEditPage() {
             <input
               type="text"
               className={styles.input}
-              placeholder="例：キッチンリンクカフェ"
+              placeholder="例：キッチンリンク"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
             />
