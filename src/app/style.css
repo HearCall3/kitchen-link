@@ -29,11 +29,13 @@ header {
 .header-search-container {
   display: flex;
   flex: 1;
-  max-width: 200px; /* 任意で調整 */
+  max-width: 200px;
+  /* 任意で調整 */
   background-color: white;
   border-radius: 9999px;
   overflow: hidden;
-  height: 40px; /* 高さ統一 */
+  height: 40px;
+  /* 高さ統一 */
 }
 
 /* 入力欄 */
@@ -49,24 +51,37 @@ header {
 /* 検索ボタン */
 .search-btn {
   padding: 0 16px;
+  height: 40px;
+  /* 高さを統一 */
   border: none;
+  border-radius: 9999px;
+  /* 完全丸 */
   background-color: #3b82f6;
   color: white;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  /* テキスト縦中央 */
+  justify-content: center;
+  /* テキスト横中央 */
 }
 
 .search-btn:hover {
-  background-color: #2563eb;
+  background-color: #97b8ff;
 }
+
 
 /* フィルターボタン */
 .filter-btn {
   padding: 0 16px;
+  height: 40px;
+  /* 高さを統一 */
   border: none;
-  border-radius: 9999px; /* 単独ボタンは完全丸 */
-  background-color: #f97316;
+  border-radius: 9999px;
+  /* 単独ボタンは完全丸 */
+  background-color: #f69148;
   color: white;
   font-weight: 500;
   cursor: pointer;
@@ -125,6 +140,7 @@ header {
   border-color: #e76f24;
   box-shadow: 0 0 0 3px rgba(231, 111, 36, 0.3);
 }
+
 .modal-button-group {
   display: flex;
   gap: 0.5rem;
@@ -230,7 +246,7 @@ header {
 
 /* 適用ボタン リセット*/
 .modal-apply-btn,
-.modal-reset-btn{
+.modal-reset-btn {
   flex: 1;
   /* 横幅均等 */
   padding: 0.5rem 0;
@@ -244,7 +260,7 @@ header {
   transition: background-color 0.2s ease;
 }
 
-.modal-apply-btn:hover .modal-reset-btn:hover{
+.modal-apply-btn:hover .modal-reset-btn:hover {
   background-color: #ea580c;
   /* ホバーで濃いオレンジ */
 }

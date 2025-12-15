@@ -242,22 +242,11 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
 
                     return (
                         <React.Fragment key={data.opinionId}>
-                            <MarkerF
+                            {/* <MarkerF
                                 key={`marker-${data.opinionId}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
                                 onClick={() => onExtract("opinionClick", data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
-                            />
-
-                            {/* ピン */}
-                            {/* <MarkerF
-                                position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)} */}
-                            {/* // icon={{ */}
-                            {/* //     url: "/pin.png",
-                            //     scaledSize: new google.maps.Size(40, 40),
-                            //     anchor: new google.maps.Point(20, 40),
-                            // }}
                             /> */}
 
                             {/* 吹き出し */}
@@ -266,7 +255,15 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                                     position={{ lat: data.latitude, lng: data.longitude }}
                                     mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                                 >
-                                    <div className={`opinion-bubble ${sizeClass}`}>
+                                    <div
+                                        className={`opinion-bubble ${sizeClass}`}
+                                        style={{
+                                            cursor: "pointer",
+                                            padding: "16px",   // 当たり判定を広げる
+                                            display: "inline-block",
+                                        }}
+                                        onClick={() => onExtract("opinionClick", data)}
+                                    >
                                         <div className="bubble-content">
                                             {data.commentText}
                                         </div>
