@@ -157,6 +157,7 @@ export default function Home() {
   useEffect(() => {
     if (session?.user) {
       console.log("Account ID:", session.user.accountId);
+      console.log("User ID:", session.user.userId);
       console.log("Store ID:", session.user.storeId);
     }
   }, [session]);

@@ -1,7 +1,7 @@
 // src/app/store/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./style.module.css";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +16,41 @@ export default function StoreRegisterPage() {
   // セッションからメールアドレスを取得
   const { data: session } = useSession();
   const email = session?.user?.email;
+
+  // ★ ローディング状態の State を追加 ★
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ==========================================================
+  // ★ リダイレクト処理の追加 (ストアIDの確認) ★
+  // ==========================================================
+  useEffect(() => {
+    // セッションデータがまだ解決されていない状態（ローディング）
+    if (session === undefined) {
+      setIsLoading(true);
+      return;
+    }
+
+    // 認証済み (sessionが存在する) かつ storeId が存在する (=既にストア登録済み) の場合
+    if (session && session.user && session.user.storeId) { // ★ 修正: storeId の有無で判定 ★
+      console.log("ストアアカウントが既に存在するため、トップページへリダイレクトします。");
+      router.replace("/");
+    } else {
+      // ストアIDが存在しない（ユーザーアカウントのみ、または新規ユーザー）場合は、登録フォームへ
+      setIsLoading(false);
+    }
+  }, [session, router]);
+  // ==========================================================
+
+  // ローディング中の表示
+  if (isLoading) {
+    return (
+      <main style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <h1 style={{ fontSize: '24px', color: '#f97316' }}>
+          セッション情報を照会中・・・
+        </h1>
+      </main>
+    );
+  }
 
   const [form, setForm] = useState({
     storeName: "",
@@ -75,36 +110,37 @@ export default function StoreRegisterPage() {
 
           <div className={styles.registerForm}>
             <form onSubmit={handleSubmit} className={styles.registerForm}>
-            <input
-              type="text"
-              className={styles.registerInput}
-              name="storeName"
-              placeholder="店舗名"
-              value={form.storeName}
-              onChange={handleChange}
-              required
-            />
+              <input
+                type="text"
+                className={styles.registerInput}
+                name="storeName"
+                placeholder="店舗名"
+                value={form.storeName}
+                onChange={handleChange}
+                required
+              />
 
-            <textarea
-              name="description"
-              placeholder="説明（任意）"
-              value={form.description}
-              onChange={handleChange}
-              className={styles.registerTextarea}
-              required
-            />
+              <textarea
+                name="description"
+                placeholder="説明（任意）"
+                value={form.description}
+                onChange={handleChange}
+                className={styles.registerTextarea}
+                required
+              />
 
-            <input
-              type="url"
-              className={styles.registerInput}
-              placeholder="店舗URL（任意）"
-              value={form.storeUrl}
-              onChange={handleChange}
-            />
+              <input
+                type="url"
+                name="storeUrl"
+                className={styles.registerInput}
+                placeholder="店舗URL（任意）"
+                value={form.storeUrl}
+                onChange={handleChange}
+              />
 
-            <button type="submit" className={styles.registerBtn}>
-              登録する
-            </button>
+              <button type="submit" className={styles.registerBtn}>
+                登録する
+              </button>
             </form>
           </div>
         </div>
