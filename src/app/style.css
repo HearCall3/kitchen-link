@@ -417,23 +417,56 @@ header input {
   /* 親を relative にする */
 }
 
-.genre-container {
-  position: flex;
-  bottom: 60px;
-  left: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-
-.genre-btn {
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: #eee;
-  border: none;
+.select-tag-input {
+  /* 基本スタイル */
+  padding: 8px 12px;
+  width: 83%;
+  margin: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  outline: none;
   cursor: pointer;
+  appearance: none;
+  /* デフォルト矢印を消す */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* 幅調整 */
+  min-width: 120px;
+  max-width: 100%;
 }
+
+/* ホバー時 */
+.select-tag-input:hover {
+  border-color: #ff9900;
+}
+
+/* フォーカス時 */
+.select-tag-input:focus {
+  border-color: #ff6600;
+  box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.3);
+}
+
+/* 矢印用の擬似要素 */
+.select-tag-input-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-tag-input-wrapper::after {
+  content: '▼';
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 12px;
+  color: #666;
+}
+
 
 .genre-btn.selected {
   background: #ff914d;
