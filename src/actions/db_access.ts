@@ -734,7 +734,7 @@ export async function getAllQuestions() {
                     select: { storeName: true }
                 },
                 answers: { // 回答数をカウントするためにanswersを含める
-                    select: { selectedOptionNumber: true }
+                    select: { accountId: true, selectedOptionNumber: true }
                 }
             }
         });
@@ -756,6 +756,7 @@ export async function getAllQuestions() {
                 totalAnswers: totalAnswers,
                 option1Count: option1Count,
                 option2Count: option2Count,
+                answers: q.answers,
             };
         });
 
