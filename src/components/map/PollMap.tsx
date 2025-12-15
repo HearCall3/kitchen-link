@@ -81,9 +81,8 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
                 options={mapOption}
                 center={center}
                 zoom={14}
-
             >
-
+              
                  {/* アンケート回答ピンアイコン todo */}
                 {/* <MarkerF
                     key={`marker-${data.lat}-${isOpen}`}

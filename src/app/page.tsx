@@ -392,7 +392,7 @@ export default function Home() {
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
-          {menuOpen ? "×" : "☰"}
+          {menuOpen ? "✕" : "☰"}
         </div>
         <button
           className="text-2xl mr-3 cursor-pointer"
@@ -424,18 +424,29 @@ export default function Home() {
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
+          {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          {/* 店舗ログインなら表示 todo*/}
+          {/* 店舗ログインなら表示 TODO*/}
           {/* {storeId && ( */}
+<<<<<<< HEAD
+            <li
+              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+              onClick={() => router.push("/register")}
+            >
+              出店登録
+            </li>
+          {/* )} */}
+=======
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
             onClick={() => router.push("/register")}
           >
             出店登録
           </li>
+>>>>>>> 6d05d0383d8b1a5f637c16fe76d46b9a01ce0659
 
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
