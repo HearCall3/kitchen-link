@@ -25,6 +25,59 @@ header {
 
 /*===== 検索バー =====*/
 
+/* ヘッダー検索バー全体 */
+.header-search-container {
+  display: flex;
+  flex: 1;
+  max-width: 200px; /* 任意で調整 */
+  background-color: white;
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 40px; /* 高さ統一 */
+}
+
+/* 入力欄 */
+.header-search-container input {
+  flex: 1;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* 検索ボタン */
+.search-btn {
+  padding: 0 16px;
+  border: none;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-btn:hover {
+  background-color: #2563eb;
+}
+
+/* フィルターボタン */
+.filter-btn {
+  padding: 0 16px;
+  border: none;
+  border-radius: 9999px; /* 単独ボタンは完全丸 */
+  background-color: #f97316;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.filter-btn:hover {
+  background-color: #ea580c;
+}
+
+
 /* ======閉じるボタン====== */
 .close-btn {
   position: absolute;
@@ -39,23 +92,98 @@ header {
 }
 
 /*==== フィルター・検索ボタン共通 ====*/
-.filter-btn,
-.search-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  /* 丸ボタン */
-  border: none;
-  background-color: white;
-  /* 濃いオレンジ */
-  color: black;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin: 5px;
+/* フィルター横並び */
+.form-row-horizontal {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.filter-btn:hover,
-.search-btn:hover {
-  transition: background 0.2s ease, transform 0.15s ease;
+/* ラベル固定幅 */
+.form-row-horizontal label {
+  flex: 0 0 120px;
+  /* ラベルの横幅固定 */
+  font-weight: bold;
+  color: #e76f24;
+}
+
+/* 入力・セレクト全体幅調整 */
+.form-row-horizontal select,
+.form-row-horizontal input {
+  flex: 1;
+  /* 残りの幅を入力が占有 */
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #f0a050;
+  font-size: 1rem;
+}
+
+.form-row-horizontal select:focus,
+.form-row-horizontal input:focus {
+  outline: none;
+  border-color: #e76f24;
+  box-shadow: 0 0 0 3px rgba(231, 111, 36, 0.3);
+}
+.modal-button-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.modal-reset-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #ffd8b0;
+  color: #e76f24;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid #ffc080;
+  transition: background-color 0.2s;
+}
+
+.modal-reset-btn:hover {
+  background-color: #ffc080;
+}
+
+.modal-apply-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #e76f24;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-apply-btn:hover {
+  background-color: #c2541a;
+}
+
+.poll-dialog.active h3 {
+  color: #e76f24;
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #e76f24;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.close-btn:hover {
+  color: #c2541a;
 }
 
 /* =======検索バー全体======== */
@@ -92,7 +220,34 @@ header {
 
 }
 
-/*  */
+/* ボタンを横並びにするコンテナ */
+.modal-button-group {
+  display: flex;
+  gap: 0.5rem;
+  /* ボタン間のスペース */
+  margin-top: 1rem;
+}
+
+/* 適用ボタン リセット*/
+.modal-apply-btn,
+.modal-reset-btn{
+  flex: 1;
+  /* 横幅均等 */
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: #f97316;
+  /* オレンジ */
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modal-apply-btn:hover .modal-reset-btn:hover{
+  background-color: #ea580c;
+  /* ホバーで濃いオレンジ */
+}
 
 .menuIcon {
   font-size: 28px;
@@ -844,5 +999,5 @@ header input {
 .like-button:active {
   transform: scale(0.95);
   /* 修正箇所: #bjd9ae -> #b8d9ae (有効なカラーコードに変更) */
-  background: #b8d9ae; 
+  background: #b8d9ae;
 }

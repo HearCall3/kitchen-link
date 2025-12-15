@@ -38,7 +38,7 @@ interface PostMapProps {
     filterKeyword: String;
 }
 
-export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
