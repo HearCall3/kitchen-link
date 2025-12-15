@@ -11,8 +11,6 @@ import {
     OverlayView
 } from '@react-google-maps/api';
 
-import { toggleLike } from "@/actions/db_access";
-
 const containerStyle = {
     width: "100%",
     height: "100%",
@@ -48,10 +46,10 @@ interface OpinionMapProps {
     accountId: string;
     filter: filters;
     filterKeyword: string;
-    onExtract: (opinions: string[]) => void;
+    onExtract: (data: string, opinions: any) => void;
 }
 
-export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId, filter, filterKeyword }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountId, filter, filterKeyword }: OpinionMapProps) {
 
 
     const { isLoaded } = useJsApiLoader({
@@ -66,14 +64,12 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
     const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
-    const [opinionOpen, setOpinionOpen] = useState<any>(null);
 
-  
+
     // 新しい状態として、意見データ全体を内部で管理するための state を追加
     // opinions prop は初期値として使用し、更新は internalOpinions で行う
-    const [internalOpinions, setInternalOpinions] = useState(opinions);
 
-  
+
     //自動表示ラベルを更新する関数 (onIdle / onLoad から呼ばれる)
     const updateVisibleLabels = useCallback((mapInstance: google.maps.Map) => {
 
@@ -156,7 +152,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
                 .map(pin => pin.commentText); // 5. 絞り込んだものから「意見(opinion)」だけを抜き出す
 
             //抽出した意見リストを state に保存
-            onExtract(filteredOpinions);
+            onExtract("opinionExtract", filteredOpinions);
 
             //描画した四角形を地図から消す (お好みで)
             newShape.setMap(null);
@@ -168,11 +164,6 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
             newDrawingManager.setMap(null);
         };
     }, [map, isLoaded]); // mapが変わるたびに作り直す
-
-    // opinions prop が変更されたら internalOpinions を同期
-    useEffect(() => {
-        setInternalOpinions(opinions);
-    }, [opinions]);
 
     if (!isLoaded) return <div>Loading...</div>;
 
@@ -189,56 +180,8 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
         if (op.commentText && !op.commentText.includes(filterKeyword)) return false;
         return true;
     });
-  
-    const handleLikeClick = async (accountId: string, opinionId: string) => {
-        console.log("[LikeClick] Start.")
-        // alert(accountId)
-        // alert(opinionId)//ここにライクボタンを押した時の処理
-        if (!accountId) {
-            alert('ログインしていません。いいねを行うにはログインが必要です。');
-            return;
-        }
 
-        try {
-            const result = await toggleLike(accountId, opinionId);
 
-            if (result.success) {
-                const { isLiked, likeCount } = result;
-
-                setInternalOpinions(prevOpinions =>
-                    prevOpinions.map(op => {
-                        // 意見IDでマッチング
-                        if (op.opinionId === opinionId) {
-
-                            // 開いている意見パネルの情報を更新
-                            if (opinionOpen && op.opinionId === opinionId) {
-                                setOpinionOpen({
-                                    ...opinionOpen,
-                                    likeCount: likeCount,
-                                    isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
-                                });
-                            }
-
-                            // 意見リストの当該レコードを更新
-                            return {
-                                ...op,
-                                likeCount: likeCount,
-                            };
-                        }
-                        return op;
-                    })
-                );
-
-            } else {
-                alert(result.error || 'いいね処理に失敗しました。');
-            }
-
-        } catch (error) {
-            console.error('いいね処理中のエラー:', error);
-            alert('いいね処理中に予期せぬエラーが発生しました。');
-        }
-
-    }
 
     if (!isLoaded) return <div>Loading...</div>;
 
@@ -286,7 +229,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
 
                     const isOpen = activeLabelLats.includes(data.opinionId);
                     // 🚨 意見IDは postAnOpinionId フィールドを参照
-                    const opinionId = data.postAnOpinionId; 
+                    const opinionId = data.postAnOpinionId;
 
                     // 文字数で枠の大きさを決める
                     const text = data.commentText;
@@ -298,24 +241,24 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
                     if (len > 90) sizeClass = "bubble-xl";
 
                     return (
-                        <React.Fragment key={data.opinionId}> 
+                        <React.Fragment key={data.opinionId}>
                             <MarkerF
-                                key={`marker-${data.opinionId}`} 
+                                key={`marker-${data.opinionId}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)}
+                                onClick={() => onExtract("opinionClick", data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
 
                             {/* ピン */}
-                            <MarkerF
+                            {/* <MarkerF
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)}
-                            // icon={{
-                            //     url: "/pin.png",
+                                onClick={() => setOpinionOpen(data)} */}
+                            {/* // icon={{ */}
+                            {/* //     url: "/pin.png",
                             //     scaledSize: new google.maps.Size(40, 40),
                             //     anchor: new google.maps.Point(20, 40),
                             // }}
-                            />
+                            /> */}
 
                             {/* 吹き出し */}
                             {isOpen && (
@@ -354,26 +297,6 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
                     </ul>
                 </div>
             </div>
-            {opinionOpen &&
-                <>
-                    {console.log(opinionOpen)}
-                    <p>コメント：{opinionOpen.commentText}</p>
-                    <p>いいね数：{opinionOpen.likeCount}</p>
-                    <p>タグ：{opinionOpen.tags}</p>
-                    <p>投稿時刻：{opinionOpen.postedAt.toLocaleString()}</p>
-                    <p>性別：{opinionOpen?.profile.gender}</p>
-                    <p>年齢：{opinionOpen?.profile.age}</p>
-                    <p>職業：{opinionOpen?.profile.occupation}</p>
-                    <button
-                        style={{
-                            background: '#cee6c1', padding: '8px 12px', borderRadius:
-                                '6px', border: '1px solid #000', whiteSpace: 'nowrap',
-                        }}
-                        onClick={() => handleLikeClick(accountId, opinionOpen.opinionId)}>
-                        いいね
-                    </button>
-                </>
-            }
         </>
-    );
+    )
 }

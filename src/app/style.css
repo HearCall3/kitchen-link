@@ -758,3 +758,20 @@ header input {
     opacity: 1;
   }
 }
+
+.like-button {
+  background: #cee6c1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #000;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+/* 押したときの動き */
+.like-button:active {
+  transform: scale(0.95);
+  /* 修正箇所: #bjd9ae -> #b8d9ae (有効なカラーコードに変更) */
+  background: #b8d9ae; 
+}

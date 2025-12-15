@@ -23,12 +23,11 @@ const mapOption = { disableDefaultUI: true }
 interface storeProps {
     schedule: (any[]);
     filterKeyword: string;
+    onExtract: (data: string,opinions: any) => void;
 }
 // 定数は外に出す（変更なし）
 const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
-export default function StoreMap({ schedule, filterKeyword }: storeProps) {
-
-    const [storeOpen, setStoreOpen] = useState<any>(null);
+export default function StoreMap({ schedule, filterKeyword, onExtract}: storeProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -73,20 +72,10 @@ export default function StoreMap({ schedule, filterKeyword }: storeProps) {
                         label={{
                             text: q.storeName,
                         }}
-                        onClick={() => setStoreOpen(q)}
+                        onClick={() => onExtract("storeClick", q)}
                     />
                 ))}
             </GoogleMap>
-            {storeOpen &&
-                <>
-                    {console.log(storeOpen)}
-                    <p>店の名前：{storeOpen.storeName}</p>
-                    <p>Id：{storeOpen.id}</p>
-                    <p>座標：{storeOpen.location.lat}</p>
-                    <p>座標：{storeOpen.location.lng}</p>
-                    <p>出店日：{storeOpen.data}</p>
-                </>
-            }
         </>
     );
 }
