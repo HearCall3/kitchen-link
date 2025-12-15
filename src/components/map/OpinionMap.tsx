@@ -45,10 +45,13 @@ type filters = {
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
     opinions: (any[]);
+    accountId: string;
+    filter: filters;
+    filterKeyword: string;
     onExtract: (opinions: string[]) => void;
 }
 
-export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId, filter }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId, filter, filterKeyword }: OpinionMapProps) {
 
 
     const { isLoaded } = useJsApiLoader({
@@ -67,7 +70,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
 
   
     // 新しい状態として、意見データ全体を内部で管理するための state を追加
-    // opinions prop は初期値として使用し、更新は internalOpinions で行う//???
+    // opinions prop は初期値として使用し、更新は internalOpinions で行う
     const [internalOpinions, setInternalOpinions] = useState(opinions);
 
   
@@ -183,6 +186,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
         if (filter.dateFrom && new Date(op.postedAt) < filter.dateFrom) return false;
         if (filter.dateTo && new Date(op.postedAt) > filter.dateTo) return false;
 
+        if (op.commentText && !op.commentText.includes(filterKeyword)) return false;
         return true;
     });
   
@@ -305,7 +309,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract,accountId
                             {/* ピン */}
                             <MarkerF
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => toggleLabel(data.latitude)}
+                                onClick={() => setOpinionOpen(data)}
                             // icon={{
                             //     url: "/pin.png",
                             //     scaledSize: new google.maps.Size(40, 40),

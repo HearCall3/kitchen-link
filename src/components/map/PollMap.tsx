@@ -14,7 +14,7 @@ import {
 
 const containerStyle = {
     width: "100%",
-    height: "100%",
+    height: "400px",
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
@@ -35,9 +35,10 @@ const circleOptions = {
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
     questions: (any[]);
+    filterKeyword: String;
 }
 
-export default function PollMap({ onDialogOpen, questions }: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -60,6 +61,10 @@ export default function PollMap({ onDialogOpen, questions }: PostMapProps) {
         setMap(map);
     });
 
+    const filterdQuestions = questions.filter((op) => {
+        if(op.questionText && op.questionText.includes(filterKeyword)) return true;
+    })
+
     if (!isLoaded) return <div>Loading...</div>;
 
     return (
@@ -77,26 +82,33 @@ export default function PollMap({ onDialogOpen, questions }: PostMapProps) {
                 center={center}
                 zoom={14}
             >
+              
+                 {/* アンケート回答ピンアイコン todo */}
+                {/* <MarkerF
+                    key={`marker-${data.lat}-${isOpen}`}
+                    position={{ lat: data.lat, lng: data.lon }}
+                    onClick={() => toggleLabel(data.lat)}
+                    label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
+                    icon={{
+                        url: "/pin.png",        // 画像パス (public フォルダに置くのがおすすめ)
+                        scaledSize: new google.maps.Size(40, 40), // サイズ調整
+                        anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
+                    }}
+                /> */}
 
                 {/* アンケートの作成 アイコン作成todo*/}
-                {questions.map((q) => (
+                {filterdQuestions.map((q) => (
                     <MarkerF
                         key={q.questionId}
                         position={{
                             lat: Number(q.latitude),
                             lng: Number(q.longitude),
                         }}
-                        icon={{
-                            url: "/icon/poll.png",        // 画像パス (public フォルダに置くのがおすすめ)
-                            scaledSize: new google.maps.Size(30, 30), // サイズ調整
-                            anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
-                            labelOrigin: new window.google.maps.Point(50, 20),
-                        }}
                         label={{
                             text: q.questionText,
-                            className: "poll-label",
+                            className: "bg-white px-2 py-1 rounded shadow",
                         }}
-                        onClick={() => onDialogOpen(q.questionId)}
+                         onClick={() => onDialogOpen(q.questionId)}
                     />
                 ))}
                 <div
