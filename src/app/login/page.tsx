@@ -1,3 +1,4 @@
+// src/app/login/LoginContent.tsx (修正後)
 "use client";
 
 import { signIn } from "next-auth/react";
@@ -10,14 +11,14 @@ export default function LoginContent() {
 
       <button
         className={styles.btn}
-        onClick={() => signIn("google", { callbackUrl: "/user" })}
+        onClick={() => signIn("google", { callbackUrl: "/" })} 
       >
         Googleでユーザーログイン
       </button>
 
       <button
         className={styles.btn}
-        onClick={() => signIn("google", { callbackUrl: "/store" })}
+        onClick={() => signIn("google", { callbackUrl: "/" })}
       >
         Googleで店舗ログイン
       </button>

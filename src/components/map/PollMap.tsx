@@ -21,7 +21,7 @@ const center = { lat: 35.681236, lng: 139.767125 };
 const mapOption = { disableDefaultUI: true }
 
 // 定数は外に出す（変更なし）
-const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
+const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
 
 // 円のスタイル設定
 const circleOptions = {
@@ -35,9 +35,10 @@ const circleOptions = {
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
     questions: (any[]);
+    filterKeyword: String;
 }
 
-export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -60,6 +61,10 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
         setMap(map);
     });
 
+    const filterdQuestions = questions.filter((op) => {
+        if(op.questionText && op.questionText.includes(filterKeyword)) return true;
+    })
+
     if (!isLoaded) return <div>Loading...</div>;
 
     return (
@@ -76,9 +81,8 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
                 options={mapOption}
                 center={center}
                 zoom={14}
-
             >
-
+              
                  {/* アンケート回答ピンアイコン todo */}
                 {/* <MarkerF
                     key={`marker-${data.lat}-${isOpen}`}
@@ -93,7 +97,7 @@ export default function PollMap({ onDialogOpen, questions}: PostMapProps) {
                 /> */}
 
                 {/* アンケートの作成 アイコン作成todo*/}
-                {questions.map((q) => (
+                {filterdQuestions.map((q) => (
                     <MarkerF
                         key={q.questionId}
                         position={{

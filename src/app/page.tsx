@@ -15,7 +15,10 @@ import {
   answerQuestion,
   getAllTags,
   getAllOpinions,
-  getUserAndStoreDetails
+  getUserAndStoreDetails,
+  getAllStoreSchedules,
+  getQuestionAnswerCounts,
+  toggleLike
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -32,11 +35,18 @@ export default function Home() {
   const [opinions, setOpinions] = useState<any[]>([]);
   const [tags, setTags] = useState([{ value: "", label: "タグを選択" }]);
 
+  // ★ 修正 1: スケジュールデータ State の追加 ★
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   // ====== アンケート回答 States ======
-  const [pollOpen, setPollOpen] = useState(false);
+  // 結果表示
+  const [showResult, setShowResult] = useState(false);
+
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [pollCounts, setPollCounts] = useState<{ count1: number, count2: number } | null>(null);
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -51,7 +61,6 @@ export default function Home() {
   const [postOpen, setPostOpen] = useState(false);
   const [text, setText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const genres = ["商品", "値段", "ボリューム", "満足", "その他"];
 
   // ====== アンケート作成 States ======
@@ -65,25 +74,57 @@ export default function Home() {
   const [storeForm, setStoreForm] = useState({ storeName: "", description: "", address: "" });
 
   // ====== 絞り込み ======
-  const [selectedFilter, setSelectedFilter] = useState("キッチンカー");
-  const [filter, setFilter] = useState("");
+  const [filters, setFilters] = useState<{
+    tag: string | null;
+    minLikes: number | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+    gender: string | null;
+    occupation: string | null;
+    ageRange: string | null;
+  }>({
+    tag: null,
+    minLikes: null,
+    dateFrom: null,
+    dateTo: null,
+    gender: null,
+    occupation: null,
+    ageRange: null,
+  });
 
-  // ====== 投稿・アンケート開閉 ======
-  const handleOpinionTransition = (data: string, pos: { lat: number, lng: number }) => {
-    setLatLng(pos);
+  // ★ 追加: 実際に検索を実行するためのキーワードState
+  const [filterKeyword, setFilterKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
 
-    if (!session) {  // 未ログインなら
-      setShowLoginPrompt(true);
-      return;
+  const [clickedOpinion, setClickedOpinion] = useState<any>(null);
+  const [showClickedOpinion, setShowClickedOpinion] = useState(false);
+
+  const [clickedStore, setClickedStore] = useState<any>([]);
+  const [showClickedStore, setShowClickedStore] = useState(false);
+
+  const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
+  const [showExtractPanel, setShowExtractPanel] = useState(false);
+  const handleExtract = (type: string, data: []) => {
+    if (type === "opinionExtract") {
+      setExtractedOpinions(data);
+      setShowExtractPanel(true);
+    } else if (type === "opinionClick") {
+      setClickedOpinion(data);
+      setShowClickedOpinion(true);
+    } else if (type === "storeClick") {
+      setClickedStore(data);
+      setShowClickedStore(true);
     }
-
-    if (data === "post") setPostOpen(true);
-    if (data === "poll") setCreateOpen(true);
   };
 
-  // ====== 絞り込みジャンル ======
-  const [searchActive, setSearchActive] = useState(false);
+  // --- Map Handlers ---
+  const FILTER_ITEMS = [
+    { label: "キッチンカー", key: "store" },
+    { label: "アンケート", key: "poll" },
+    { label: "意見", key: "opinion" },
+  ] as const;
 
+  const [isFilterOpen, setIsFilterOpen] = useState(false);//意見フィルターのダイアログ開閉
 
   // 1. ログイン状態チェック
   useEffect(() => {
@@ -99,6 +140,7 @@ export default function Home() {
   // 2. データ取得
   useEffect(() => {
     async function fetchData() {
+      // 既存のデータ取得 (Questions, Opinions, Tags) ...
       const resultQ = await getAllQuestions();
       if (resultQ.success && resultQ.questions) setQuestions(resultQ.questions);
       else console.error(resultQ.error);
@@ -107,10 +149,20 @@ export default function Home() {
       if (resultO.success && resultO.opinions) setOpinions(resultO.opinions);
       else console.error(resultO.error);
 
-      // タグ取得
       const resultT = await getAllTags();
       if (resultT.success && resultT.tags) setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
       else console.error(resultT.error);
+
+      // ★ 修正 2: スケジュールデータの取得と State への格納 ★
+      const resultS = await getAllStoreSchedules();
+      if (resultS.success && resultS.schedules) {
+        setSchedules(resultS.schedules);
+        setScheduleError(null);
+      } else {
+        setSchedules([]);
+        setScheduleError(resultS.error || 'スケジュールの取得中に不明なエラーが発生しました。');
+        console.error(resultS.error);
+      }
     }
     fetchData();
   }, []);
@@ -138,9 +190,6 @@ export default function Home() {
       fetchUserDetails();
 
     }
-    //  else if (status === 'unauthenticated') {
-    //   console.log("--- ログアウト状態 ---");
-    // }
   }, [session, status]);
 
   // --- Store Handlers ---
@@ -208,17 +257,6 @@ export default function Home() {
     }
   };
 
-  // --- Answer Handlers ---
-  const handleAnswerClick = (question: any) => {
-    if (!session?.user?.accountId) {
-      // alert("ログインしているか確認してください。");
-      return;
-    }
-    setSelectedQuestion(question);
-    setSelectedOption(null);
-    setAnswerPollOpen(true);
-  };
-
   const handleAnswerSubmit = async () => {
     if (!session?.user?.accountId || !selectedQuestion || selectedOption === null) {
       alert("回答情報が不完全です。");
@@ -236,6 +274,18 @@ export default function Home() {
     if (result.success) {
       // alert("アンケートに回答しました！");
       setAnswerPollOpen(false);
+
+      // ★ 追加: 回答後、集計結果を取得する ★
+      const countsResult = await getQuestionAnswerCounts(questionId);
+      if (countsResult.success && countsResult.counts) {
+        setPollCounts(countsResult.counts); // 結果をStateに保存
+      } else {
+        console.error("回答結果の取得に失敗しました:", countsResult.error);
+        setPollCounts({ count1: 0, count2: 0 }); // 失敗時は0で初期化
+      }
+
+      // 結果表示ダイヤログを呼ぶ
+      setShowResult(true);
       const fetchResult = await getAllQuestions();
       if (fetchResult.success && fetchResult.questions) setQuestions(fetchResult.questions);
     } else {
@@ -272,11 +322,58 @@ export default function Home() {
       const fetchResult = await getAllQuestions();
       if (fetchResult.success && fetchResult.questions) setQuestions(fetchResult.questions);
     } else {
-      // alert(`アンケート作成に失敗しました: ${result.error}`);
+      alert(`アンケート作成に失敗しました: ${result.error}`);
     }
-  };
+  }
 
-  // --- Map Handlers ---
+  const handleLikeClick = async (opinionId: string) => {
+    const accountId = session?.user.accountId
+    if (!accountId) {
+      alert('ログインしていません。いいねを行うにはログインが必要です。');
+      return;
+    }
+
+    try {
+      const result = await toggleLike(accountId, opinionId);
+
+      if (result.success) {
+        const { isLiked, likeCount } = result;
+
+        setOpinions(prevOpinions =>
+          prevOpinions.map(op => {
+            // 意見IDでマッチング
+            if (op.opinionId === opinionId) {
+
+              // 開いている意見パネルの情報を更新
+              if (showClickedOpinion && op.opinionId === opinionId) {
+                setShowClickedOpinion({
+                  ...clickedOpinion,
+                  likeCount: likeCount,
+                  isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
+                });
+              }
+
+              // 意見リストの当該レコードを更新
+              return {
+                ...op,
+                likeCount: likeCount,
+              };
+            }
+            return op;
+          })
+        );
+
+      } else {
+        alert(result.error || 'いいね処理に失敗しました。');
+      }
+
+    } catch (error) {
+      console.error('いいね処理中のエラー:', error);
+      alert('いいね処理中に予期せぬエラーが発生しました。');
+    }
+
+  }
+
   const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
 
     if (!session) {//ログインしてなかったらログインに誘導
@@ -284,105 +381,142 @@ export default function Home() {
       return;
     }
 
-    if(takeLatLng){
-    setLatLng(takeLatLng);
-    switch (data) {
-      case ("post"): setPostOpen(true); break;
-      case ("poll"): setCreateOpen(true); break;
-    }
-  };
-    setAnswerPollOpen(true);
+    if (takeLatLng) {
+      setLatLng(takeLatLng);
+      switch (data) {
+        case ("post"): setPostOpen(true); break;
+        case ("poll"): setCreateOpen(true); break;
+      }
+    };
     setSelectedQuestion(questions.find(q => q.questionId === data))
+    // if(){そのアンケートに回答したことがあるか判定
+    // setShowResult(true);回答済みなら結果を表示
+    // } else {
+    setAnswerPollOpen(true);//未回答なら回答させる
   }
-  // const handleLogin = () => router.push("/login");
-  // const handleLogout = () => {
-  //   localStorage.removeItem("isLoggedIn");
-  //   setIsLoggedIn(false);
-  //   setMenuOpen(false);
-  //   alert("ログアウトしました");
-  // };
 
-  const FILTER_ITEMS = [
-    { label: "キッチンカー", key: "store" },
-    { label: "アンケート", key: "poll" },
-    { label: "意見", key: "opinion" },
-  ] as const;
+  const formatDateInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+  const [appliedFilters, setAppliedFilters] = useState<typeof filters>(filters);
 
   const mapList = {
-    opinion: <OpinionMap opinions={opinions} onDialogOpen={handleDialogOpen} />,
-    poll: <PollMap questions={questions} onDialogOpen={handleDialogOpen} />,
-    store: <StoreMap />
+
+    opinion: <OpinionMap opinions={opinions}
+      accountId={session?.user.accountId!}
+      filter={appliedFilters}
+      filterKeyword={searchKeyword}
+      onDialogOpen={handleDialogOpen}
+      onExtract={handleExtract}
+    />,
+    poll: <PollMap questions={questions} filterKeyword={searchKeyword} onDialogOpen={handleDialogOpen} />,
+    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} onExtract={handleExtract} />
   };
+
+  // --------------------------------------------------
+  // ここで関数を呼び出して出店情報をとってくる＋表示させる
+  // --------------------------------------------------
+  // ★ 修正 3: スケジュールリストのレンダリング関数を定義 ★
+  const renderScheduleList = () => {
+
+    // エラー表示
+    if (scheduleError) {
+      return <div className="p-4 text-red-600 bg-red-100 border border-red-300">🚨 データ読み込みエラー: {scheduleError}</div>;
+    }
+
+    // データなし
+    if (!schedules || schedules.length === 0) {
+      return <div className="p-4 text-center text-gray-500 bg-gray-50 border-t">📅 現在、出店スケジュールはありません。</div>;
+    }
+
+    // リスト表示
+    return (
+      <div className="schedule-list-container p-4 bg-white border-t border-gray-200">
+        <h2 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📅 今後の出店スケジュール</h2>
+        <ul className="space-y-3">
+          {schedules.map((schedule) => (
+            <li key={schedule.id} className="flex items-center p-3 bg-gray-50 rounded-lg shadow-sm">
+              {/* 日付 (左側) */}
+              <div className="date-box font-mono text-lg text-blue-600 font-semibold mr-4 min-w-[100px]">
+                {schedule.date}
+              </div>
+              {/* 情報 (右側) */}
+              <div className="info-box flex-1">
+                <strong className="block text-base text-gray-900">{schedule.storeName}</strong>
+                <p className="text-xs text-gray-500 mt-1">
+                  📍
+                  {schedule.locationName || '場所未定'}
+                  ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
+                </p>
+
+                {/* 2. ストア詳細情報（★追加部分） */}
+                {/* storeDetailsオブジェクトが存在する場合のみ表示 */}
+                {schedule.storeDetails && (
+                  <div className="store-details p-2 mt-2 bg-white border border-gray-200 rounded-md">
+                    <p className="text-sm font-medium text-gray-700">店舗情報</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      🏠 **ストアURL:** {schedule.storeDetails.storeUrl || '未登録'}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      📞 **説明:** {schedule.storeDetails.introduction || '未登録'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   // スクロールバーを表示しない
-  useEffect(() => {
-    if (menuOpen) document.body.classList.add("no-scroll");
-    else document.body.classList.remove("no-scroll");
-  }, [menuOpen]);
+  // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
+  //   if (menuOpen) document.body.classList.add("no-scroll");
+  //   else document.body.classList.remove("no-scroll");
+  // }, [menuOpen]);
 
   return (
     <div className="frame">
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
-          {menuOpen ? "×" : "☰"}
+          {menuOpen ? "✕" : "☰"}
         </div>
-        <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center">
+        <button
+          className="text-2xl mr-3 cursor-pointer"
+          onClick={() => setIsFilterOpen(true)}
+          aria-label="Filter"
+        >フィルター
+        </button>
+        {/* 修正後のヘッダー内の検索バー部分 */}
+        <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center pr-2">
           <input
             type="text"
             placeholder="タグや店名で検索"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="flex-1 p-2 text-gray-700"
+            value={filterKeyword}
+            onChange={(e) => setFilterKeyword(e.target.value)}
+            className="flex-1 p-2 text-gray-700 outline-none"
           />
+          {/* ★ 検索ボタンを追加 */}
+          <button
+            onClick={() => setSearchKeyword(filterKeyword)}
+            className="p-2 text-gray-500 hover:text-orange-500 transition-colors"
+          >
+            検索
+          </button>
         </div>
       </header>
 
-      {/* 検索の絞り込みボタン */}
-      {searchActive && (
-        <div className="bg-white px-3 py-2 shadow-md overflow-x-auto flex gap-2">
-          {genres.map((tag) => (
-            <div
-              key={tag}
-              onClick={() => setFilter(tag)}
-              className="px-3 py-1 bg-gray-200 rounded-full text-sm whitespace-nowrap cursor-pointer hover:bg-gray-300"
-            >
-              {tag}
-            </div>
-          ))}
-          
-
-
-          <div className="flex gap-2 overflow-x-auto mb-4">
-            {genres.map((tag) => (
-              <div
-                key={tag}
-                onClick={() => setFilter(tag)}
-                className="px-3 py-2 bg-gray-200 rounded-full text-sm whitespace-nowrap"
-              >
-                {tag}
-              </div>
-            ))}
-          </div>
-
-          {/* 絞り込み結果リスト（仮） */}
-          {/* <div>
-            {filteredSpots?.map((spot) => (
-              <div key={spot.id} className="p-2 border-b">{spot.name}</div>
-            ))}
-          </div> */}
-        </div>
-      )
-      }
 
 
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
+          {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
             プロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          {/* 店舗ログインなら表示 todo*/}
+          {/* 店舗ログインなら表示 TODO*/}
           {/* {storeId && ( */}
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
@@ -390,7 +524,6 @@ export default function Home() {
           >
             出店登録
           </li>
-
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
               ログイン
@@ -460,6 +593,11 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ★ 修正 4: マップの下に出店スケジュールリストを呼び出し ★ */}
+      <div className="schedule-list-area">
+        {/* {renderScheduleList()} */}
+      </div>
+
       {/* ===== ダイアログ ===== */}
 
       {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
@@ -472,17 +610,17 @@ export default function Home() {
             <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
             <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
 
-            <div className="flex flex-col gap-3">
+            <div className="poll-options">
               <button
                 onClick={() => setSelectedOption(1)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 1 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                className={`poll-option ${selectedOption === 1 ? "selected left" : "left"
                   }`}
               >
                 {selectedQuestion.option1Text}
               </button>
               <button
                 onClick={() => setSelectedOption(2)}
-                className={`p-3 border rounded-lg transition duration-150 ${selectedOption === 2 ? 'bg-green-100 border-green-500 font-bold' : 'bg-white hover:bg-gray-50'
+                className={`poll-option ${selectedOption === 2 ? "selected right" : "right"
                   }`}
               >
                 {selectedQuestion.option2Text}
@@ -500,6 +638,71 @@ export default function Home() {
           </div>
         </>
       )}
+
+      {/* 結果表示ダイヤログ */}
+      {showResult && selectedQuestion && (
+        <>
+          <div className="dialog-overlay" onClick={() => setShowResult(false)} />
+
+          <div className="poll-dialog active">
+            <button className="close-btn" onClick={() => setShowResult(false)}>
+              ×
+            </button>
+
+            <h3 className="text-lg font-bold mb-6 text-center">
+              投票結果
+            </h3>
+
+            {(() => {
+              // ===== 仮データ（後でDBに置き換え）=====
+              // ===== TODO　DB連携 =====
+              const leftCount = pollCounts?.count1 || 0;
+              const rightCount = pollCounts?.count2 || 0;
+              const total = leftCount + rightCount || 1;
+
+              const leftRate = Math.round((leftCount / total) * 100);
+              const rightRate = Math.round((rightCount / total) * 100);
+
+              return (
+                <div className="result-wrapper">
+                  {/* ラベル */}
+                  <div className="result-labels">
+                    <span className="result-labels-left">{selectedQuestion.option1Text}</span>
+                    <span className="result-labels-right">{selectedQuestion.option2Text}</span>
+                  </div>
+
+                  {/* グラフ */}
+
+                  <div className="result-bar">
+                    {/* 左 */}
+                    <div
+                      className="result-left"
+                      style={{ width: `${leftRate}%` }}
+                    >
+                      <span className="result-text">
+                        {leftRate}%（{leftCount}票）
+                      </span>
+                    </div>
+
+                    {/* 右 */}
+                    <div
+                      className="result-right"
+                      style={{ width: `${rightRate}%` }}
+                    >
+                      <span className="result-text">
+                        {rightRate}%（{rightCount}票）
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </>
+      )}
+
+
+
 
       {postOpen && (
         <>
@@ -523,7 +726,7 @@ export default function Home() {
               onChange={(e) => setText(e.target.value)}
               placeholder="お店についての意見を入力..."
             />
-            {/* ジャンル選択UI */}
+            {/* ジャンル選択 */}
             <div className="genre-container">
               選択：
               <select
@@ -552,23 +755,171 @@ export default function Home() {
       )
       }
 
-      {/* アンケート回答画面 todo */}
-      {/* {
-        pollOpen && (
-          <>
-            <div className="dialog-overlay" onClick={() => setPollOpen(false)} />
-            <div className="poll-dialog active">
-              <button className="close-btn" onClick={() => setPollOpen(false)}>×</button>
-              <h3>この店にまた来たいですか？</h3>
-              <div className="vote-buttons">
-                <button className="yes">はい</button>
-                <button className="no">いいえ</button>
-              </div>
-            </div>
-          </>
-        )
-      } */}
+      {isFilterOpen && (
+        <>
+          {/* 背景の黒み (クリックで閉じる) */}
+          <div
+            className="dialog-overlay"
+            onClick={() => setIsFilterOpen(false)}
+          />
 
+          {/* 中央に表示するパネル (poll-dialog active クラスなどを流用してスタイル統一) */}
+          <div className="poll-dialog active" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+            <button
+              className="close-btn"
+              onClick={() => setIsFilterOpen(false)}
+            >
+              ×
+            </button>
+
+            <h3 className="text-lg font-bold mb-4">詳細フィルター</h3>
+
+            {/* --- ここから中身は既存の入力フォームと同じ --- */}
+
+            {/* タグ */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">タグ</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={filters.tag ?? ""}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
+                }
+              >
+                <option value="">---</option>
+                <option value="食品">食品</option>
+                <option value="設備">設備</option>
+                <option value="値段">値段</option>
+                <option value="ボリューム">ボリューム</option>
+                <option value="満足">満足</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+
+            {/* 性別 */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">性別</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={filters.gender ?? ""}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
+                }
+              >
+                <option value="">---</option>
+                <option value="男性">男性</option>
+                <option value="女性">女性</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+
+            {/* 職業 */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">職業</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={filters.occupation ?? ""}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
+                }
+              >
+                <option value="">---</option>
+                <option value="学生">学生</option>
+                <option value="会社員">会社員</option>
+                <option value="アルバイト・パート">アルバイト・パート</option>
+                <option value="フリーランス">フリーランス</option>
+                <option value="公務員">公務員</option>
+                <option value="無職">無職</option>
+                <option value="フリーター">フリーター</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+
+            {/* 年齢 */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">年齢</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={filters.ageRange ?? ""}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
+                }
+              >
+                <option value="">---</option>
+                <option value="10代">10歳未満</option>
+                <option value="20代">20代</option>
+                <option value="30代">30代</option>
+                <option value="40代">40代</option>
+                <option value="50代">50代</option>
+                <option value="60代">60代</option>
+                <option value="70代">70代</option>
+                <option value="80代以上">80代以上</option>
+              </select>
+            </div>
+
+            {/* 最低いいね数 */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">最低いいね数</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full p-2 border rounded"
+                value={filters.minLikes ?? ""}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    minLikes: e.target.value ? Number(e.target.value) : null,
+                  }))
+                }
+              />
+            </div>
+
+            {/* 日付（以降） */}
+            <div style={{ marginBottom: 10 }}>
+              <label className="block text-sm font-bold mb-1">日付（以降）</label>
+              <input
+                type="date"
+                className="w-full p-2 border rounded"
+                value={formatDateInput(filters.dateFrom)}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    dateFrom: e.target.value ? new Date(e.target.value) : null,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                className="flex-1 py-2 bg-gray-200 rounded border border-gray-300"
+                onClick={() =>
+                  setFilters({
+                    tag: null,
+                    gender: null,
+                    occupation: null,
+                    ageRange: null,
+                    minLikes: null,
+                    dateFrom: null,
+                    dateTo: null,
+                  })
+                }
+              >
+                リセット
+              </button>
+              <button
+                className="flex-1 py-2 bg-orange-500 text-white rounded font-bold"
+                onClick={() => {
+                  setAppliedFilters(filters);
+                  setIsFilterOpen(false); // 適用したら閉じる
+                }}
+              >
+                適用
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       {
         createOpen && (
           <>
@@ -602,6 +953,64 @@ export default function Home() {
           </>
         )
       }
-    </div >
-  );
+      {showExtractPanel && (
+        <div className="extract-panel">
+          <div className="panel-header">
+            <span>抽出された意見 ({extractedOpinions.length}件)</span>
+            <button onClick={() => setShowExtractPanel(false)}>×</button>
+          </div>
+
+          <div className="panel-body">
+            {extractedOpinions.length === 0 ? (
+              <p className="empty-text">意見がありません</p>
+            ) : (
+              extractedOpinions.map((op, i) => (
+                <div key={i} className="opinion-item">
+                  {op}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+      {showClickedOpinion && (
+        <>
+          <div className="extract-panel">
+            <div className="panel-header">
+              <span>{clickedOpinion.commentText}</span>
+              <button onClick={() => setShowClickedOpinion(false)}>×</button>
+            </div>
+            <div className="panel-body">
+              <p>いいね数：{clickedOpinion.likeCount}</p>
+              <p>タグ：{clickedOpinion.tags}</p>
+              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+              <p>性別：{clickedOpinion?.profile.gender}</p>
+              <p>年齢：{clickedOpinion?.profile.age}</p>
+              <p>職業：{clickedOpinion?.profile.occupation}</p>
+              <button
+                className="like-button"
+                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+              >
+                いいね
+              </button>
+            </div>
+          </div>
+        </>
+      )
+      }
+      {showClickedStore && (
+        <div className="extract-panel">
+          <div className="panel-header">
+            <span>{clickedStore.storeName}</span>
+            <button onClick={() => setShowClickedStore(false)}>×</button>
+          </div>
+          <div className="panel-body">
+            <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
+            <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
+          </div>
+        </div>
+      )
+      }
+    </div>
+  )
 }

@@ -1,163 +1,271 @@
-/* ===== スマホ風フレーム全体 ===== */
-.phoneFrame {
-  width: 100%;
+/* --- 画面全体コンテナ --- */
+.container {
+  width: 100vw;
   height: 100vh;
-  background: #f3f4f6;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  /* 画面の高さピッタリに制限 */
+  position: relative;
   overflow: hidden;
-}
-
-/* ===== スマホ画面部分 ===== */
-.phoneContent {
-  width: 100%;
-  max-width: 420px;
-  height: 90vh;
-  background: #ffffff;
-  border-radius: 28px;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.15);
-  padding: 24px;
+  /* 全体のスクロールを禁止 */
+  background-color: #f0f0f0;
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
 }
 
-/* ===== ヘッダー ===== */
+/* --- ヘッダー (上部の細いバー) --- */
 .header {
+  height: 60px;
+  background: #fff;
   display: flex;
   align-items: center;
-  padding: 16px 0;
-  position: relative;
-  z-index: 10;
-  background: none;
+  padding: 0 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  flex-shrink: 0;
+  justify-content: space-between;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .title {
-  flex: 1;
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-  color: #000;       /* 文字色を黒に */
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  letter-spacing: 0.05em;
 }
 
-
-/* ===== ハンバーガー ===== */
 .menuButton {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: #fff;
-  color: black;
-  padding: 10px;
-  font-size: 1.4rem;
+  background: none;
   border: none;
+  font-size: 24px;
   cursor: pointer;
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
+  color: #555;
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 200;
+  padding: 4px;
+  border-radius: 4px;
 }
 
-/* ===== 保存ボタン ===== */
-.btn {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 400px;
-  background: linear-gradient(135deg, #f97316, #fb923c);
-  color: #fff;
-  font-weight: 700;
-  padding: 14px 0;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  z-index: 10;
-  transition: background 0.2s ease, transform 0.15s ease;
+.menuButton:hover {
+  background-color: #f5f5f5;
 }
 
-.btn:hover {
-  background: linear-gradient(135deg, #ea580c, #f97316);
+/* --- メインエリア (地図 + パネル) --- */
+.mainContent {
+  flex: 1;
+  /* ヘッダー以外の残りの高さを全部使う */
+  position: relative;
+  display: flex;
 }
 
-.btn:active {
-  transform: translateX(-50%) scale(0.96);
-}
-
-/* ===== サイドメニュー ===== */
-.sideMenu {
+/* --- 地図エリア (背景として全面に) --- */
+.mapWrapper {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
-  width: 80%;
-  max-width: 260px;
-  background: #fff;
-  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.18);
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-  padding-top: 70px;
-  z-index: 250;
-}
-
-.sideMenuOpen {
-  transform: translateX(0);
-}
-
-.closeMenuBtn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: #fff;
-  color: black;
-  font-size: 1.6rem;
-  border: none;
-  cursor: pointer;
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 300;
-}
-
-/* ===== サイドメニュー項目 ===== */
-.menuList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.menuItemButton {
-  all: unset;
-  display: block;
   width: 100%;
-  padding: 18px;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-  font-weight: 500;
+  height: 100%;
+  z-index: 1;
+}
+
+/* --- 操作パネル (地図の上に浮くカード) --- */
+.controlPanel {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  width: 380px;
+  /* 横幅を確保 */
+  max-height: calc(100% - 48px);
+  /* 上下の余白分を引いた高さ */
+  background: rgba(255, 255, 255, 0.95);
+  /* 少し透過でおしゃれに */
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  /* 地図より手前 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* パネルからはみ出さない */
+}
+
+/* パネルの中身が多すぎる場合だけ、パネル内スクロールさせる */
+.panelScrollArea {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* 座標表示エリア */
+.coordsBox {
+  background: #f4f7fa;
+  border: 1px solid #e1e4e8;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.coordsLabel {
+  font-size: 12px;
+  font-weight: bold;
+  color: #0070f3;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coordsValue {
+  font-family: monospace;
+  font-size: 14px;
   color: #333;
 }
 
-.menuItemButton:hover {
-  color: #f97316;
+.guideText {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  padding: 10px;
 }
 
-/* ===== オーバーレイ ===== */
+/* 入力フォームのスタイル */
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+
+/* 保存ボタン */
+.saveButton {
+  width: 100%;
+  padding: 14px;
+  background-color: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s;
+}
+
+.saveButton:active {
+  transform: scale(0.98);
+}
+
+.saveButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --- サイドメニュー (既存維持・調整) --- */
+.sideMenu {
+  position: absolute;
+  top: 0;
+  left: -300px;
+  width: 300px;
+  height: 100%;
+  background: #fff;
+  z-index: 100;
+  transition: left 0.3s ease;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.sideMenuOpen {
+  left: 0;
+}
+
 .menuOverlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.2);
-  z-index: 150;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
+.menuList {
+  list-style: none;
+  padding: 0;
+  margin-top: 40px;
+}
+
+.menuItemButton {
+  width: 100%;
+  text-align: left;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.closeMenuBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* --- パネルの中身のスクロールエリア --- */
+.panelScrollArea {
+  padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* ★念の為、横スクロールを強制禁止 */
+  height: 100%;
+  /* 高さをしっかり確保 */
+}
+
+/* --- 入力フォームのスタイル --- */
+.input,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+
+  /* ★これが必要です！余白を含めて100%にする設定 */
+  box-sizing: border-box;
+}
+
+/* --- 座標表示エリアやボタンも念の為 --- */
+.coordsBox,
+.saveButton {
+  box-sizing: border-box;
+  /* ここもつけておくと安心 */
 }
