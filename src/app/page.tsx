@@ -16,7 +16,8 @@ import {
   getAllTags,
   getAllOpinions,
   getUserAndStoreDetails,
-  getAllStoreSchedules
+  getAllStoreSchedules,
+  getQuestionAnswerCounts
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -44,6 +45,7 @@ export default function Home() {
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [pollCounts, setPollCounts] = useState<{ count1: number, count2: number } | null>(null);
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -259,6 +261,16 @@ export default function Home() {
     if (result.success) {
       // alert("アンケートに回答しました！");
       setAnswerPollOpen(false);
+
+      // ★ 追加: 回答後、集計結果を取得する ★
+      const countsResult = await getQuestionAnswerCounts(questionId);
+      if (countsResult.success && countsResult.counts) {
+        setPollCounts(countsResult.counts); // 結果をStateに保存
+      } else {
+        console.error("回答結果の取得に失敗しました:", countsResult.error);
+        setPollCounts({ count1: 0, count2: 0 }); // 失敗時は0で初期化
+      }
+
       // 結果表示ダイヤログを呼ぶ
       setShowResult(true);
       const fetchResult = await getAllQuestions();
@@ -583,8 +595,8 @@ export default function Home() {
             {(() => {
               // ===== 仮データ（後でDBに置き換え）=====
               // ===== TODO　DB連携 =====
-              const leftCount = 32;
-              const rightCount = 18;
+              const leftCount = pollCounts?.count1 || 0;
+              const rightCount = pollCounts?.count2 || 0;
               const total = leftCount + rightCount || 1;
 
               const leftRate = Math.round((leftCount / total) * 100);

@@ -757,6 +757,34 @@ export async function getAllQuestions() {
     }
 }
 
+/** 4-d. アンケート回答の集計結果取得 (Get Poll Results) */
+export async function getQuestionAnswerCounts(questionId: string) {
+    console.log(`[DB] START: Fetching answer counts for Question ID: ${questionId}`);
+    try {
+        const counts = await prisma.questionAnswer.groupBy({
+            by: ['selectedOptionNumber'],
+            where: {
+                questionId: questionId,
+            },
+            _count: {
+                selectedOptionNumber: true,
+            },
+        });
+
+        const result = {
+            count1: counts.find(c => c.selectedOptionNumber === 1)?._count.selectedOptionNumber || 0,
+            count2: counts.find(c => c.selectedOptionNumber === 2)?._count.selectedOptionNumber || 0,
+        };
+
+        console.log(`[DB] END: Fetched counts: Option1=${result.count1}, Option2=${result.count2}`);
+        return { success: true, counts: result };
+
+    } catch (error) {
+        console.error('Fetching question answer counts failed:', error);
+        return { success: false, error: '回答数の取得に失敗しました。' };
+    }
+}
+
 
 // ----------------------------------------------------------------------
 // 5. いいね操作 (PressLike)
@@ -857,17 +885,17 @@ export async function registerStoreSchedule(data: RegisterScheduleData) {
 
     try {
         const newSchedule = await prisma.$transaction(async (tx) => {
-            
+
             // ... (既存の storeId 存在チェックは省略) ...
 
             const dateObj = new Date(scheduledDate);
             if (isNaN(dateObj.getTime())) {
                 return { error: '無効な日付形式です。' };
             }
-            
+
             // 2. カスタムIDの生成 (SEQUENCE_NAME_OPENING/'04'を使用)
             // 💡 既存の定数 SEQUENCE_NAME_OPENING を使って '04' を Type Code と仮定します
-            const customScheduleId = await getAndIncrementCustomId(SEQUENCE_NAME_OPENING, '04', tx); 
+            const customScheduleId = await getAndIncrementCustomId(SEQUENCE_NAME_OPENING, '04', tx);
             console.log(`[DB] Generated Schedule ID: ${customScheduleId}`);
 
             // 3. StoreOpeningInformation レコードを作成
@@ -877,18 +905,18 @@ export async function registerStoreSchedule(data: RegisterScheduleData) {
                     storeId: storeId,
                     latitude: latitude,
                     longitude: longitude,
-                    
+
                     // ★ 修正点: scheduledDate -> openingDate ★
-                    openingDate: dateObj, 
+                    openingDate: dateObj,
                     locationName: null, // locationNameはオプションとしてnullを許容
                 },
             });
-            
+
             return schedule;
         });
 
         // 成功時の処理
-        revalidatePath('/'); 
+        revalidatePath('/');
         return { success: true, schedule: newSchedule };
 
     } catch (error) {
@@ -931,7 +959,7 @@ export async function getAllStoreSchedules() {
             date: s.openingDate.toISOString().split('T')[0], // 日付のみ (YYYY-MM-DD)
             location: { lat: s.latitude, lng: s.longitude },
             locationName: s.locationName,
-            storeDetails:{
+            storeDetails: {
                 storeUrl: s.store.storeUrl,
                 introduction: s.store.introduction,
             }
