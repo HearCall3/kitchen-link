@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import styles from "./style.module.css";
 import { useSession } from "next-auth/react";
-import { registerStoreSchedule } from "@/actions/db_access"
-
+import { registerStoreSchedule } from "@/actions/db_access";
+import Geocoding from "../../components/ReverceGeocoding";
 const mapContainerStyle = {
   width: "100%",
   height: "100%",
@@ -147,8 +147,7 @@ export default function StoreRegisterPage() {
               <div className={styles.coordsLabel}>📍 出店場所</div>
               {coordinates ? (
                 <div className={styles.coordsValue}>
-                  Lat: {coordinates.lat.toFixed(6)}<br />
-                  Lng: {coordinates.lng.toFixed(6)}
+                <Geocoding lat={coordinates?.lat} lng={coordinates?.lng} />
                 </div>
               ) : (
                 <div className={styles.guideText}>
