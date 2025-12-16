@@ -245,7 +245,6 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                             <MarkerF
                                 key={`marker-${data.opinionId}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => onExtract("opinionClick", data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
 
@@ -269,7 +268,8 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                                 key={data.opinionId}
                                 center={{ lat: data.latitude, lng: data.longitude }}
                                 radius={500}
-                                options={{ ...circleOptions, clickable: false }}
+                                onClick={() => onExtract("opinionClick", data)}
+                                options={{ ...circleOptions, clickable: true }}
                             />
                         </React.Fragment>
                     );
