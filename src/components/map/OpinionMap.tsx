@@ -249,16 +249,6 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
                             />
 
-                            {/* ピン */}
-                            {/* <MarkerF
-                                position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)} */}
-                            {/* // icon={{ */}
-                            {/* //     url: "/pin.png",
-                            //     scaledSize: new google.maps.Size(40, 40),
-                            //     anchor: new google.maps.Point(20, 40),
-                            // }}
-                            /> */}
 
                             {/* 吹き出し */}
                             {isOpen && (
