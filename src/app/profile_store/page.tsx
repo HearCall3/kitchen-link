@@ -133,9 +133,13 @@ export default function StoreProfileEditPage() {
         {/* タイトル */}
         <h2 className={styles.title}>店舗プロフィール設定</h2>
 
-        <div className={`home-button ${menuOpen ? "contentShift" : ""}`}>
-          <button onClick={() => router.push("/")} title="ホームに戻る">
-            ←
+        <div className={`home-button`}>
+          <button
+            className={styles.iconButton}
+            onClick={() => router.push("/")}
+            title="ホームに戻る"
+          >
+            ✕
           </button>
         </div>
 
@@ -147,7 +151,7 @@ export default function StoreProfileEditPage() {
             <input
               type="text"
               className={styles.input}
-              placeholder="例：キッチンリンクカフェ"
+              placeholder="例：キッチンリンク"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
             />
