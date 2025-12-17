@@ -14,7 +14,7 @@ import { createStore } from "@/actions/db_access"; //
 export default function StoreRegisterPage() {
   const router = useRouter();
   // セッションからメールアドレスを取得
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const email = session?.user?.email;
 
   // ★ ローディング状態の State を追加 ★
@@ -39,6 +39,12 @@ export default function StoreRegisterPage() {
       setIsLoading(false);
     }
   }, [session, router]);
+
+  const [form, setForm] = useState({
+    storeName: "",
+    description: "",
+    storeUrl: "",
+  });
   // ==========================================================
 
   // ローディング中の表示
@@ -52,11 +58,7 @@ export default function StoreRegisterPage() {
     );
   }
 
-  const [form, setForm] = useState({
-    storeName: "",
-    description: "",
-    storeUrl: "",
-  });
+
 
 
 
@@ -79,8 +81,8 @@ export default function StoreRegisterPage() {
 
     const formData = new FormData(e.target as HTMLFormElement);
     for (let [key, value] of formData.entries()) {
-    console.log(`${key}: ${value}`); // storeUrl が含まれているか確認
-}
+      console.log(`${key}: ${value}`); // storeUrl が含まれているか確認
+    }
     const storeName = formData.get('storeName');
     console.log("Form Store Name:", storeName); // 入力された店舗名を確認
 
@@ -92,6 +94,8 @@ export default function StoreRegisterPage() {
     console.log("Server Action Result:", result);
 
     if (result.success) {
+      // これにより route.ts の jwt/session コールバックが走り、新しいIDがセットされる
+      await update();
       console.log("店舗登録データ:", form);
       alert("出店登録が完了しました！");
 
