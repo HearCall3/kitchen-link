@@ -787,7 +787,7 @@ export default function Home() {
                 }
               >
                 <option value="">---</option>
-                <option value="食品">食品</option>
+                <option value="商品">商品</option>
                 <option value="設備">設備</option>
                 <option value="値段">値段</option>
                 <option value="ボリューム">ボリューム</option>
