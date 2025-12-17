@@ -157,13 +157,9 @@ export default function UserProfilePage() {
     return <div className={styles.phoneFrame}><h2 className={styles.title}>ログインしてください</h2></div>;
   }
 
-  const menuWidth = "260px";
-
   return (
     <div className={styles.phoneFrame}>
-
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
-
         <div className={`home-button`}>
           <button
             className={styles.iconButton}
@@ -183,83 +179,85 @@ export default function UserProfilePage() {
         )}
 
         <h2 className={styles.title}>プロフィール設定</h2>
-        <div className={styles.card}>
-          {/* ニックネーム */}
-          <div>
-            <label className={styles.label}>ニックネーム</label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="例：たろう"
-              className={styles.inputtext}
-            />
-          </div>
+        <div className={styles.container}>
+          <div className={styles.card}>
+            {/* ニックネーム */}
+            <div>
+              <label className={styles.label}>ニックネーム</label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="例：たろう"
+                className={styles.inputtext}
+              />
+            </div>
 
-          {/* 性別 */}
-          <div>
-            <label className={styles.label}>性別</label>
-            <select
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">選択してください</option>
-              <option value="male">男性</option>
-              <option value="female">女性</option>
-              <option value="other">その他</option>
-            </select>
-          </div>
+            {/* 性別 */}
+            <div>
+              <label className={styles.label}>性別</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">選択してください</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="other">その他</option>
+              </select>
+            </div>
 
-          {/* 年代 */}
-          <div>
-            <label className={styles.label}>年代</label>
-            <select
-              value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">年代を選択</option>
-              <option value="10歳未満">10歳未満</option>
-              <option value="10代">10代</option>
-              <option value="20代">20代</option>
-              <option value="30代">30代</option>
-              <option value="40代">40代</option>
-              <option value="50代">50代</option>
-              <option value="60代">60代</option>
-              <option value="70代">70代</option>
-              <option value="80代以上">80代以上</option>
-            </select>
-          </div>
+            {/* 年代 */}
+            <div>
+              <label className={styles.label}>年代</label>
+              <select
+                value={ageGroup}
+                onChange={(e) => setAgeGroup(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">年代を選択</option>
+                <option value="10歳未満">10歳未満</option>
+                <option value="10代">10代</option>
+                <option value="20代">20代</option>
+                <option value="30代">30代</option>
+                <option value="40代">40代</option>
+                <option value="50代">50代</option>
+                <option value="60代">60代</option>
+                <option value="70代">70代</option>
+                <option value="80代以上">80代以上</option>
+              </select>
+            </div>
 
-          {/* 職業 */}
-          <div>
-            <label className={styles.label}>職業</label>
-            <select
-              value={job}
-              onChange={(e) => setJob(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">職業を選択</option>
-              <option value="student">学生</option>
-              <option value="company">会社員</option>
-              <option value="part-time">アルバイト・パート</option>
-              <option value="freelancer">フリーランス</option>
-              <option value="public">公務員</option>
-              <option value="unemployed">無職</option>
-              <option value="other">その他</option>
-            </select>
-          </div>
+            {/* 職業 */}
+            <div>
+              <label className={styles.label}>職業</label>
+              <select
+                value={job}
+                onChange={(e) => setJob(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">職業を選択</option>
+                <option value="student">学生</option>
+                <option value="company">会社員</option>
+                <option value="part-time">アルバイト・パート</option>
+                <option value="freelancer">フリーランス</option>
+                <option value="public">公務員</option>
+                <option value="unemployed">無職</option>
+                <option value="other">その他</option>
+              </select>
+            </div>
 
-          <button className={styles.btn} onClick={handleSaveProfile} disabled={isLoading}>
-            保存する
-          </button>
+            <button className={styles.btn} onClick={handleSaveProfile} disabled={isLoading}>
+              保存する
+            </button>
+          </div>
         </div>
-      </div>
-      {/* <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+        {/* <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
         <h2>危険区域</h2>
         <DeleteAccountButton />
       </div> */}
+      </div>
     </div>
   );
 }

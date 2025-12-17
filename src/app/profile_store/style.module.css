@@ -31,10 +31,8 @@
   flex-direction: column;
   gap: 16px;
   flex: 1;
-  overflow: hidden;
-  /* ← ここも禁止 */
+  overflow-y: auto;
 }
-
 
 /* ===== タイトル ===== */
 .title {
