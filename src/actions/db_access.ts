@@ -239,6 +239,7 @@ export async function createStore(formData: FormData, email: string) {
     console.log(`[DB] START: Creating Store for email: ${email}`);
     const storeName = formData.get('storeName') as string;
     const introduction = formData.get('description') as string;
+    const storeUrl = (formData.get('storeUrl') as string) || null;
     // ハッシュ値を使用
     const hashedEmail = hashEmail(email);
 
@@ -259,7 +260,7 @@ export async function createStore(formData: FormData, email: string) {
             console.log(`[DB] Generated Store ID: ${customStoreId}`);
 
             const store = await tx.store.create({
-                data: { storeId: customStoreId, storeName: storeName, introduction: introduction }
+                data: { storeId: customStoreId, storeName: storeName, introduction: introduction, storeUrl: storeUrl }
             });
 
             // StoreOpeningInformationの仮登録は削除済み
@@ -299,6 +300,7 @@ export async function updateStore(accountId: string, formData: FormData) {
     console.log(`[DB] START: Updating Store for Account ID: ${accountId}`);
     const introduction = formData.get('introduction') as string;
     const storeName = formData.get('storeName') as string;
+    const storeUrl = (formData.get('storeUrl') as string) || null;
 
     const existingAccount = await prisma.account.findUnique({
         where: { accountId: accountId },
@@ -312,10 +314,19 @@ export async function updateStore(accountId: string, formData: FormData) {
     try {
         await prisma.$transaction(async (tx) => {
 
+            // 更新するデータオブジェクトを構築
+            const storeData: Prisma.StoreUpdateInput = {
+                storeName: storeName,
+                introduction: introduction,
+                // ★ 修正 2: storeUrl をデータに追加 ★
+                storeUrl: storeUrl,
+            };
+
             await tx.store.update({
-                // ★ 修正: ロジックでnullチェック済みのため、非nullアサーションを使用
+                // storeId は Account テーブルから取得したものを使用
                 where: { storeId: existingAccount.storeId! },
-                data: { storeName: storeName, introduction: introduction },
+                // ★ 修正 3: 構築したデータオブジェクトを使用 ★
+                data: storeData,
             });
             console.log(`[DB] Store ID ${existingAccount.storeId} updated.`);
         });
@@ -723,7 +734,7 @@ export async function getAllQuestions() {
                     select: { storeName: true }
                 },
                 answers: { // 回答数をカウントするためにanswersを含める
-                    select: { selectedOptionNumber: true }
+                    select: { accountId: true, selectedOptionNumber: true }
                 }
             }
         });
@@ -745,6 +756,7 @@ export async function getAllQuestions() {
                 totalAnswers: totalAnswers,
                 option1Count: option1Count,
                 option2Count: option2Count,
+                answers: q.answers,
             };
         });
 
@@ -977,22 +989,49 @@ export async function getAllStoreSchedules() {
 // ----------------------------------------------------------------------
 // 7. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
-export async function findUserByEmail(email: string) {
-    const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+// 💡 認証コールバック用にID情報を含めた戻り値の型
+interface FindUserDetailsResult {
+    success: boolean;
+    exists: boolean;
+    error?: string;
+    accountId?: string | null;
+    userId?: string | null;
+    storeId?: string | null;
+}
+
+export async function findUserByEmail(email: string): Promise<FindUserDetailsResult> { // ★ 型を適用 ★
+    const hashedEmail = hashEmail(email);
     console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
 
     try {
         const account = await prisma.account.findUnique({
             where: { email: hashedEmail },
-            select: { accountId: true }
+            select: {
+                accountId: true,
+                userId: true,
+                storeId: true,
+            }
         });
 
-        console.log("findUserByEmail is finish!!!!!!!!")
-        return { exists: !!account };
+        console.log("findUserByEmail (Details) is finish!!!!!!!!");
+
+        const exists = !!account;
+
+        if (!exists || !account) {
+            return { success: true, exists: false, accountId: null, userId: null, storeId: null };
+        }
+
+        return {
+            success: true,
+            exists: exists,
+            accountId: account.accountId,
+            userId: account.userId,
+            storeId: account.storeId,
+        };
 
     } catch (error) {
         console.error('Find user by email error:', error);
-        return { exists: false, error: 'DB search failed' };
+        return { success: false, exists: false, error: 'DB search failed' };
     }
 }
 
