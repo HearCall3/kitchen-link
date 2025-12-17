@@ -14,10 +14,10 @@
 .title {
   position: absolute;
   top: 5px;
-  left: 40px;
+  left: 45%;
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: #f0f0f0;
   letter-spacing: 0.05em;
 }
 
@@ -26,7 +26,7 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #555;
+  color: #f0f0f0;
   display: flex;
   align-items: center;
   padding: 4px;
@@ -256,6 +256,7 @@
 
 /* ホームボタン */
 .iconButton {
+  color: #f0f0f0;
   position: absolute;
   top: 12px;
   left: 12px;

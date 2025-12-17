@@ -476,12 +476,7 @@ export default function Home() {
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
           {menuOpen ? "✕" : "☰"}
         </div>
-        <button
-          className="filter-btn"
-          onClick={() => setIsFilterOpen(true)}
-          aria-label="Filter"
-        >フィルター
-        </button>
+
         {/* 修正後のヘッダー内の検索バー部分 */}
         <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center pr-2">
           <input
@@ -491,6 +486,15 @@ export default function Home() {
             onChange={(e) => setFilterKeyword(e.target.value)}
             className="flex-1 p-2 text-gray-700 outline-none"
           />
+
+          {/* フィルターボタン */}
+          <button
+            className="filter-btn"
+            onClick={() => setIsFilterOpen(true)}
+            aria-label="Filter"
+          >フィルター
+          </button>
+
           {/* ★ 検索ボタンを追加 */}
           <button
             onClick={() => setSearchKeyword(filterKeyword)}
@@ -650,8 +654,7 @@ export default function Home() {
             </h3>
 
             {(() => {
-              // ===== 仮データ（後でDBに置き換え）=====
-              // ===== TODO　DB連携 =====
+              // ===== DB取得=====
               const leftCount = pollCounts?.count1 || 0;
               const rightCount = pollCounts?.count2 || 0;
               const total = leftCount + rightCount || 1;
@@ -753,7 +756,7 @@ export default function Home() {
 
       {isFilterOpen && (
         <>
-        {/* フィルター */}
+          {/* フィルター */}
           {/* 背景の黒み (クリックで閉じる) */}
           <div
             className="dialog-overlay"
@@ -774,10 +777,10 @@ export default function Home() {
             {/* --- ここから中身は既存の入力フォームと同じ --- */}
 
             {/* タグ */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">タグの選択</label>
+            <div className="form-row-horizontal">
+              <label className="filter-title">タグの選択</label>
               <select
-                className="select-tag"
+                className="w-full p-2 border rounded"
                 value={filters.tag ?? ""}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
@@ -794,8 +797,8 @@ export default function Home() {
             </div>
 
             {/* 性別 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">性別</label>
+            <div className="form-row-horizontal">
+              <label className="filter-title">性別</label>
               <select
                 className="w-full p-2 border rounded"
                 value={filters.gender ?? ""}
@@ -811,7 +814,7 @@ export default function Home() {
             </div>
 
             {/* 職業 */}
-            <div style={{ marginBottom: 10 }}>
+            <div className="form-row-horizontal">
               <label className="block text-sm font-bold mb-1">職業</label>
               <select
                 className="w-full p-2 border rounded"
@@ -833,8 +836,8 @@ export default function Home() {
             </div>
 
             {/* 年齢 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">年齢</label>
+            <div className="form-row-horizontal">
+              <label className="form-row-horizontal">年齢</label>
               <select
                 className="w-full p-2 border rounded"
                 value={filters.ageRange ?? ""}
@@ -855,8 +858,8 @@ export default function Home() {
             </div>
 
             {/* 最低いいね数 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">最低いいね数</label>
+            <div className="form-row-horizontal">
+              <label className="form-row-horizontal">最低いいね数</label>
               <input
                 type="number"
                 min="0"
@@ -872,8 +875,8 @@ export default function Home() {
             </div>
 
             {/* 日付（以降） */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">日付（以降）</label>
+            <div className="form-row-horizontal" style={{ marginBottom: 10 }}>
+              <label className="form-row-horizontal">日付（以降）</label>
               <input
                 type="date"
                 className="w-full p-2 border rounded"
@@ -887,9 +890,9 @@ export default function Home() {
               />
             </div>
 
-            <div className="flex gap-2 mt-4">
+            <div className="modal-button-group">
               <button
-                className="flex-1 py-2 bg-gray-200 rounded border border-gray-300"
+                className="modal-reset-btn"
                 onClick={() =>
                   setFilters({
                     tag: null,
@@ -905,7 +908,7 @@ export default function Home() {
                 リセット
               </button>
               <button
-                className="flex-1 py-2 bg-orange-500 text-white rounded font-bold"
+                className="modal-apply-btn"
                 onClick={() => {
                   setAppliedFilters(filters);
                   setIsFilterOpen(false); // 適用したら閉じる
@@ -914,9 +917,12 @@ export default function Home() {
                 適用
               </button>
             </div>
+
           </div>
         </>
       )}
+
+
       {
         createOpen && (
           <>
@@ -950,64 +956,69 @@ export default function Home() {
           </>
         )
       }
-      {showExtractPanel && (
-        <div className="extract-panel">
-          <div className="panel-header">
-            <span>抽出された意見 ({extractedOpinions.length}件)</span>
-            <button onClick={() => setShowExtractPanel(false)}>×</button>
-          </div>
-
-          <div className="panel-body">
-            {extractedOpinions.length === 0 ? (
-              <p className="empty-text">意見がありません</p>
-            ) : (
-              extractedOpinions.map((op, i) => (
-                <div key={i} className="opinion-item">
-                  {op}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-      {showClickedOpinion && (
-        <>
+      {
+        showExtractPanel && (
           <div className="extract-panel">
             <div className="panel-header">
-              <span>{clickedOpinion.commentText}</span>
-              <button onClick={() => setShowClickedOpinion(false)}>×</button>
+              <span>抽出された意見 ({extractedOpinions.length}件)</span>
+              <button onClick={() => setShowExtractPanel(false)}>×</button>
+            </div>
+
+            <div className="panel-body">
+              {extractedOpinions.length === 0 ? (
+                <p className="empty-text">意見がありません</p>
+              ) : (
+                extractedOpinions.map((op, i) => (
+                  <div key={i} className="opinion-item">
+                    {op}
+                  </div>
+                ))
+              )}
+            </div>
+
+          </div>
+        )
+      }
+      {
+        showClickedOpinion && (
+          <>
+            <div className="extract-panel">
+              <div className="panel-header">
+                <span>{clickedOpinion.commentText}</span>
+                <button onClick={() => setShowClickedOpinion(false)}>×</button>
+              </div>
+              <div className="panel-body">
+                <p>いいね数：{clickedOpinion.likeCount}</p>
+                <p>タグ：{clickedOpinion.tags}</p>
+                <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+                <p>性別：{clickedOpinion?.profile.gender}</p>
+                <p>年齢：{clickedOpinion?.profile.age}</p>
+                <p>職業：{clickedOpinion?.profile.occupation}</p>
+                <button
+                  className="like-button"
+                  onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+                >
+                  いいね
+                </button>
+              </div>
+            </div>
+          </>
+        )
+      }
+      {
+        showClickedStore && (
+          <div className="extract-panel">
+            <div className="panel-header">
+              <span>{clickedStore.storeName}</span>
+              <button onClick={() => setShowClickedStore(false)}>×</button>
             </div>
             <div className="panel-body">
-              <p>いいね数：{clickedOpinion.likeCount}</p>
-              <p>タグ：{clickedOpinion.tags}</p>
-              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
-              <p>性別：{clickedOpinion?.profile.gender}</p>
-              <p>年齢：{clickedOpinion?.profile.age}</p>
-              <p>職業：{clickedOpinion?.profile.occupation}</p>
-              <button
-                className="like-button"
-                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
-              >
-                いいね
-              </button>
+              <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
+              <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
             </div>
           </div>
-        </>
-      )
+        )
       }
-      {showClickedStore && (
-        <div className="extract-panel">
-          <div className="panel-header">
-            <span>{clickedStore.storeName}</span>
-            <button onClick={() => setShowClickedStore(false)}>×</button>
-          </div>
-          <div className="panel-body">
-            <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
-            <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
-          </div>
-        </div>
-      )
-      }
-    </div>
+    </div >
   )
 }

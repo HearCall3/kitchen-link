@@ -15,7 +15,7 @@ import { useSession } from "next-auth/react";
 
 const containerStyle = {
     width: "100%",
-    height: "400px",
+    height: "100%",
 };
 
 const center = { lat: 35.681236, lng: 139.767125 };
@@ -39,7 +39,7 @@ interface PostMapProps {
     filterKeyword: String;
 }
 
-export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostMapProps) {
 
     const { data: session } = useSession();
     const currentAccountId = session?.user?.accountId;
