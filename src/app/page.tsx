@@ -508,7 +508,10 @@ export default function Home() {
         <ul className="text-gray-800 text-lg">
           {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
-            プロフィール
+            ユーザープロフィール
+          </li>
+          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_store")}>
+            ストアプロフィール
           </li>
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
