@@ -16,8 +16,6 @@ const containerStyle = {
     height: "100%",
 };
 
-const center = { lat: 35.681236, lng: 139.767125 };
-
 // 定数は外に出す（変更なし）
 const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
 
@@ -41,20 +39,27 @@ type filters = {
     ageRange: string | null;
 };
 
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
     opinions: (any[]);
     accountId: string;
     filter: filters;
     filterKeyword: string;
+    giveLocation: locationtypes | null;
     onExtract: (data: string, opinions: any) => void;
 }
 
-export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountId, filter, filterKeyword }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountId, filter, filterKeyword, giveLocation }: OpinionMapProps) {
 
     // 抽出ボタン
     const [isDrawing, setIsDrawing] = useState(false);
     const [showDrawButton, setShowDrawButton] = useState(true);
+    const [position, setposition] = useState<locationtypes>({lat:35.681236,lng:139.767125})
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -69,6 +74,16 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
 
+    useEffect(() => {
+        if(giveLocation){
+            setposition(giveLocation)
+            if(map){
+        map.moveCamera({
+                center: position,
+                zoom: 15
+            });
+        }}
+    },[giveLocation]);
 
     // 新しい状態として、意見データ全体を内部で管理するための state を追加
     // opinions prop は初期値として使用し、更新は internalOpinions で行う
@@ -205,7 +220,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                     })
                 }}
                 mapContainerStyle={containerStyle}
-                center={center}
+                center={position}
                 zoom={14}
                 onLoad={onLoad}
                 onIdle={onIdle}
@@ -325,7 +340,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                         }
                     }}
                 >
-                    <img src="/icon/square.png"/>
+                    <img src="/icon/square.png" />
                 </div>
             )}
         </>
