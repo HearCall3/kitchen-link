@@ -52,6 +52,9 @@ header {
 .search-btn {
   padding: 0 16px;
   height: 40px;
+  font-size: 11px;
+  width: 14%;
+  max-width: 60px;
   /* 高さを統一 */
   border: none;
   border-radius: 9999px;
@@ -77,6 +80,8 @@ header {
 .filter-btn {
   padding: 0 16px;
   height: 40px;
+  width: 20%;
+  font-size: 11px;
   /* 高さを統一 */
   border: none;
   border-radius: 9999px;
@@ -176,6 +181,15 @@ header {
 
 .modal-apply-btn:hover {
   background-color: #c2541a;
+}
+
+.scroll {
+  flex: 1;   
+  overflow-y: auto;
+}
+
+.poll-dialog {
+  overflow-y: auto;
 }
 
 .poll-dialog.active h3 {
@@ -981,7 +995,6 @@ header input {
 
   padding: 12px 14px;
   border-bottom: 1px solid #eee;
-
   font-weight: bold;
   font-size: 14px;
 }

@@ -60,3 +60,57 @@
     white-space: normal;
     word-break: break-word;
 }
+
+/* 意見抽出のUI */
+.map-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+
+    width: 56px;
+    height: 56px;
+
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    z-index: 9999;
+    transition: background 0.2s;
+}
+
+.map-btn.active {
+    background: #ff9500;
+    /* オレンジ */
+}
+
+.map-btn img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 70px;
+    right: 50%;
+    transform: translateX(50%);
+    background: black;
+    color: white;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.map-btn:hover .tooltip {
+    opacity: 1;
+}
