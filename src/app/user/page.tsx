@@ -13,29 +13,48 @@ import { createUser } from "@/actions/db_access"; //
 export default function UserRegisterPage() {
   const router = useRouter();
   // セッションからメールアドレスを取得
-  const { data: session } = useSession();
+  const { data: session, status, update } = useSession();
   const email = session?.user?.email;
 
   const [isLoading, setIsLoading] = useState(true);
 
+  const [form, setForm] = useState({
+    nickname: "",
+    gender: "",
+    ageGroup: "",
+    occupation: "",
+  });
+
   // ==========================================================
   // ★ 追加するリダイレクト処理 ★
   // ==========================================================
+
+  // ブラウザのコンソールでセッションを確認するためのログ
   useEffect(() => {
-    // 認証ステータスが「読み込み中」ではないことを確認
-    if (session === undefined) {
-      // Auth.jsがセッション解決を試みている状態（ローディング）
+    console.log("Client-side Session Status:", status);
+    console.log("Client-side Session Data:", session);
+  }, [session, status]);
+
+  useEffect(() => {
+    // 1. まだ読み込み中なら何もしない
+    if (status === "loading") return;
+
+    // 2. 読み込み終わったのにセッションがない = ログインしていない
+    if (status === "unauthenticated" || !session) {
+      console.error("セッションが見つかりません。ログイン画面へ。");
+      // router.push("/login"); // 開発中はコメントアウトして様子を見てもOK
       return;
     }
 
-    // 認証済み (authenticated) かつセッション情報がある場合
-    if (session && session.user && session.user.userId) { // storeIdがあっても userIdがなければOK
-      console.log("ユーザーアカウントが既に存在するため、トップページへリダイレクトします。");
+    // 3. 既に登録済み（userIdがある）ならトップへ
+    if (session.user?.userId) {
+      console.log("既に登録済みです。");
       router.replace("/");
     } else {
-      // userId が存在しない（新規ユーザー、またはストアユーザーとしてのみ登録済み）
+      // 新規ユーザーなのでフォームを表示
       setIsLoading(false);
     }
+
   }, [session, router]);
 
   // ★ 修正: ローディング中の表示を先に返す ★
@@ -49,12 +68,6 @@ export default function UserRegisterPage() {
     );
   }
 
-  const [form, setForm] = useState({
-    nickname: "",
-    gender: "",
-    ageGroup: "",
-    occupation: "",
-  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -62,6 +75,16 @@ export default function UserRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+
+    // session?.user?.email を直接使う
+    const currentEmail = session?.user?.email;
+
+    if (!currentEmail) {
+      console.error("Session at handleSubmit:", session); // デバッグ用
+      alert("セッションが切れました。ページを更新してやり直してください。");
+      return;
+    }
 
     if (!email) {
       alert("認証情報（メールアドレス）が見つかりません。再度ログインしてください。");
@@ -75,6 +98,8 @@ export default function UserRegisterPage() {
     const result = await createUser(formData, email); //
 
     if (result.success) {
+      // これにより route.ts の jwt/session コールバックが走り、新しいIDがセットされる
+      await update();
       console.log("登録データ:", form);
       alert("会員登録が完了しました！");
       // 登録成功後、トップページへリダイレクト
@@ -110,9 +135,9 @@ export default function UserRegisterPage() {
             required
           >
             <option value="">性別を選択</option>
-            <option value="male">男性</option>
-            <option value="female">女性</option>
-            <option value="other">その他</option>
+            <option value="1">男性</option>
+            <option value="2">女性</option>
+            <option value="3">その他</option>
           </select>
           <select
             name="ageGroup"
@@ -122,15 +147,15 @@ export default function UserRegisterPage() {
             required
           >
             <option value="">年代を選択</option>
-            <option value="under10">10歳未満</option>
-            <option value="10s">10代</option>
-            <option value="20s">20代</option>
-            <option value="30s">30代</option>
-            <option value="40s">40代</option>
-            <option value="50s">50代</option>
-            <option value="60s">60代</option>
-            <option value="70s">70代</option>
-            <option value="80s">80代以上</option>
+            <option value="1">10歳未満</option>
+            <option value="2">10代</option>
+            <option value="3">20代</option>
+            <option value="4">30代</option>
+            <option value="5">40代</option>
+            <option value="5066s">50代</option>
+            <option value="7">60代</option>
+            <option value="8">70代</option>
+            <option value="9">80代以上</option>
           </select>
           <select
             name="occupation"
@@ -140,13 +165,13 @@ export default function UserRegisterPage() {
             required
           >
             <option value="">職業を選択</option>
-            <option value="student">学生</option>
-            <option value="company">会社員</option>
-            <option value="part-time">アルバイト・パート</option>
-            <option value="freelancer">フリーランス</option>
-            <option value="government">公務員</option>
-            <option value="unemployed">無職</option>
-            <option value="other">その他</option>
+            <option value="1">学生</option>
+            <option value="2">会社員</option>
+            <option value="3">アルバイト・パート</option>
+            <option value="4">フリーランス</option>
+            <option value="5">公務員</option>
+            <option value="6">無職</option>
+            <option value="7">その他</option>
           </select>
 
           <button type="submit" className={styles.registerBtn}>

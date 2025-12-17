@@ -14,57 +14,47 @@ const handler = NextAuth({
     signIn: "/login",
   },
   callbacks: {
-    async signIn({ user }) {
-      if (!user.email) {
-        return false;
-      }
+    async jwt({ token, user, trigger }) {
+      console.log(`--- JWT Callback START (Trigger: ${trigger ?? 'default'}) ---`);
 
-      // データベースに何らかのアカウントが存在するかメールアドレスで確認
-      const { exists } = await findUserByEmail(user.email); //
+      // 初回ログイン時 (userが存在する) または 
+      // クライアント側で update() が実行された場合
+      if (user || trigger === "update") {
+        const targetEmail = user?.email || token.email;
 
-      if (!exists) {
-        // 全く新規のユーザーの場合のみ、ユーザー登録画面へリダイレクト
-        return "/user";
-      }
+        if (targetEmail) {
+          console.log("Fetching latest user data for:", targetEmail);
+          const details = await findUserByEmail(targetEmail);
 
-      // 既存ユーザーの場合（UserまたはStoreの片方を持っている場合）はホームへ
-      return true;
-    },
-
-    async jwt({ token, user }) {
-      if (user && user.email) { // nullチェックを追加
-        token.email = user.email; // JWTにメールアドレスを保存
-
-        // ★ 修正箇所: DBからユーザー/ストアの詳細情報を取得する ★
-        // findUserByEmail は { exists: boolean, userId?: string, storeId?: string } 
-        // のような詳細を返すものと仮定します。
-        const details = await findUserByEmail(user.email);
-
-        // 成功していればIDを格納
-        if (details.success && details.exists) {
-          // ★ 修正: null の場合に undefined に変換する (?? undefined は ?? で省略可能) ★
-          token.userId = details.userId ?? undefined;
-          token.storeId = details.storeId ?? undefined;
-          token.accountId = details.accountId ?? undefined;
-        } else {
-          // アカウントが存在しない場合、IDを明示的に undefined に設定
-          token.userId = undefined;
-          token.storeId = undefined;
-          token.accountId = undefined;
+          if (details.success && details.exists) {
+            // DBにデータがある場合、最新のIDをセット
+            token.userId = details.userId ?? undefined;
+            token.storeId = details.storeId ?? undefined;
+            token.accountId = details.accountId ?? undefined;
+            token.isNewUser = false;
+          } else {
+            // 新規ユーザーの場合
+            token.userId = undefined;
+            token.storeId = undefined;
+            token.accountId = undefined;
+            token.isNewUser = true;
+          }
         }
-
-        // 新規ユーザー判定は「Accountが一つも存在しない」場合に true と定義
-        token.isNewUser = !details.exists;
       }
+
+      console.log("Final Token state:", token);
       return token;
     },
 
     async session({ session, token }) {
+      console.log("--- Session Callback START ---");
+      console.log("Token received in Session:", token);
       session.user.email = token.email as string;
       session.user.isNewUser = token.isNewUser; //
       session.user.accountId = token.accountId;
       session.user.userId = token.userId;
       session.user.storeId = token.storeId;
+      console.log("Final Session Object:", session);
       return session;
     },
   },
