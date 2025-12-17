@@ -12,6 +12,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 /* ===== 内側画面（スマホ表示部分） ===== */
@@ -27,6 +29,16 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  max-height: 100vh;
+
+}
+.container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* ===== タイトル ===== */

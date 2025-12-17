@@ -183,6 +183,15 @@ header {
   background-color: #c2541a;
 }
 
+.scroll {
+  flex: 1;   
+  overflow-y: auto;
+}
+
+.poll-dialog {
+  overflow-y: auto;
+}
+
 .poll-dialog.active h3 {
   color: #e76f24;
   font-size: 1.25rem;
@@ -986,7 +995,6 @@ header input {
 
   padding: 12px 14px;
   border-bottom: 1px solid #eee;
-
   font-weight: bold;
   font-size: 14px;
 }
