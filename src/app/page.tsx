@@ -17,7 +17,8 @@ import {
   getAllOpinions,
   getUserAndStoreDetails,
   getAllStoreSchedules,
-  getQuestionAnswerCounts
+  getQuestionAnswerCounts,
+  toggleLike
 } from "@/actions/db_access";
 
 export default function Home() {
@@ -95,13 +96,25 @@ export default function Home() {
   const [filterKeyword, setFilterKeyword] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
 
+  const [clickedOpinion, setClickedOpinion] = useState<any>(null);
+  const [showClickedOpinion, setShowClickedOpinion] = useState(false);
 
-  // ====== 意見抽出シート ======
+  const [clickedStore, setClickedStore] = useState<any>([]);
+  const [showClickedStore, setShowClickedStore] = useState(false);
+
   const [extractedOpinions, setExtractedOpinions] = useState<string[]>([]);
   const [showExtractPanel, setShowExtractPanel] = useState(false);
-  const handleExtract = (opinions: string[]) => {
-    setExtractedOpinions(opinions);
-    setShowExtractPanel(true);
+  const handleExtract = (type: string, data: []) => {
+    if (type === "opinionExtract") {
+      setExtractedOpinions(data);
+      setShowExtractPanel(true);
+    } else if (type === "opinionClick") {
+      setClickedOpinion(data);
+      setShowClickedOpinion(true);
+    } else if (type === "storeClick") {
+      setClickedStore(data);
+      setShowClickedStore(true);
+    }
   };
 
   // --- Map Handlers ---
@@ -314,6 +327,54 @@ export default function Home() {
     }
   }
 
+  const handleLikeClick = async (opinionId: string) => {
+    const accountId = session?.user.accountId
+    if (!accountId) {
+      alert('ログインしていません。いいねを行うにはログインが必要です。');
+      return;
+    }
+
+    try {
+      const result = await toggleLike(accountId, opinionId);
+
+      if (result.success) {
+        const { isLiked, likeCount } = result;
+
+        setOpinions(prevOpinions =>
+          prevOpinions.map(op => {
+            // 意見IDでマッチング
+            if (op.opinionId === opinionId) {
+
+              // 開いている意見パネルの情報を更新
+              if (showClickedOpinion && op.opinionId === opinionId) {
+                setShowClickedOpinion({
+                  ...clickedOpinion,
+                  likeCount: likeCount,
+                  isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
+                });
+              }
+
+              // 意見リストの当該レコードを更新
+              return {
+                ...op,
+                likeCount: likeCount,
+              };
+            }
+            return op;
+          })
+        );
+
+      } else {
+        alert(result.error || 'いいね処理に失敗しました。');
+      }
+
+    } catch (error) {
+      console.error('いいね処理中のエラー:', error);
+      alert('いいね処理中に予期せぬエラーが発生しました。');
+    }
+
+  }
+
   const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
 
     if (!session) {//ログインしてなかったらログインに誘導
@@ -348,7 +409,7 @@ export default function Home() {
       onExtract={handleExtract}
     />,
     poll: <PollMap questions={questions} filterKeyword={searchKeyword} onDialogOpen={handleDialogOpen} />,
-    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} />
+    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} onExtract={handleExtract} />
   };
 
   // --------------------------------------------------
@@ -408,21 +469,15 @@ export default function Home() {
     );
   };
 
-  // スクロールバーを表示しない
-  // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
-  //   if (menuOpen) document.body.classList.add("no-scroll");
-  //   else document.body.classList.remove("no-scroll");
-  // }, [menuOpen]);
-
   return (
     <div className="frame">
       {/* ===== ヘッダー ===== */}
       <header className="flex items-center bg-orange-500 text-white p-3 relative z-50">
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
-          {menuOpen ? "×" : "☰"}
+          {menuOpen ? "✕" : "☰"}
         </div>
         <button
-          className="text-2xl mr-3 cursor-pointer"
+          className="filter-btn"
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filter"
         >フィルター
@@ -439,7 +494,7 @@ export default function Home() {
           {/* ★ 検索ボタンを追加 */}
           <button
             onClick={() => setSearchKeyword(filterKeyword)}
-            className="p-2 text-gray-500 hover:text-orange-500 transition-colors"
+            className="search-btn"
           >
             検索
           </button>
@@ -451,15 +506,13 @@ export default function Home() {
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
+          {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
             ユーザープロフィール
           </li>
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_store")}>
             ストアプロフィール
           </li>
-          <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          {/* 店舗ログインなら表示 todo*/}
-          {/* {storeId && ( */}
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
             onClick={() => router.push("/register")}
@@ -538,7 +591,7 @@ export default function Home() {
 
       {/* ★ 修正 4: マップの下に出店スケジュールリストを呼び出し ★ */}
       <div className="schedule-list-area">
-        {renderScheduleList()}
+        {/* {renderScheduleList()} */}
       </div>
 
       {/* ===== ダイアログ ===== */}
@@ -700,6 +753,7 @@ export default function Home() {
 
       {isFilterOpen && (
         <>
+        {/* フィルター */}
           {/* 背景の黒み (クリックで閉じる) */}
           <div
             className="dialog-overlay"
@@ -721,9 +775,9 @@ export default function Home() {
 
             {/* タグ */}
             <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">タグ</label>
+              <label className="block text-sm font-bold mb-1">タグの選択</label>
               <select
-                className="w-full p-2 border rounded"
+                className="select-tag"
                 value={filters.tag ?? ""}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
@@ -916,6 +970,44 @@ export default function Home() {
           </div>
         </div>
       )}
+      {showClickedOpinion && (
+        <>
+          <div className="extract-panel">
+            <div className="panel-header">
+              <span>{clickedOpinion.commentText}</span>
+              <button onClick={() => setShowClickedOpinion(false)}>×</button>
+            </div>
+            <div className="panel-body">
+              <p>いいね数：{clickedOpinion.likeCount}</p>
+              <p>タグ：{clickedOpinion.tags}</p>
+              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+              <p>性別：{clickedOpinion?.profile.gender}</p>
+              <p>年齢：{clickedOpinion?.profile.age}</p>
+              <p>職業：{clickedOpinion?.profile.occupation}</p>
+              <button
+                className="like-button"
+                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+              >
+                いいね
+              </button>
+            </div>
+          </div>
+        </>
+      )
+      }
+      {showClickedStore && (
+        <div className="extract-panel">
+          <div className="panel-header">
+            <span>{clickedStore.storeName}</span>
+            <button onClick={() => setShowClickedStore(false)}>×</button>
+          </div>
+          <div className="panel-body">
+            <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
+            <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
+          </div>
+        </div>
+      )
+      }
     </div>
-  );
+  )
 }
