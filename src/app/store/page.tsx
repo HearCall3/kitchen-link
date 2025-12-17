@@ -107,13 +107,13 @@ export default function StoreRegisterPage() {
   };
   return (
     <div>
-      {/* ユーザーのGmailアカウント名を表示 */}
-      {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
-
       {/* ==== メインコンテンツ ==== */}
       <div className={styles.storeTheme}>
         <div className={styles.registerCard}>
           <h2 className={styles.registerTitle}>店舗情報入力</h2>
+
+          {/* ユーザーのGmailアカウント名を表示 */}
+          {email && <p style={{ textAlign: 'center', marginBottom: '10px', color: '#10b981' }}>({email} で登録)</p>}
 
           <div className={styles.registerForm}>
             <form onSubmit={handleSubmit} className={styles.registerForm}>
