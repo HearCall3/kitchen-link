@@ -18,7 +18,6 @@ const containerStyle = {
     height: "100%",
 };
 
-const center = { lat: 35.681236, lng: 139.767125 };
 const mapOption = { disableDefaultUI: true }
 
 // 定数は外に出す（変更なし）
@@ -33,16 +32,24 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
+
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
     questions: (any[]);
     filterKeyword: String;
+    giveLocation: locationtypes | null;
 }
 
-export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostMapProps) {
+export default function PollMap({ questions, filterKeyword,giveLocation, onDialogOpen }: PostMapProps) {
 
     const { data: session } = useSession();
     const currentAccountId = session?.user?.accountId;
+    const [position, setposition] = useState<locationtypes>({lat:35.681236,lng:139.767125})
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -58,6 +65,17 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
         if (clickPos)
             onDialogOpen("poll", clickPos);
     }
+
+    useEffect(() => {
+            if(giveLocation){
+                setposition(giveLocation)
+                if(map){
+            map.moveCamera({
+                    center: position,
+                    zoom: 15
+                });
+            }}
+        },[giveLocation]);
 
     useEffect(() => {
         if (!map || !isLoaded) return;
@@ -83,7 +101,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                 }}
                 mapContainerStyle={containerStyle}
                 options={mapOption}
-                center={center}
+                center={position}
                 zoom={14}
             >
 
@@ -138,7 +156,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
 
                         // ここのパスを指定します！！！！！！
                         url: "/icon/poll_ok.png", // ★ 任意の画像パスを指定 ★
-                        
+
                         scaledSize: new google.maps.Size(40, 40),
                         anchor: new google.maps.Point(20, 40),
                     };
@@ -147,7 +165,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                     const markerIcon = hasAnswered ?
                         answeredIcon : // 回答済みなら、新しいカスタムピン
                         unansweredIcon; // 未回答なら、/icon/poll.png
-                        
+
                     return (
                         <MarkerF
                             key={q.questionId}
