@@ -60,7 +60,8 @@
   position: absolute;
   top: 24px;
   left: 24px;
-  width: 380px;
+  width: 60%;
+  max-width: 400px;
   /* 横幅を確保 */
   max-height: calc(100% - 48px);
   /* 上下の余白分を引いた高さ */
