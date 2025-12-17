@@ -137,7 +137,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
                     const answeredIcon = {
 
                         // ここのパスを指定します！！！！！！
-                        url: "/answered_custom_pin.png", // ★ 任意の画像パスを指定 ★
+                        url: "/icon/poll_ok.png", // ★ 任意の画像パスを指定 ★
                         
                         scaledSize: new google.maps.Size(40, 40),
                         anchor: new google.maps.Point(20, 40),
