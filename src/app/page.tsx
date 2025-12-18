@@ -63,6 +63,10 @@ export default function Home() {
   const [selectedTag, setSelectedTag] = useState("");
   const genres = ["商品", "値段", "ボリューム", "満足", "その他"];
 
+  // =====いいね=====
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState<number>(0);
+
   // ====== アンケート作成 States ======
   const [createOpen, setCreateOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
@@ -334,11 +338,12 @@ export default function Home() {
       return;
     }
 
+
     try {
       const result = await toggleLike(accountId, opinionId);
 
       if (result.success) {
-        const { isLiked, likeCount } = result;
+        const [isLiked, setIsLiked] = useState(false);
 
         setOpinions(prevOpinions =>
           prevOpinions.map(op => {
@@ -375,7 +380,7 @@ export default function Home() {
 
   }
 
-  const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }) => {
+  const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }, hasAnswered?: boolean) => {
 
     if (!session) {//ログインしてなかったらログインに誘導
       setShowLoginPrompt(true);
@@ -394,6 +399,14 @@ export default function Home() {
     // setShowResult(true);回答済みなら結果を表示
     // } else {
     setAnswerPollOpen(true);//未回答なら回答させる
+
+    if (hasAnswered) {
+      setShowResult(true);
+      setAnswerPollOpen(false);
+    } else {
+      setAnswerPollOpen(true);
+      setShowResult(false);
+    }
   }
 
   const formatDateInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
@@ -511,10 +524,31 @@ export default function Home() {
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
           {/* 出店者なら出店者プロフィールに行く TODO */}
-          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              if (!session) {
+                // ログインしてなかったらログインに誘導
+                setShowLoginPrompt(true);
+                return;
+              }
+              router.push("/profile_user");
+            }}
+          >
+
             ユーザープロフィール
           </li>
-          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_store")}>
+          <li
+            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              if (!session) {
+                // ログインしてなかったらログインに誘導
+                setShowLoginPrompt(true);
+                return;
+              }
+              router.push("/profile_user");
+            }}
+          >
             ストアプロフィール
           </li>
           <li
@@ -608,7 +642,7 @@ export default function Home() {
           <div className="poll-dialog active">
             <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
             <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
-            <p className="text-sm text-gray-500 mb-3">by {selectedQuestion.storeName}</p>
+            <p className="text-sm text-gray-500 mb-3">作成者： {selectedQuestion.storeName}</p>
 
             <div className="poll-options">
               <button
@@ -649,8 +683,11 @@ export default function Home() {
               ×
             </button>
 
+            <h2 className="text-lg font-bold mb-6 text-center">
+              結果
+            </h2>
             <h3 className="text-lg font-bold mb-6 text-center">
-              投票結果
+              <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
             </h3>
             <div className='scroll'>
 
@@ -708,50 +745,48 @@ export default function Home() {
       {postOpen && (
         <>
           {/* ===== 意見投稿 ===== */}
-          <div className='scroll'>
-            <div
-              className="dialog-overlay"
+          <div
+            className="dialog-overlay"
+            onClick={() => setPostOpen(false)}
+          />
+          <div className="poll-dialog active">
+            <button
+              className="close-btn"
               onClick={() => setPostOpen(false)}
+            >
+              ×
+            </button>
+
+            <h3>意見を投稿</h3>
+
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="お店についての意見を入力..."
             />
-            <div className="poll-dialog active">
-              <button
-                className="close-btn"
-                onClick={() => setPostOpen(false)}
+            {/* ジャンル選択 */}
+            <div className="genre-container">
+              選択：
+              <select
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
               >
-                ×
+                {/* optionsのリストをレンダリング */}
+                {tags.map((tag) => (
+                  <option key={tag.value} value={tag.value}>
+                    {tag.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={handleOpinionSubmit}
+                className="submit-btn"
+              >
+                投稿する
               </button>
-
-              <h3>意見を投稿</h3>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="お店についての意見を入力..."
-              />
-              {/* ジャンル選択 */}
-              <div className="genre-container">
-                選択：
-                <select
-                  value={selectedTag}
-                  onChange={(e) => setSelectedTag(e.target.value)}
-                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
-                >
-                  {/* optionsのリストをレンダリング */}
-                  {tags.map((tag) => (
-                    <option key={tag.value} value={tag.value}>
-                      {tag.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={handleOpinionSubmit}
-                  className="submit-btn"
-                >
-                  投稿する
-                </button>
-              </div>
             </div>
           </div>
         </>
@@ -995,27 +1030,19 @@ export default function Home() {
                 <span>{clickedOpinion.commentText}</span>
                 <button onClick={() => setShowClickedOpinion(false)}>×</button>
               </div>
-              <div className="panel-body">
-                <p>いいね数：{clickedOpinion.likeCount}</p>
-                <p>タグ：{clickedOpinion.tags}</p>
-                <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
-                <p>性別：{clickedOpinion?.profile.gender}</p>
-                <p>年齢：{clickedOpinion?.profile.age}</p>
-                <p>職業：{clickedOpinion?.profile.occupation}</p>
-                <button
-                  className="like-button"
-                  onClick={() => handleLikeClick(clickedOpinion.opinionId)}
-                >
-                  いいね
-                </button>
-                <button
-                  className={'heart-btn'}
-                  onClick={() => handleLikeClick(clickedOpinion.opinionId)}
-                  aria-label="like"
-                >
-                  ❤
-                </button>
-              </div>
+              <button
+                className={`heart-btn ${isLiked ? 'liked' : ''}`}
+                onClick={() => setIsLiked(prev => !prev)}
+              >
+                ❤ {clickedOpinion?.likeCount || 0}
+              </button>
+
+              <p>タグ：{clickedOpinion.tags}</p>
+              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+              <p>性別：{clickedOpinion?.profile.gender}</p>
+              <p>年齢：{clickedOpinion?.profile.age}</p>
+              <p>職業：{clickedOpinion?.profile.occupation}</p>
+
             </div>
           </>
         )

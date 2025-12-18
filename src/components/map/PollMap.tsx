@@ -34,12 +34,12 @@ const circleOptions = {
 };
 
 interface PostMapProps {
-    onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }) => void;
+    onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }, hasAnswered?: boolean) => void;
     questions: (any[]);
     filterKeyword: String;
 }
 
-export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostMapProps) {
+export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
 
     const { data: session } = useSession();
     const currentAccountId = session?.user?.accountId;
@@ -87,19 +87,6 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                 zoom={14}
             >
 
-                {/* アンケート回答ピンアイコン todo */}
-                {/* <MarkerF
-                    key={`marker-${data.lat}-${isOpen}`}
-                    position={{ lat: data.lat, lng: data.lon }}
-                    onClick={() => toggleLabel(data.lat)}
-                    label={isOpen ? { text: data.opinion, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
-                    icon={{
-                        url: "/pin.png",        // 画像パス (public フォルダに置くのがおすすめ)
-                        scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                        anchor: new google.maps.Point(20, 40),    // ピン先端を座標に合わせる
-                    }}
-                /> */}
-
                 {/* アンケートの作成 アイコン作成todo*/}
                 {filterdQuestions.map((q) => {
 
@@ -137,8 +124,8 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                     const answeredIcon = {
 
                         // ここのパスを指定します！！！！！！
-                        url: "/icon/poll_ok.png", // ★ 任意の画像パスを指定 ★
-                        
+                        url: "/icon/poll_ok.png",
+
                         scaledSize: new google.maps.Size(40, 40),
                         anchor: new google.maps.Point(20, 40),
                     };
@@ -147,7 +134,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                     const markerIcon = hasAnswered ?
                         answeredIcon : // 回答済みなら、新しいカスタムピン
                         unansweredIcon; // 未回答なら、/icon/poll.png
-                        
+
                     return (
                         <MarkerF
                             key={q.questionId}
@@ -156,14 +143,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen}: PostM
                                 lng: Number(q.longitude),
                             }}
                             icon={markerIcon} // 未回答ならカスタム、回答済みならデフォルト
-                            label={{
-                                text: q.questionText,
-                                // 未回答ならカスタムスタイル、回答済みならデフォルトスタイル (白背景)
-                                className: isUnanswered
-                                    ? "bg-yellow-100 text-gray-800 px-2 py-1 rounded shadow font-bold"
-                                    : "bg-white px-2 py-1 rounded shadow",
-                            }}
-                            onClick={() => onDialogOpen(q.questionId)}
+                            onClick={() => onDialogOpen(q.questionId, undefined, hasAnswered)}
                         />
                     );
                 })}

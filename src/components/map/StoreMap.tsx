@@ -70,9 +70,9 @@ export default function StoreMap({ schedule, filterKeyword, onExtract}: storePro
                             anchor: new google.maps.Point(20, 40), // 先端の位置調整
                             labelOrigin: new window.google.maps.Point(50, 30),
                         }}
-                        label={{
-                            text: q.storeName,
-                        }}
+                        // label={{
+                        //     text: q.storeName,
+                        // }}
                         onClick={() => onExtract("storeClick", q)}
                     />
                 ))}
