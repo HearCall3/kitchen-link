@@ -17,17 +17,23 @@ const containerStyle = {
     height: "100%",
 };
 
-const center = { lat: 35.681236, lng: 139.767125 };
 const mapOption = { disableDefaultUI: true }
 
 interface storeProps {
     schedule: (any[]);
     filterKeyword: string;
     onExtract: (data: string,opinions: any) => void;
+    giveLocation: locationtypes | null;
 }
+
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
 // 定数は外に出す（変更なし）
 const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
-export default function StoreMap({ schedule, filterKeyword, onExtract}: storeProps) {
+export default function StoreMap({ schedule, filterKeyword, giveLocation, onExtract }: storeProps) {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -36,6 +42,19 @@ export default function StoreMap({ schedule, filterKeyword, onExtract}: storePro
     });
 
     const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [position, setposition] = useState<locationtypes>({ lat: 35.681236, lng: 139.767125 })
+
+    useEffect(() => {
+        if (giveLocation) {
+            setposition(giveLocation)
+            if (map) {
+                map.moveCamera({
+                    center: position,
+                    zoom: 15
+                });
+            }
+        }
+    }, [giveLocation]);
 
     useEffect(() => {
         if (!map || !isLoaded) return;
@@ -51,10 +70,11 @@ export default function StoreMap({ schedule, filterKeyword, onExtract}: storePro
 
     return (
         <>
+
             <GoogleMap
                 mapContainerStyle={containerStyle}
                 options={mapOption}
-                center={center}
+                center={position}
                 zoom={14}
             >
                 {filterSchedule.map((q) => (
@@ -64,11 +84,12 @@ export default function StoreMap({ schedule, filterKeyword, onExtract}: storePro
                             lat: Number(q.location.lat),
                             lng: Number(q.location.lng),
                         }}
-                        // icon={{
-                        //      url: "/pin_orange.png",  // publicフォルダに画像を置く
-                        //      scaledSize: new google.maps.Size(40, 40), // サイズ調整
-                        //      anchor: new google.maps.Point(20, 40), // 先端の位置調整
-                        // }}
+                        icon={{
+                            url: "/icon/kitchen.png",  // publicフォルダに画像を置く
+                            scaledSize: new google.maps.Size(40, 30), // サイズ調整
+                            anchor: new google.maps.Point(20, 40), // 先端の位置調整
+                            labelOrigin: new window.google.maps.Point(50, 30),
+                        }}
                         label={{
                             text: q.storeName,
                         }}

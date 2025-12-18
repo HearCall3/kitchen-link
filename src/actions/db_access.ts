@@ -6,13 +6,23 @@ import { revalidatePath } from 'next/cache';
 import { Prisma, PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 
-// メールアドレスをSHA-256でハッシュ化する関数
+/**
+ * メールアドレスをSHA-256でハッシュ化する関数
+ * 大文字・小文字を区別しない検索を可能にするため、メールアドレスを小文字に変換してからハッシュ化します。
+ * @param email ハッシュ化するメールアドレス
+ * @returns ハッシュ化されたメールアドレス文字列
+ */
 function hashEmail(email: string): string {
     // メールアドレスは小文字に変換してからハッシュ化することで、大文字・小文字を区別しない検索を可能にする
     return crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
 }
 
-// FormDataから数値を安全にパースし、undefinedを返すユーティリティ
+/**
+ * FormDataから数値を安全にパースし、undefinedを返すユーティリティ関数
+ * 数値でない場合や空文字列の場合はundefinedを返します。
+ * @param value FormDataから取得した値
+ * @returns パースされた数値またはundefined
+ */
 function safeParseInt(value: FormDataEntryValue | null): number | undefined {
     if (value === null || value === '') return undefined;
     const num = parseInt(value as string);
@@ -23,16 +33,56 @@ function safeParseInt(value: FormDataEntryValue | null): number | undefined {
 // ★ カウントアップ式カスタムID生成ロジックと定数
 // ===================================================================
 
+/**
+ * ユーザー用のシーケンス名定数
+ * IDの末尾に'01'を付与してユーザーIDを生成します。
+ */
 const SEQUENCE_NAME_USER = 'user_seq';      // 01
+
+/**
+ * ストア用のシーケンス名定数
+ * IDの末尾に'02'を付与してストアIDを生成します。
+ */
 const SEQUENCE_NAME_STORE = 'store_seq';    // 02
+
+/**
+ * アカウント用のシーケンス名定数
+ * IDの末尾に'03'を付与してアカウントIDを生成します。
+ */
 const SEQUENCE_NAME_ACCOUNT = 'account_seq';// 03
+
+/**
+ * 出店情報用のシーケンス名定数
+ * IDの末尾に'04'を付与して出店情報IDを生成します。
+ */
 const SEQUENCE_NAME_OPENING = 'opening_info_seq'; // 04
+
+/**
+ * 意見投稿用のシーケンス名定数
+ * IDの末尾に'05'を付与して意見IDを生成します。
+ */
 const SEQUENCE_NAME_OPINION = 'opinion_seq';      // 05
+
+/**
+ * アンケート用のシーケンス名定数
+ * IDの末尾に'06'を付与してアンケートIDを生成します。
+ */
 const SEQUENCE_NAME_QUESTION = 'question_seq';    // 06
+
+/**
+ * カスタムIDのカウント部分の桁数
+ * カウントを8桁のゼロ埋め文字列に変換します。
+ */
 const COUNT_LENGTH = 8;
 
 /**
- * データベースで連番を安全にインクリメントし、カスタムIDを生成する
+ * データベースで連番を安全にインクリメントし、カスタムIDを生成する関数
+ * トランザクション内でシーケンスを検索・インクリメントし、カウントをゼロ埋めしてタイプコードを付与します。
+ * これにより、テーブルごとにユニークなIDを生成し、競合を防ぎます。
+ * @param seqName シーケンス名（例: 'user_seq'）
+ * @param typeCode IDの末尾に付与するタイプコード（例: '01'）
+ * @param tx トランザクションクライアント
+ * @returns 生成されたカスタムID文字列
  */
 async function getAndIncrementCustomId(seqName: string, typeCode: string, tx: any): Promise<string> {
 
@@ -62,7 +112,14 @@ async function getAndIncrementCustomId(seqName: string, typeCode: string, tx: an
 // 1. 一般利用者（User）CRUD
 // ----------------------------------------------------------------------
 
-/** 1-A. 利用者作成 (User Create) */
+/**
+ * 一般利用者（User）を作成する関数
+ * メールアドレスをハッシュ化し、既存のアカウントを確認した上で、UserレコードとAccountレコードを作成または更新します。
+ * トランザクションを使用することで、データの一貫性を確保します。
+ * @param formData ユーザー作成フォームデータ
+ * @param email ユーザーのメールアドレス
+ * @returns 成功時はユーザーオブジェクト、エラー時はエラーメッセージ
+ */
 export async function createUser(formData: FormData, email: string) {
     const hashedEmail = hashEmail(email); // ★ 追加: ハッシュ化 ★
     console.log(`[DB] START: Creating User for email: ${hashedEmail}`);
@@ -77,15 +134,17 @@ export async function createUser(formData: FormData, email: string) {
 
     try {
         const newUser = await prisma.$transaction(async (tx) => {
-
+            // 既存のアカウントをチェック（同じメールアドレスでUserが既に登録されていないか確認）
             const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.userId) {
                 return { error: 'このメールアドレスは、既に一般利用者（User）として登録済みです。' };
             }
 
+            // カスタムIDを生成（ユーザー用）
             const customUserId = await getAndIncrementCustomId(SEQUENCE_NAME_USER, '01', tx);
             console.log(`[DB] Generated User ID: ${customUserId}`);
 
+            // Userデータを作成（性別、年齢層、職業はオプションで関連付け）
             const userData: Prisma.UserCreateInput = { userId: customUserId, nickname: nickname, introduction: null };
             if (genderId !== undefined) { userData.gender = { connect: { genderId: genderId } }; }
             if (ageGroupId !== undefined) { userData.ageGroup = { connect: { ageGroupId: ageGroupId } }; }
@@ -93,12 +152,15 @@ export async function createUser(formData: FormData, email: string) {
 
             const user = await tx.user.create({ data: userData });
 
+            // Accountレコードの作成または更新（ハイブリッドアカウント対応）
             if (existingAccount) {
+                // 既存のアカウントがある場合、userIdを追加してアカウントタイプを更新
                 await tx.account.update({
                     where: { accountId: existingAccount.accountId },
                     data: { userId: customUserId, accountType: existingAccount.storeId ? 'Both' : 'User' }
                 });
             } else {
+                // 新規アカウント作成
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
                     data: { accountId: customAccountId, email: hashedEmail, accountType: 'User', userId: customUserId }
@@ -112,10 +174,12 @@ export async function createUser(formData: FormData, email: string) {
 
     } catch (error) {
         console.error('User creation failed:', error);
+        // Prisma固有のエラーハンドリング（ユニーク制約違反など）
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             if (error.meta && (error.meta.target as string[]).includes('nickname')) { return { error: 'そのニックネームは既に使用されています。' }; }
             if (error.meta && (error.meta.target as string[]).includes('email')) { return { error: 'このメールアドレスは既に他のアカウントで使用されています。' }; }
         }
+        // 外部キー制約違反（性別、年齢層、職業のIDが存在しない場合）
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
             return { error: '選択された性別、年齢層、または職業のデータが見つかりませんでした。入力値が正しいか確認してください。' };
         }
@@ -133,6 +197,7 @@ export async function updateUser(accountId: string, formData: FormData) {
     const ageGroupName = formData.get('ageGroupName') as string;
     const occupationName = formData.get('occupationName') as string;
 
+    // アカウントIDからuserIdを取得（Userが存在するか確認）
     const existingAccount = await prisma.account.findUnique({
         where: { accountId: accountId }, // Stringのまま使用
         select: { userId: true }
@@ -144,12 +209,12 @@ export async function updateUser(accountId: string, formData: FormData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            // 2. マスタデータ名からIDを取得 (トランザクションクライアントtxを使用)
+            // マスタデータ名（例: "男性"）からIDを取得（トランザクションクライアントtxを使用）
             const genderId = await getMasterIdByName(tx, 'Gender', genderName);
             const ageGroupId = await getMasterIdByName(tx, 'AgeGroup', ageGroupName);
             const occupationId = await getMasterIdByName(tx, 'Occupation', occupationName);
 
-            // 3. 更新するデータを構築
+            // 更新するデータを構築（IDが取得できた場合のみ関連付け）
             const userData: Prisma.UserUpdateInput = {
                 nickname: nickname,
             };
@@ -159,7 +224,7 @@ export async function updateUser(accountId: string, formData: FormData) {
             if (ageGroupId !== null) { userData.ageGroup = { connect: { ageGroupId: ageGroupId } }; }
             if (occupationId !== null) { userData.occupation = { connect: { occupationId: occupationId } }; }
 
-            // 4. Userテーブルを更新
+            // Userテーブルを更新
             await tx.user.update({
                 where: { userId: existingAccount.userId! }, // userIdもString型
                 data: userData,
@@ -170,7 +235,8 @@ export async function updateUser(accountId: string, formData: FormData) {
         return { success: true };
 
     } catch (error) {
-        // ... (エラー処理は省略) ...
+        // エラーハンドリング（Prismaエラーなど）
+        console.error('User update failed:', error);
         return { error: '利用者アカウント情報の更新に失敗しました。' };
     } finally {
         console.log(`[DB] END: Updating User.`);
@@ -181,6 +247,7 @@ export async function updateUser(accountId: string, formData: FormData) {
 export async function deleteUser(accountId: string) {
     console.log(`[DB] START: Deleting User Profile for Account ID: ${accountId}`);
 
+    // アカウント情報を取得（userIdとstoreIdを確認してハイブリッドアカウントか判定）
     const account = await prisma.account.findUnique({
         where: { accountId: accountId },
         select: { userId: true, storeId: true, accountType: true }
@@ -192,28 +259,27 @@ export async function deleteUser(accountId: string) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const isHybrid = account.storeId !== null;
+            const isHybrid = account.storeId !== null; // ハイブリッドアカウント（UserとStoreの両方を持つ）か判定
 
-            // 1. Userに紐づく依存データを削除
-            await tx.pressLike.deleteMany({ where: { accountId: accountId } });
-            await tx.questionAnswer.deleteMany({ where: { accountId: accountId } });
-            await tx.postAnOpinion.deleteMany({ where: { accountId: accountId } });
+            // Userに紐づく依存データを削除（外部キー制約を満たすため）
+            await tx.pressLike.deleteMany({ where: { accountId: accountId } }); // いいね
+            await tx.questionAnswer.deleteMany({ where: { accountId: accountId } }); // アンケート回答
+            await tx.postAnOpinion.deleteMany({ where: { accountId: accountId } }); // 意見投稿
             console.log(`[DB] Deleted dependencies for Account ID ${accountId}.`);
 
-            // 2. Userレコードを削除
-            // ★ 修正: ロジックでnullチェック済みのため、非nullアサーションを使用
+            // Userレコードを削除
             await tx.user.delete({ where: { userId: account.userId! } });
             console.log(`[DB] Deleted User ID ${account.userId}.`);
 
-            // 3. Accountレコードを更新/削除
+            // Accountレコードの更新または削除（ハイブリッドの場合はStoreのみに変更、新規の場合は削除）
             if (isHybrid) {
                 await tx.account.update({
                     where: { accountId: accountId },
-                    data: { userId: null, accountType: 'Store' }
+                    data: { userId: null, accountType: 'Store' } // Storeのみに変更
                 });
                 console.log(`[DB] Account ID ${accountId} updated to Store.`);
             } else {
-                await tx.account.delete({ where: { accountId: accountId } });
+                await tx.account.delete({ where: { accountId: accountId } }); // アカウント削除
                 console.log(`[DB] Deleted Account ID ${accountId}.`);
             }
         });
@@ -234,11 +300,19 @@ export async function deleteUser(accountId: string) {
 // 2. ストア（Store）CRUD
 // ----------------------------------------------------------------------
 
-/** 2-A. ストア作成 (Store Create) */
+/**
+ * ストア（Store）を作成する関数
+ * メールアドレスをハッシュ化し、既存のアカウントを確認した上で、StoreレコードとAccountレコードを作成または更新します。
+ * トランザクションを使用することで、データの一貫性を確保します。
+ * @param formData ストア作成フォームデータ
+ * @param email ストアのメールアドレス
+ * @returns 成功時はストアオブジェクト、エラー時はエラーメッセージ
+ */
 export async function createStore(formData: FormData, email: string) {
     console.log(`[DB] START: Creating Store for email: ${email}`);
     const storeName = formData.get('storeName') as string;
     const introduction = formData.get('description') as string;
+    const storeUrl = (formData.get('storeUrl') as string) || null;
     // ハッシュ値を使用
     const hashedEmail = hashEmail(email);
 
@@ -249,27 +323,32 @@ export async function createStore(formData: FormData, email: string) {
 
     try {
         const newStore = await prisma.$transaction(async (tx) => {
-
+            // 既存のアカウントをチェック（同じメールアドレスでStoreが既に登録されていないか確認）
             const existingAccount = await tx.account.findUnique({ where: { email: hashedEmail } });
             if (existingAccount && existingAccount.storeId) {
                 return { error: 'このメールアドレスは、既に出店者（Store）として登録済みです。' };
             }
 
+            // カスタムIDを生成（ストア用）
             const customStoreId = await getAndIncrementCustomId(SEQUENCE_NAME_STORE, '02', tx);
             console.log(`[DB] Generated Store ID: ${customStoreId}`);
 
+            // Storeレコードを作成
             const store = await tx.store.create({
-                data: { storeId: customStoreId, storeName: storeName, introduction: introduction }
+                data: { storeId: customStoreId, storeName: storeName, introduction: introduction, storeUrl: storeUrl }
             });
 
             // StoreOpeningInformationの仮登録は削除済み
 
+            // Accountレコードの作成または更新（ハイブリッドアカウント対応）
             if (existingAccount) {
+                // 既存のアカウントがある場合、storeIdを追加してアカウントタイプを更新
                 await tx.account.update({
                     where: { accountId: existingAccount.accountId },
                     data: { storeId: customStoreId, accountType: existingAccount.userId ? 'Both' : 'Store' }
                 });
             } else {
+                // 新規アカウント作成
                 const customAccountId = await getAndIncrementCustomId(SEQUENCE_NAME_ACCOUNT, '03', tx);
                 await tx.account.create({
                     data: { accountId: customAccountId, email: hashedEmail, accountType: 'Store', storeId: customStoreId }
@@ -284,6 +363,7 @@ export async function createStore(formData: FormData, email: string) {
 
     } catch (error) {
         console.error('Store creation failed:', error);
+        // Prisma固有のエラーハンドリング（ユニーク制約違反など）
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             if (error.meta && (error.meta.target as string[]).includes('store_name')) { return { error: 'その店舗名は既に使用されています。' }; }
             if (error.meta && (error.meta.target as string[]).includes('email')) { return { error: 'このメールアドレスは既に他のアカウントで使用されています。' }; }
@@ -299,7 +379,9 @@ export async function updateStore(accountId: string, formData: FormData) {
     console.log(`[DB] START: Updating Store for Account ID: ${accountId}`);
     const introduction = formData.get('introduction') as string;
     const storeName = formData.get('storeName') as string;
+    const storeUrl = (formData.get('storeUrl') as string) || null;
 
+    // アカウントIDからstoreIdを取得（Storeが存在するか確認）
     const existingAccount = await prisma.account.findUnique({
         where: { accountId: accountId },
         select: { storeId: true }
@@ -311,11 +393,20 @@ export async function updateStore(accountId: string, formData: FormData) {
 
     try {
         await prisma.$transaction(async (tx) => {
+            // 更新するデータオブジェクトを構築
+            const storeData: Prisma.StoreUpdateInput = {
+                storeName: storeName,
+                introduction: introduction,
+                // ★ 修正 2: storeUrl をデータに追加 ★
+                storeUrl: storeUrl,
+            };
 
+            // Storeテーブルを更新
             await tx.store.update({
-                // ★ 修正: ロジックでnullチェック済みのため、非nullアサーションを使用
+                // storeId は Account テーブルから取得したものを使用
                 where: { storeId: existingAccount.storeId! },
-                data: { storeName: storeName, introduction: introduction },
+                // ★ 修正 3: 構築したデータオブジェクトを使用 ★
+                data: storeData,
             });
             console.log(`[DB] Store ID ${existingAccount.storeId} updated.`);
         });
@@ -325,6 +416,7 @@ export async function updateStore(accountId: string, formData: FormData) {
 
     } catch (error) {
         console.error('Store update failed:', error);
+        // ユニーク制約違反のエラーハンドリング
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             if (error.meta && (error.meta.target as string[]).includes('store_name')) { return { error: '更新に失敗: その店舗名は既に使用されています。' }; }
         }
@@ -338,6 +430,7 @@ export async function updateStore(accountId: string, formData: FormData) {
 export async function deleteStore(accountId: string) {
     console.log(`[DB] START: Deleting Store Profile for Account ID: ${accountId}`);
 
+    // アカウント情報を取得（userIdとstoreIdを確認してハイブリッドアカウントか判定）
     const account = await prisma.account.findUnique({
         where: { accountId: accountId },
         select: { userId: true, storeId: true, accountType: true }
@@ -349,28 +442,28 @@ export async function deleteStore(accountId: string) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const isHybrid = account.userId !== null;
+            const isHybrid = account.userId !== null; // ハイブリッドアカウント（UserとStoreの両方を持つ）か判定
             const storeIdToDelete = account.storeId!;
 
-            // 1. Storeに紐づく依存データを削除
+            // Storeに紐づく依存データを削除（外部キー制約を満たすため）
             await tx.storeOpeningInformation.deleteMany({ where: { storeId: storeIdToDelete } }); // 出店情報
-            await tx.questionAnswer.deleteMany({ where: { question: { storeId: storeIdToDelete } } }); // アンケート回答
+            await tx.questionAnswer.deleteMany({ where: { question: { storeId: storeIdToDelete } } }); // アンケート回答（Question経由）
             await tx.question.deleteMany({ where: { storeId: storeIdToDelete } }); // アンケート
             console.log(`[DB] Deleted dependencies for Store ID ${storeIdToDelete}.`);
 
-            // 2. Storeレコードを削除
+            // Storeレコードを削除
             await tx.store.delete({ where: { storeId: storeIdToDelete } });
             console.log(`[DB] Deleted Store ID ${storeIdToDelete}.`);
 
-            // 3. Accountレコードを更新/削除
+            // Accountレコードの更新または削除（ハイブリッドの場合はUserのみに変更、新規の場合は削除）
             if (isHybrid) {
                 await tx.account.update({
                     where: { accountId: accountId },
-                    data: { storeId: null, accountType: 'User' }
+                    data: { storeId: null, accountType: 'User' } // Userのみに変更
                 });
                 console.log(`[DB] Account ID ${accountId} updated to User.`);
             } else {
-                await tx.account.delete({ where: { accountId: accountId } });
+                await tx.account.delete({ where: { accountId: accountId } }); // アカウント削除
                 console.log(`[DB] Deleted Account ID ${accountId}.`);
             }
         });
@@ -391,7 +484,13 @@ export async function deleteStore(accountId: string) {
 // 3. 意見投稿（Opinion）CRUD
 // ----------------------------------------------------------------------
 
-/** 3-A. 意見作成 (Opinion Create) */
+/**
+ * 意見投稿を作成する関数
+ * アカウントID、コメント、緯度経度、タグを基にPostAnOpinionとOpinionTagsレコードを作成します。
+ * トランザクションを使用することで、意見とタグの関連付けが確実に作成されます。
+ * @param formData 意見作成フォームデータ
+ * @returns 成功時は意見オブジェクト、エラー時はエラーメッセージ
+ */
 export async function createOpinion(formData: FormData) {
     console.log(`[DB] START: Creating Opinion.`);
     const accountId = formData.get('accountId') as string;
@@ -406,10 +505,11 @@ export async function createOpinion(formData: FormData) {
 
     try {
         const newOpinion = await prisma.$transaction(async (tx) => {
+            // アカウントの存在確認
             const existingAccount = await tx.account.findUnique({ where: { accountId: accountId } });
             if (!existingAccount) { return { error: '指定されたアカウントIDは存在しません。' }; }
 
-            // ★ 1. TagsテーブルからtagValue (例: "react") に対応する Tag ID を検索 ★
+            // TagテーブルからtagValueに対応するTag IDを検索
             const tag = await tx.tag.findFirst({
                 where: { tagName: tagValue },
                 select: { tagId: true }
@@ -419,9 +519,10 @@ export async function createOpinion(formData: FormData) {
                 return { error: '指定されたタグが見つかりませんでした。タグマスタを確認してください。' };
             }
 
+            // カスタムIDを生成（意見用）
             const customOpinionId = await getAndIncrementCustomId(SEQUENCE_NAME_OPINION, '05', tx);
 
-            // 2. PostAnOpinion レコードを作成
+            // PostAnOpinionレコードを作成
             const opinion = await tx.postAnOpinion.create({
                 data: {
                     postAnOpinionId: customOpinionId,
@@ -433,7 +534,7 @@ export async function createOpinion(formData: FormData) {
                 }
             });
 
-            // 3. OpinionTags テーブルにレコードを挿入 (意見とタグを紐づけ)
+            // OpinionTagsテーブルにレコードを挿入（意見とタグを紐づけ）
             await tx.opinionTags.create({
                 data: {
                     postAnOpinionId: customOpinionId,
@@ -465,6 +566,7 @@ export async function updateOpinion(id: string, formData: FormData) {
     }
 
     try {
+        // 意見のコメントを更新（他のフィールドは変更しない）
         const updatedOpinion = await prisma.postAnOpinion.update({
             where: { postAnOpinionId: id },
             data: { commentText: commentText }
@@ -487,12 +589,12 @@ export async function deleteOpinion(id: string) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            // 1. 依存するデータを削除 (Likes and Tags)
-            await tx.pressLike.deleteMany({ where: { postAnOpinionId: id } });
-            await tx.opinionTags.deleteMany({ where: { postAnOpinionId: id } });
+            // 意見に紐づく依存データを削除（外部キー制約を満たすため）
+            await tx.pressLike.deleteMany({ where: { postAnOpinionId: id } }); // いいね
+            await tx.opinionTags.deleteMany({ where: { postAnOpinionId: id } }); // タグ関連
             console.log(`[DB] Deleted dependencies for Opinion ID ${id}.`);
 
-            // 2. 意見投稿本体を削除
+            // 意見投稿本体を削除
             const deletedOpinion = await tx.postAnOpinion.delete({
                 where: { postAnOpinionId: id },
             });
@@ -514,6 +616,7 @@ export async function deleteOpinion(id: string) {
 export async function getAllOpinions() {
     console.log(`[DB] START: Fetching all Opinions.`);
     try {
+        // PostAnOpinionテーブルから全レコードを取得（新しい順にソート）
         const opinions = await prisma.postAnOpinion.findMany({
             orderBy: { postedAt: 'desc' }, // 新しい順にソート
             select: {
@@ -522,7 +625,7 @@ export async function getAllOpinions() {
                 latitude: true,
                 longitude: true,
                 postedAt: true,
-                // 作成者情報 (Account -> User -> Master Data) を取得
+                // 作成者情報（Account -> User -> Master Data）を結合して取得
                 account: {
                     select: {
                         user: {
@@ -534,17 +637,17 @@ export async function getAllOpinions() {
                                 occupation: { select: { occupationName: true } }
                             }
                         },
-                        // Store情報 (ハイブリッドアカウントの場合、店舗名を取得)
+                        // ハイブリッドアカウントの場合、店舗名を取得
                         store: {
                             select: { storeName: true }
                         }
                     }
                 },
-                // いいねの数
+                // いいねの数を取得（カウント用）
                 likes: {
                     select: { accountId: true }
                 },
-                // タグ情報
+                // タグ情報を取得
                 opinionTags: {
                     select: {
                         tag: {
@@ -557,13 +660,12 @@ export async function getAllOpinions() {
 
         // クライアント側で扱いやすい形式にデータを加工
         const processedOpinions = opinions.map(o => {
-            let creatorName = '匿名ユーザー';
-            let profile = { gender: '', age: '', occupation: '' }; // ★ プロフィールデータ用のオブジェクトを初期化
+            let creatorName = '匿名ユーザー'; // デフォルトの作成者名
+            let profile = { gender: '', age: '', occupation: '' }; // プロフィールデータ用のオブジェクト
 
             // ユーザー情報（一般利用者）を優先して処理
             if (o.account?.user?.nickname) {
-
-                // ★ デバッグログを追加 ★
+                // デバッグログ（開発時のみ）
                 console.log("--- DEBUG OPINION PROFILE ---");
                 console.log("Nickname:", o.account.user.nickname);
                 console.log("Gender Data:", o.account.user.gender);
@@ -573,12 +675,12 @@ export async function getAllOpinions() {
 
                 creatorName = o.account.user.nickname;
 
-                // ★ ユーザー属性の値を抽出 ★
+                // ユーザー属性の値を抽出（未設定の場合は'未設定'）
                 profile.gender = o.account.user.gender?.genderName || '未設定';
                 profile.age = o.account.user.ageGroup?.ageGroupName || '未設定';
                 profile.occupation = o.account.user.occupation?.occupationName || '未設定';
             }
-            // ユーザー情報がなく、ストア情報がある場合
+            // ユーザー情報がなく、ストア情報がある場合（店舗アカウント）
             else if (o.account?.store?.storeName) {
                 creatorName = o.account.store.storeName + ' (店舗)';
                 profile = { gender: '店舗', age: '', occupation: '' }; // 店舗の場合は属性をクリア
@@ -590,10 +692,10 @@ export async function getAllOpinions() {
                 latitude: o.latitude,
                 longitude: o.longitude,
                 postedAt: o.postedAt,
-                likeCount: o.likes.length,
+                likeCount: o.likes.length, // いいねの数
                 creatorName: creatorName,
-                tags: o.opinionTags.map(ot => ot.tag.tagName),
-                profile: profile // ★ 処理されたプロフィール情報を含める ★
+                tags: o.opinionTags.map(ot => ot.tag.tagName), // タグ名の配列
+                profile: profile // 処理されたプロフィール情報
             };
         });
 
@@ -611,7 +713,13 @@ export async function getAllOpinions() {
 // 4. アンケート（Question）と回答（Answer）
 // ----------------------------------------------------------------------
 
-/** 4-A. アンケート作成 (Question Create) */
+/**
+ * アンケートを作成する関数
+ * ストアID、質問文、選択肢、位置情報を基にQuestionレコードを作成します。
+ * トランザクションを使用することで、ストアの存在確認とデータ作成を一貫して行います。
+ * @param formData アンケート作成フォームデータ
+ * @returns 成功時は質問オブジェクト、エラー時はエラーメッセージ
+ */
 export async function createQuestion(formData: FormData) {
     console.log(`[DB] START: Creating Question.`);
     const storeId = formData.get('storeId') as string;
@@ -627,11 +735,14 @@ export async function createQuestion(formData: FormData) {
 
     try {
         const newQuestion = await prisma.$transaction(async (tx) => {
+            // ストアの存在確認
             const existingStore = await tx.store.findUnique({ where: { storeId: storeId } });
             if (!existingStore) { return { error: '指定されたストアIDは存在しません。' }; }
 
+            // カスタムIDを生成（アンケート用）
             const customQuestionId = await getAndIncrementCustomId(SEQUENCE_NAME_QUESTION, '06', tx);
 
+            // Questionレコードを作成
             const question = await tx.question.create({
                 data: {
                     questionId: customQuestionId,
@@ -668,23 +779,23 @@ export async function answerQuestion(formData: FormData) {
         return { error: 'アカウントID、アンケートID、選択肢番号は必須です。' };
     }
 
-    // 選択肢番号のバリデーション (1または2のみ)
+    // 選択肢番号のバリデーション（1または2のみ許可）
     if (selectedOptionNumber !== 1 && selectedOptionNumber !== 2) {
         return { error: '選択肢番号は1または2である必要があります。' };
     }
 
     try {
-        // 複合主キーのレコードをupsert (更新または新規作成)
+        // 複合主キーのレコードをupsert（更新または新規作成）
         const answer = await prisma.questionAnswer.upsert({
             where: {
-                // ★ 修正: 複合主キーの指定方法は正しい (accountId_questionId)
+                // 複合主キーの指定（accountId_questionId）
                 accountId_questionId: {
                     accountId: accountId,
                     questionId: questionId,
                 },
             },
-            update: { selectedOptionNumber: selectedOptionNumber, answeredAt: new Date() },
-            create: {
+            update: { selectedOptionNumber: selectedOptionNumber, answeredAt: new Date() }, // 既存の場合更新
+            create: { // 新規の場合作成
                 accountId: accountId,
                 questionId: questionId,
                 selectedOptionNumber: selectedOptionNumber,
@@ -697,6 +808,7 @@ export async function answerQuestion(formData: FormData) {
 
     } catch (error) {
         console.error('Question answer failed:', error);
+        // 外部キー制約違反（アカウントまたは質問が存在しない場合）
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
             return { error: '指定されたアカウントIDまたはアンケートIDが存在しません。' };
         }
@@ -710,6 +822,7 @@ export async function answerQuestion(formData: FormData) {
 export async function getAllQuestions() {
     console.log(`[DB] START: Fetching all Questions.`);
     try {
+        // Questionテーブルから全レコードを取得（新しい順にソート）
         const questions = await prisma.question.findMany({
             orderBy: { questionId: 'desc' }, // 新しい順にソート
             select: {
@@ -719,11 +832,13 @@ export async function getAllQuestions() {
                 option2Text: true,
                 latitude: true,
                 longitude: true,
-                store: { // Storeテーブルを結合して店舗名を取得
+                // Storeテーブルを結合して店舗名を取得
+                store: {
                     select: { storeName: true }
                 },
-                answers: { // 回答数をカウントするためにanswersを含める
-                    select: { selectedOptionNumber: true }
+                // 回答数をカウントするためにanswersを含める
+                answers: {
+                    select: { accountId: true, selectedOptionNumber: true }
                 }
             }
         });
@@ -731,6 +846,7 @@ export async function getAllQuestions() {
         // クライアント側で扱いやすい形式にデータを加工
         const processedQuestions = questions.map(q => {
             const totalAnswers = q.answers.length;
+            // 各選択肢の回答数をカウント
             const option1Count = q.answers.filter(a => a.selectedOptionNumber === 1).length;
             const option2Count = q.answers.filter(a => a.selectedOptionNumber === 2).length;
 
@@ -745,6 +861,7 @@ export async function getAllQuestions() {
                 totalAnswers: totalAnswers,
                 option1Count: option1Count,
                 option2Count: option2Count,
+                answers: q.answers, // 詳細な回答データも含める
             };
         });
 
@@ -761,6 +878,7 @@ export async function getAllQuestions() {
 export async function getQuestionAnswerCounts(questionId: string) {
     console.log(`[DB] START: Fetching answer counts for Question ID: ${questionId}`);
     try {
+        // QuestionAnswerテーブルをselectedOptionNumberでグループ化してカウント
         const counts = await prisma.questionAnswer.groupBy({
             by: ['selectedOptionNumber'],
             where: {
@@ -771,6 +889,7 @@ export async function getQuestionAnswerCounts(questionId: string) {
             },
         });
 
+        // 結果を整理（選択肢1と2のカウントを取得）
         const result = {
             count1: counts.find(c => c.selectedOptionNumber === 1)?._count.selectedOptionNumber || 0,
             count2: counts.find(c => c.selectedOptionNumber === 2)?._count.selectedOptionNumber || 0,
@@ -790,15 +909,23 @@ export async function getQuestionAnswerCounts(questionId: string) {
 // 5. いいね操作 (PressLike)
 // ----------------------------------------------------------------------
 
-/** 5-A. いいね操作 (Toggle Like) */
+/**
+ * いいね操作をトグルする関数
+ * 指定されたアカウントと意見の組み合わせで、いいねが存在すれば削除、存在しなければ作成します。
+ * トランザクションは使用せず、個別のクエリで処理します。
+ * @param accountId いいねを行うアカウントID
+ * @param opinionId 対象の意見ID
+ * @returns 成功時はいいね状態とカウント、エラー時はエラーメッセージ
+ */
 export async function toggleLike(accountId: string, opinionId: string) {
     console.log(`[DB] START: Toggling Like.`);
     console.log(`[DB DEBUG] Account ID: ${accountId}`);
-    console.log(`[DB DEBUG] Opinion ID: ${opinionId}`); if (!accountId || !opinionId) {
+    console.log(`[DB DEBUG] Opinion ID: ${opinionId}`);
+    if (!accountId || !opinionId) {
         return { error: 'アカウントIDと意見IDは必須です。' };
     }
 
-    // 複合主キーの命名規則に従い、スキーマの @@id([postAnOpinionId, accountId]) から命名
+    // 複合主キーの命名規則に従い、スキーマの@@id([postAnOpinionId, accountId])から命名
     const compositeWhere = {
         postAnOpinionId_accountId: {
             accountId: accountId,
@@ -809,18 +936,18 @@ export async function toggleLike(accountId: string, opinionId: string) {
     try {
         let isLiked: boolean; // トグル後の状態を保持
 
-        // 1. 既存のいいねがあるかチェック
+        // 既存のいいねがあるかチェック
         const existingLike = await prisma.pressLike.findUnique({
             where: compositeWhere,
         });
 
         if (existingLike) {
-            // 2. いいねが存在する場合: 削除 (アンライク)
+            // いいねが存在する場合: 削除（アンライク）
             await prisma.pressLike.delete({ where: compositeWhere });
             isLiked = false; // 削除したので、新しい状態は「いいねなし」
             console.log(`[DB] Like removed by Account ${accountId}.`);
         } else {
-            // 3. いいねが存在しない場合: 作成 (ライク)
+            // いいねが存在しない場合: 作成（ライク）
             await prisma.pressLike.create({
                 data: {
                     postAnOpinionId: opinionId,
@@ -832,16 +959,17 @@ export async function toggleLike(accountId: string, opinionId: string) {
             console.log(`[DB] Like added by Account ${accountId}.`);
         }
 
-        // 💡 4. 更新後のいいね数を集計 (意見リスト全体は不要)
+        // 更新後のいいね数を集計（この意見IDに絞ってカウント）
         const newLikeCount = await prisma.pressLike.count({
             where: {
-                postAnOpinionId: opinionId, // この意見IDに絞ってカウント
+                postAnOpinionId: opinionId,
             },
         });
 
-        // revalidatePath('/db/like'); // キャッシュ無効化は必要に応じて残す
+        // キャッシュ無効化は必要に応じて残す
+        // revalidatePath('/db/like');
 
-        // 💡 5. クライアントが必要な情報のみを返す
+        // クライアントが必要な情報のみを返す
         return {
             success: true,
             isLiked: isLiked,
@@ -864,15 +992,27 @@ export async function toggleLike(accountId: string, opinionId: string) {
 // 6. 出店スケジュール (Store Opening Information) CRUD
 // ----------------------------------------------------------------------
 
-const SEQUENCE_NAME_SCHEDULE = 'store_opening_info_seq'; // 💡 論理的な名前に変更 (または SEQUENCE_NAME_OPENING を再利用)
-const SCHEDULE_TYPE_CODE = '04'; // 💡 StoreOpeningInformationのType Codeを'04'と仮定
-
+/**
+ * 出店スケジュール登録用のデータインターフェース
+ */
 interface RegisterScheduleData {
-    storeId: string;
-    latitude: number;
-    longitude: number;
-    scheduledDate: string; // YYYY-MM-DD 形式
+    storeId: string; // ストアID
+    latitude: number; // 緯度
+    longitude: number; // 経度
+    scheduledDate: string; // 出店予定日（YYYY-MM-DD形式）
 }
+
+/**
+ * 出店スケジュール用のシーケンス名定数
+ * 論理的な名前に変更（またはSEQUENCE_NAME_OPENINGを再利用）
+ */
+const SEQUENCE_NAME_SCHEDULE = 'store_opening_info_seq'; // 論理的な名前に変更
+
+/**
+ * 出店スケジュールのタイプコード定数
+ * StoreOpeningInformationのType Codeを'04'と仮定
+ */
+const SCHEDULE_TYPE_CODE = '04'; // StoreOpeningInformationのType Code
 
 /** 6-A. 出店スケジュール登録 (StoreOpeningInformation Create) */
 export async function registerStoreSchedule(data: RegisterScheduleData) {
@@ -885,28 +1025,26 @@ export async function registerStoreSchedule(data: RegisterScheduleData) {
 
     try {
         const newSchedule = await prisma.$transaction(async (tx) => {
+            // 既存のstoreId存在チェックは省略（トランザクション内でストア確認を行う場合に追加）
 
-            // ... (既存の storeId 存在チェックは省略) ...
-
+            // 日付形式のバリデーション
             const dateObj = new Date(scheduledDate);
             if (isNaN(dateObj.getTime())) {
                 return { error: '無効な日付形式です。' };
             }
 
-            // 2. カスタムIDの生成 (SEQUENCE_NAME_OPENING/'04'を使用)
-            // 💡 既存の定数 SEQUENCE_NAME_OPENING を使って '04' を Type Code と仮定します
+            // カスタムIDの生成（SEQUENCE_NAME_OPENING/'04'を使用）
             const customScheduleId = await getAndIncrementCustomId(SEQUENCE_NAME_OPENING, '04', tx);
             console.log(`[DB] Generated Schedule ID: ${customScheduleId}`);
 
-            // 3. StoreOpeningInformation レコードを作成
+            // StoreOpeningInformationレコードを作成
             const schedule = await tx.storeOpeningInformation.create({
                 data: {
                     storeOpeningInformationId: customScheduleId,
                     storeId: storeId,
                     latitude: latitude,
                     longitude: longitude,
-
-                    // ★ 修正点: scheduledDate -> openingDate ★
+                    // scheduledDate -> openingDateに修正
                     openingDate: dateObj,
                     locationName: null, // locationNameはオプションとしてnullを許容
                 },
@@ -931,6 +1069,7 @@ export async function registerStoreSchedule(data: RegisterScheduleData) {
 export async function getAllStoreSchedules() {
     console.log(`[DB] START: Fetching all Store Schedules.`);
     try {
+        // StoreOpeningInformationテーブルから全レコードを取得（古い日付から新しい日付へソート）
         const schedules = await prisma.storeOpeningInformation.findMany({
             orderBy: { openingDate: 'asc' }, // 古い日付から新しい日付へソート
             select: {
@@ -939,7 +1078,7 @@ export async function getAllStoreSchedules() {
                 longitude: true,
                 openingDate: true,
                 locationName: true,
-                // ストア名を取得するために Store テーブルを結合
+                // ストア名を取得するためにStoreテーブルを結合
                 store: {
                     select: {
                         storeName: true,
@@ -956,8 +1095,8 @@ export async function getAllStoreSchedules() {
             id: s.storeOpeningInformationId,
             storeName: s.store.storeName,
             storeId: s.store.storeId,
-            date: s.openingDate.toISOString().split('T')[0], // 日付のみ (YYYY-MM-DD)
-            location: { lat: s.latitude, lng: s.longitude },
+            date: s.openingDate.toISOString().split('T')[0], // 日付のみ（YYYY-MM-DD）
+            location: { lat: s.latitude, lng: s.longitude }, // 位置情報をオブジェクト化
             locationName: s.locationName,
             storeDetails: {
                 storeUrl: s.store.storeUrl,
@@ -977,41 +1116,89 @@ export async function getAllStoreSchedules() {
 // ----------------------------------------------------------------------
 // 7. ユーザーの存在確認 (認証コールバック用)
 // ----------------------------------------------------------------------
-export async function findUserByEmail(email: string) {
-    const hashedEmail = hashEmail(email); // ★ 修正: ハッシュ化
+
+/**
+ * 認証コールバック用にID情報を含めた戻り値の型
+ * ユーザーの存在確認結果を表すインターフェース
+ */
+interface FindUserDetailsResult {
+    success: boolean; // クエリ成功フラグ
+    exists: boolean; // ユーザーの存在フラグ
+    error?: string; // エラー時のメッセージ
+    accountId?: string | null; // アカウントID
+    userId?: string | null; // ユーザーID
+    storeId?: string | null; // ストアID
+}
+
+/**
+ * メールアドレスからユーザーの詳細情報を取得する関数（認証コールバック用）
+ * ハッシュ化されたメールアドレスでAccountテーブルを検索し、関連するID情報を返します。
+ * @param email 検索するメールアドレス
+ * @returns ユーザー詳細情報の結果オブジェクト
+ */
+export async function findUserByEmail(email: string): Promise<FindUserDetailsResult> {
+    const hashedEmail = hashEmail(email);
     console.log(`[DEBUG AUTH] Hashed Email: ${hashedEmail}`);
 
     try {
-        const account = await prisma.account.findUnique({
-            where: { email: hashedEmail },
-            select: { accountId: true }
-        });
-
-        console.log("findUserByEmail is finish!!!!!!!!")
-        return { exists: !!account };
-
-    } catch (error) {
-        console.error('Find user by email error:', error);
-        return { exists: false, error: 'DB search failed' };
-    }
-}
-
-// ----------------------------------------------------------------------
-// 8. Account詳細の取得 (JWT格納用)
-// ----------------------------------------------------------------------
-export async function findAccountDetailsByEmail(email: string) {
-    const hashedEmail = hashEmail(email);
-    console.log(`[DEBUG AUTH] Hashed Email (Details): ${hashedEmail}`);
-
-    try {
+        // Accountテーブルからメールアドレスで検索
         const account = await prisma.account.findUnique({
             where: { email: hashedEmail },
             select: {
                 accountId: true,
                 userId: true,
                 storeId: true,
-                accountType: true
-            } // 必要な情報を選択
+            }
+        });
+
+        console.log("findUserByEmail (Details) is finish!!!!!!!!");
+
+        const exists = !!account; // アカウントが存在するか判定
+
+        if (!exists || !account) {
+            // アカウントが存在しない場合
+            return { success: true, exists: false, accountId: null, userId: null, storeId: null };
+        }
+
+        // アカウントが存在する場合、詳細情報を返す
+        return {
+            success: true,
+            exists: exists,
+            accountId: account.accountId,
+            userId: account.userId,
+            storeId: account.storeId,
+        };
+
+    } catch (error) {
+        console.error('Find user by email error:', error);
+        return { success: false, exists: false, error: 'DB search failed' };
+    }
+}
+
+// ----------------------------------------------------------------------
+// 8. Account詳細の取得 (JWT格納用)
+// ----------------------------------------------------------------------
+
+/**
+ * メールアドレスからアカウントの詳細情報を取得する関数（JWT格納用）
+ * Accountテーブルの全カラムではなく、必要な情報（accountId, userId, storeId, accountType）を選択して取得します。
+ * @param email 検索するメールアドレス
+ * @returns アカウント詳細情報またはnull
+ */
+export async function findAccountDetailsByEmail(email: string) {
+    const hashedEmail = hashEmail(email);
+    console.log(`[DEBUG AUTH] Hashed Email (Details): ${hashedEmail}`);
+
+    try {
+        // Accountテーブルから必要な情報を選択して取得
+        const account = await prisma.account.findUnique({
+            where: { email: hashedEmail },
+            select: {
+                accountId: true,
+                userId: true,
+                storeId: true,
+                accountType: true // アカウントタイプも含める
+            }
         });
 
         return account;
@@ -1027,10 +1214,15 @@ export async function findAccountDetailsByEmail(email: string) {
 // 9. マスタデータ取得
 // ----------------------------------------------------------------------
 
-/** 8-A. 全タグの取得 (Get All Tags) */
+/**
+ * 全タグを取得する関数
+ * Tagテーブルから全レコードを取得し、クライアント側で扱いやすい形式（value/label）に加工します。
+ * @returns 成功時はタグリスト、エラー時はエラーメッセージ
+ */
 export async function getAllTags() {
     console.log(`[DB] START: Fetching all Tags.`);
     try {
+        // Tagテーブルから全レコードを取得（ID順にソート）
         const tags = await prisma.tag.findMany({
             select: {
                 tagId: true,
@@ -1058,7 +1250,13 @@ export async function getAllTags() {
 // 10. アカウントデータ取得
 // ----------------------------------------------------------------------
 
-/** 9-A. アカウントIDからUserとStoreの詳細情報を取得 */
+/**
+ * アカウントIDからUserとStoreの詳細情報を取得する関数
+ * Accountレコードを取得し、関連するUserとStoreの情報を結合して返します。
+ * ハイブリッドアカウントの場合、両方の情報が含まれます。
+ * @param accountId 検索するアカウントID
+ * @returns 成功時はアカウント詳細情報、エラー時はエラーメッセージ
+ */
 export async function getUserAndStoreDetails(accountId: string) {
     console.log(`[DB] START: Fetching User/Store Details for Account ID: ${accountId}`);
     if (!accountId) {
@@ -1102,10 +1300,19 @@ export async function getUserAndStoreDetails(accountId: string) {
     }
 }
 
-/** マスタテーブルの名前からIDを取得する関数 */
+/**
+ * マスタテーブルの名前からIDを取得する関数
+ * Gender, AgeGroup, Occupationテーブルから名前でIDを検索します。
+ * トランザクションクライアントを使用することで、トランザクション内での使用が可能になります。
+ * @param client Prismaクライアントまたはトランザクションクライアント
+ * @param modelName マスタテーブルのモデル名
+ * @param name 検索する名前
+ * @returns 見つかったIDまたはnull
+ */
 async function getMasterIdByName(client: PrismaClient | any, modelName: 'Gender' | 'AgeGroup' | 'Occupation', name: string) {
     if (!name) return null;
 
+    // フィールド名のマッピング
     const fieldMap = {
         Gender: 'genderName',
         AgeGroup: 'ageGroupName',
@@ -1113,6 +1320,7 @@ async function getMasterIdByName(client: PrismaClient | any, modelName: 'Gender'
     };
     const fieldName = fieldMap[modelName];
 
+    // 検索条件の構築
     const whereClause: any = {};
     whereClause[fieldName] = name;
 
@@ -1120,9 +1328,10 @@ async function getMasterIdByName(client: PrismaClient | any, modelName: 'Gender'
     // 例: client.gender.findFirst(...)
     const modelAccessor = modelName.charAt(0).toLowerCase() + modelName.slice(1); // 'Gender' -> 'gender'
 
+    // マスタテーブルから名前で検索
     const record = await client[modelAccessor].findFirst({
         where: whereClause,
-        // IDフィールド名も modelKey に合わせて修正
+        // IDフィールド名もmodelKeyに合わせて修正
         select: { [`${modelAccessor}Id`]: true },
     });
 

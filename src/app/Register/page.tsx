@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import styles from "./style.module.css";
 import { useSession } from "next-auth/react";
-import { registerStoreSchedule } from "@/actions/db_access"
-
+import { registerStoreSchedule } from "@/actions/db_access";
+import Geocoding from "../../components/ReverceGeocoding";
 const mapContainerStyle = {
   width: "100%",
   height: "100%",
 };
 
-const defaultCenter = {
-  lat: 35.681236,
-  lng: 139.767125,
+
+type locationtypes = {
+  lat: number;
+  lng: number;
 };
 
 const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
@@ -22,6 +23,8 @@ const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["dra
 export default function StoreRegisterPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [position, setPosition] = useState<locationtypes>({ lat: 35.681236, lng: 139.767125 })
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   // ★日付管理用のState
   const [date, setDate] = useState("");
@@ -36,6 +39,28 @@ export default function StoreRegisterPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries: libraries
   });
+
+  useEffect(() => {
+    // ブラウザがGeolocation APIをサポートしているか確認
+    if (!navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+    );
+    if (isLoaded) {
+      mapRef.current?.moveCamera({
+        center: position,
+        zoom: 17,
+      });
+    }
+  },[])
+
 
   const { data: session } = useSession();
 
@@ -103,9 +128,15 @@ export default function StoreRegisterPage() {
       {/* ... (ヘッダー, マップ表示は省略) ... */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <button className={styles.menuButton} onClick={() => setMenuOpen(true)}>
-            ☰
-          </button>
+          <div className={`home-button`}>
+            <button
+              className={styles.iconButton}
+              onClick={() => router.push("/")}
+              title="ホームに戻る"
+            >
+              ✕
+            </button>
+          </div>
           <h1 className={styles.title}>出店登録</h1>
         </div>
       </header>
@@ -116,13 +147,16 @@ export default function StoreRegisterPage() {
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
-              center={defaultCenter}
+              center={position}
               zoom={15}
               onClick={onMapClick}
               options={{
                 disableDefaultUI: true,
                 zoomControl: true,
                 gestureHandling: "greedy",
+              }}
+              onLoad={(map) => {
+                mapRef.current = map;
               }}
             >
               {coordinates && <Marker position={coordinates} animation={google.maps.Animation.DROP} />}
@@ -141,8 +175,7 @@ export default function StoreRegisterPage() {
               <div className={styles.coordsLabel}>📍 出店場所</div>
               {coordinates ? (
                 <div className={styles.coordsValue}>
-                  Lat: {coordinates.lat.toFixed(6)}<br />
-                  Lng: {coordinates.lng.toFixed(6)}
+                  <Geocoding lat={coordinates?.lat} lng={coordinates?.lng} />
                 </div>
               ) : (
                 <div className={styles.guideText}>
@@ -174,23 +207,7 @@ export default function StoreRegisterPage() {
 
           </div>
         </div>
-
       </div>
-
-      {/* ... (サイドメニューは省略) ... */}
-      {menuOpen && (
-        <>
-          <div className={styles.menuOverlay} onClick={() => setMenuOpen(false)} />
-          <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-            <button className={styles.closeMenuBtn} onClick={() => setMenuOpen(false)}>×</button>
-            <ul className={styles.menuList}>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/")}>ホーム</button></li>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/profile/user")}>プロフィール</button></li>
-              <li><button className={styles.menuItemButton} onClick={() => navigate("/Register")}>出店登録</button></li>
-            </ul>
-          </div>
-        </>
-      )}
     </div>
   );
 }

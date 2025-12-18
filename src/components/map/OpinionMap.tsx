@@ -16,8 +16,6 @@ const containerStyle = {
     height: "100%",
 };
 
-const center = { lat: 35.681236, lng: 139.767125 };
-
 // 定数は外に出す（変更なし）
 const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
 
@@ -30,6 +28,7 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
+
 type filters = {
     tag: string | null;
     minLikes: number | null;
@@ -40,17 +39,27 @@ type filters = {
     ageRange: string | null;
 };
 
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
 interface OpinionMapProps {
     onDialogOpen: (data: string, clickPos: { lat: number, lng: number }) => void;
     opinions: (any[]);
     accountId: string;
     filter: filters;
     filterKeyword: string;
+    giveLocation: locationtypes | null;
     onExtract: (data: string, opinions: any) => void;
 }
 
-export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountId, filter, filterKeyword }: OpinionMapProps) {
+export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountId, filter, filterKeyword, giveLocation }: OpinionMapProps) {
 
+    // 抽出ボタン
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [showDrawButton, setShowDrawButton] = useState(true);
+    const [position, setposition] = useState<locationtypes>({lat:35.681236,lng:139.767125})
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -65,6 +74,16 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
     // DrawingManagerのインスタンスを保持するためのState（必要なら）
     const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
 
+    useEffect(() => {
+        if(giveLocation){
+            setposition(giveLocation)
+            if(map){
+        map.moveCamera({
+                center: position,
+                zoom: 15
+            });
+        }}
+    },[giveLocation]);
 
     // 新しい状態として、意見データ全体を内部で管理するための state を追加
     // opinions prop は初期値として使用し、更新は internalOpinions で行う
@@ -121,7 +140,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
 
         // 1. マップがロードされたら DrawingManager を作成
         const newDrawingManager = new google.maps.drawing.DrawingManager({
-            drawingControl: true,
+            drawingControl: false,
             drawingControlOptions: {
                 position: google.maps.ControlPosition.TOP_LEFT,
                 drawingModes: [google.maps.drawing.OverlayType.RECTANGLE],
@@ -130,6 +149,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
 
         // 2. マップにセット（これで表示されます）
         newDrawingManager.setMap(map);
+
         setDrawingManager(newDrawingManager); // 後でデータを取り出すとき用に保存
 
         google.maps.event.addListener(newDrawingManager, 'overlaycomplete', (e: any) => {
@@ -157,6 +177,10 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
             //描画した四角形を地図から消す (お好みで)
             newShape.setMap(null);
 
+            // 描画モードを終了する
+            newDrawingManager.setDrawingMode(null); // ← 移動モードに戻る
+            setIsDrawing(false);
+            setShowDrawButton(true);
         });
         //【最重要】クリーンアップ関数
 
@@ -196,7 +220,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                     })
                 }}
                 mapContainerStyle={containerStyle}
-                center={center}
+                center={position}
                 zoom={14}
                 onLoad={onLoad}
                 onIdle={onIdle}
@@ -242,23 +266,12 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
 
                     return (
                         <React.Fragment key={data.opinionId}>
-                            <MarkerF
+                            {/* <MarkerF
                                 key={`marker-${data.opinionId}`}
                                 position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => onExtract("opinionClick", data)}
                                 label={isOpen ? { text: data.commentText, color: "black", fontSize: "14px", fontWeight: "bold" } : undefined}
-                            />
-
-                            {/* ピン */}
-                            {/* <MarkerF
-                                position={{ lat: data.latitude, lng: data.longitude }}
-                                onClick={() => setOpinionOpen(data)} */}
-                            {/* // icon={{ */}
-                            {/* //     url: "/pin.png",
-                            //     scaledSize: new google.maps.Size(40, 40),
-                            //     anchor: new google.maps.Point(20, 40),
-                            // }}
                             /> */}
+
 
                             {/* 吹き出し */}
                             {isOpen && (
@@ -266,7 +279,15 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                                     position={{ lat: data.latitude, lng: data.longitude }}
                                     mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                                 >
-                                    <div className={`opinion-bubble ${sizeClass}`}>
+                                    <div
+                                        className={`opinion-bubble ${sizeClass}`}
+                                        style={{
+                                            cursor: "pointer",
+                                            padding: "16px",   // 当たり判定を広げる
+                                            display: "inline-block",
+                                        }}
+                                        onClick={() => onExtract("opinionClick", data)}
+                                    >
                                         <div className="bubble-content">
                                             {data.commentText}
                                         </div>
@@ -279,7 +300,8 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                                 key={data.opinionId}
                                 center={{ lat: data.latitude, lng: data.longitude }}
                                 radius={500}
-                                options={{ ...circleOptions, clickable: false }}
+                                onClick={() => onExtract("opinionClick", data)}
+                                options={{ ...circleOptions, clickable: true }}
                             />
                         </React.Fragment>
                     );
@@ -297,6 +319,30 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                     </ul>
                 </div>
             </div>
+
+            {showDrawButton && (
+                <div
+                    className={`map-btn ${isDrawing ? "active" : ""}`}
+                    title={isDrawing ? "抽出モードを終了" : "範囲を指定して意見を抽出"}
+                    onClick={() => {
+                        if (!drawingManager) return;
+
+                        if (!isDrawing) {
+                            // 抽出モード ON
+                            setIsDrawing(true);
+                            drawingManager.setDrawingMode(
+                                google.maps.drawing.OverlayType.RECTANGLE
+                            );
+                        } else {
+                            // 抽出モード OFF（移動モード）
+                            setIsDrawing(false);
+                            drawingManager.setDrawingMode(null);
+                        }
+                    }}
+                >
+                    <img src="/icon/square.png" />
+                </div>
+            )}
         </>
     )
 }

@@ -90,62 +90,62 @@ export default function UserProfilePage() {
   }, [session, status]);
 
   // --- 更新処理ハンドラー ---
-const handleSaveProfile = async () => {
-    const accountId = session?.user?.accountId; 
-    
+  const handleSaveProfile = async () => {
+    const accountId = session?.user?.accountId;
+
     if (!accountId || isLoading) {
-        alert("ログイン情報が見つからないか、データ読み込み中です。");
-        return;
+      alert("ログイン情報が見つからないか、データ読み込み中です。");
+      return;
     }
 
     if (!nickname) {
-        alert("ニックネームは必須です。");
-        return;
+      alert("ニックネームは必須です。");
+      return;
     }
 
     // マッピング処理をここに記述
     const dataToSave = {
-        nickname: nickname,
-        // 性別: フォーム値 -> DB名に変換
-        genderName: REVERSE_GENDER_MAP[gender] || gender || null, 
-        // 年代: フォーム値 -> DB名（年代は値が同じなのでそのまま）
-        ageGroupName: ageGroup || null,
-        // 職業: フォーム値 -> DB名に変換
-        occupationName: REVERSE_JOB_MAP[job] || job || null, 
+      nickname: nickname,
+      // 性別: フォーム値 -> DB名に変換
+      genderName: REVERSE_GENDER_MAP[gender] || gender || null,
+      // 年代: フォーム値 -> DB名（年代は値が同じなのでそのまま）
+      ageGroupName: ageGroup || null,
+      // 職業: フォーム値 -> DB名に変換
+      occupationName: REVERSE_JOB_MAP[job] || job || null,
     };
-    
+
     // FormDataを作成し、データを格納
     const formData = new FormData();
     formData.append('nickname', dataToSave.nickname);
-    
+
     if (dataToSave.genderName) {
-        formData.append('genderName', dataToSave.genderName);
+      formData.append('genderName', dataToSave.genderName);
     }
     if (dataToSave.ageGroupName) {
-        formData.append('ageGroupName', dataToSave.ageGroupName);
+      formData.append('ageGroupName', dataToSave.ageGroupName);
     }
     if (dataToSave.occupationName) {
-        formData.append('occupationName', dataToSave.occupationName);
+      formData.append('occupationName', dataToSave.occupationName);
     }
-    
+
     console.log("Saving data via FormData:", Object.fromEntries(formData));
 
     try {
-        // ★ サーバーアクションの呼び出し: accountIdをstringで渡す
-        const result = await updateUser(String(accountId), formData); 
+      // ★ サーバーアクションの呼び出し: accountIdをstringで渡す
+      const result = await updateUser(String(accountId), formData);
 
-        if (result.success) {
-            alert("保存しました！");
-            // 成功した場合、ページデータを再取得するためにリロード
-            window.location.reload(); 
-        } else {
-            alert(`保存に失敗しました: ${result.error || '不明なエラー'}`);
-        }
+      if (result.success) {
+        alert("保存しました！");
+        // 成功した場合、ページデータを再取得するためにリロード
+        window.location.reload();
+      } else {
+        alert(`保存に失敗しました: ${result.error || '不明なエラー'}`);
+      }
     } catch (error) {
-        console.error("更新エラー:", error);
-        alert("サーバーとの通信中にエラーが発生しました。");
+      console.error("更新エラー:", error);
+      alert("サーバーとの通信中にエラーが発生しました。");
     }
-};
+  };
 
 
   // --- ローディング/非認証時の表示 ---
@@ -157,20 +157,18 @@ const handleSaveProfile = async () => {
     return <div className={styles.phoneFrame}><h2 className={styles.title}>ログインしてください</h2></div>;
   }
 
-  const menuWidth = "260px";
-
   return (
     <div className={styles.phoneFrame}>
-
       <div className={`${styles.phoneContent} ${menuOpen ? styles.contentShift : ''}`}>
-
-        {/* ハンバーガーボタン*/}
-        <button
-          className={styles.menuButton}
-          onClick={toggleMenu}
-        >
-          ☰
-        </button>
+        <div className={`home-button`}>
+          <button
+            className={styles.iconButton}
+            onClick={() => router.push("/")}
+            title="ホームに戻る"
+          >
+            ✕
+          </button>
+        </div>
 
         {/* オーバーレイ */}
         {menuOpen && (
@@ -180,112 +178,86 @@ const handleSaveProfile = async () => {
           />
         )}
 
-        {/* サイドメニュー */}
-        <div className={`${styles.sideMenu} ${menuOpen ? styles.sideMenuOpen : ""}`}>
-
-          <button className={styles.closeMenuBtn} onClick={toggleMenu}>
-            ×
-          </button>
-          <ul className={styles.menuList}>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/")}>ホーム</button>
-            </li>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/profile/user")}>プロフィール</button>
-            </li>
-            <li>
-              <button className={styles.menuItemButton} onClick={() => handleMenuClick("/Register")}>出店登録</button>
-            </li>
-            {!isLoggedIn ? (
-              <li>
-                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogin}>ログイン</button>
-              </li>
-            ) : (
-              <li>
-                <button className={`${styles.menuItemButton} ${styles.textBlue}`} onClick={handleLogout}>ログアウト</button>
-              </li>
-            )}
-          </ul>
-        </div>
-
         <h2 className={styles.title}>プロフィール設定</h2>
-        <div className={styles.card}>
-          {/* ニックネーム */}
-          <div>
-            <label className={styles.label}>ニックネーム</label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="例：たろう"
-              className={styles.inputtext}
-            />
-          </div>
+        <div className={styles.container}>
+          <div className={styles.card}>
+            {/* ニックネーム */}
+            <div>
+              <label className={styles.label}>ニックネーム</label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="例：たろう"
+                className={styles.inputtext}
+              />
+            </div>
 
-          {/* 性別 */}
-          <div>
-            <label className={styles.label}>性別</label>
-            <select
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">選択してください</option>
-              <option value="male">男性</option>
-              <option value="female">女性</option>
-              <option value="other">その他</option>
-            </select>
-          </div>
+            {/* 性別 */}
+            <div>
+              <label className={styles.label}>性別</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">選択してください</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="other">その他</option>
+              </select>
+            </div>
 
-          {/* 年代 */}
-          <div>
-            <label className={styles.label}>年代</label>
-            <select
-              value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">年代を選択</option>
-              <option value="10歳未満">10歳未満</option>
-              <option value="10代">10代</option>
-              <option value="20代">20代</option>
-              <option value="30代">30代</option>
-              <option value="40代">40代</option>
-              <option value="50代">50代</option>
-              <option value="60代">60代</option>
-              <option value="70代">70代</option>
-              <option value="80代以上">80代以上</option>
-            </select>
-          </div>
+            {/* 年代 */}
+            <div>
+              <label className={styles.label}>年代</label>
+              <select
+                value={ageGroup}
+                onChange={(e) => setAgeGroup(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">年代を選択</option>
+                <option value="10歳未満">10歳未満</option>
+                <option value="10代">10代</option>
+                <option value="20代">20代</option>
+                <option value="30代">30代</option>
+                <option value="40代">40代</option>
+                <option value="50代">50代</option>
+                <option value="60代">60代</option>
+                <option value="70代">70代</option>
+                <option value="80代以上">80代以上</option>
+              </select>
+            </div>
 
-          {/* 職業 */}
-          <div>
-            <label className={styles.label}>職業</label>
-            <select
-              value={job}
-              onChange={(e) => setJob(e.target.value)}
-              className={styles.input}
-            >
-              <option value="">職業を選択</option>
-              <option value="student">学生</option>
-              <option value="company">会社員</option>
-              <option value="part-time">アルバイト・パート</option>
-              <option value="freelancer">フリーランス</option>
-              <option value="public">公務員</option>
-              <option value="unemployed">無職</option>
-              <option value="other">その他</option>
-            </select>
-          </div>
+            {/* 職業 */}
+            <div>
+              <label className={styles.label}>職業</label>
+              <select
+                value={job}
+                onChange={(e) => setJob(e.target.value)}
+                className={styles.input}
+              >
+                <option value="">職業を選択</option>
+                <option value="student">学生</option>
+                <option value="company">会社員</option>
+                <option value="part-time">アルバイト・パート</option>
+                <option value="freelancer">フリーランス</option>
+                <option value="public">公務員</option>
+                <option value="unemployed">無職</option>
+                <option value="other">その他</option>
+              </select>
+            </div>
 
-          <button className={styles.btn} onClick={handleSaveProfile} disabled={isLoading}>
-            保存する
-          </button>
+            <button className={styles.btn} onClick={handleSaveProfile} disabled={isLoading}>
+              保存する
+            </button>
+          </div>
         </div>
-      </div>
-      {/* <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+        {/* <div style={{ marginTop: '50px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
         <h2>危険区域</h2>
         <DeleteAccountButton />
       </div> */}
+      </div>
     </div>
   );
 }

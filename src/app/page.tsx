@@ -126,6 +126,23 @@ export default function Home() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);//意見フィルターのダイアログ開閉
 
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  // 現在地を取得
+  useEffect(() => {
+    // ブラウザがGeolocation APIをサポートしているか確認
+    if (!navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+    );
+  }, []);
+
   // 1. ログイン状態チェック
   useEffect(() => {
     const checkLoginStatus = () => {
@@ -170,6 +187,7 @@ export default function Home() {
   useEffect(() => {
     if (session?.user) {
       console.log("Account ID:", session.user.accountId);
+      console.log("User ID:", session.user.userId);
       console.log("Store ID:", session.user.storeId);
     }
   }, [session]);
@@ -404,11 +422,18 @@ export default function Home() {
       accountId={session?.user.accountId!}
       filter={appliedFilters}
       filterKeyword={searchKeyword}
+      giveLocation={position}
       onDialogOpen={handleDialogOpen}
       onExtract={handleExtract}
     />,
-    poll: <PollMap questions={questions} filterKeyword={searchKeyword} onDialogOpen={handleDialogOpen} />,
-    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} onExtract={handleExtract} />
+    poll: <PollMap questions={questions}
+    filterKeyword={searchKeyword}
+    onDialogOpen={handleDialogOpen}
+    giveLocation={position} />,
+    store: <StoreMap schedule={schedules}
+    filterKeyword={searchKeyword}
+    giveLocation={position}
+    onExtract={handleExtract} />
   };
 
   // --------------------------------------------------
@@ -468,12 +493,6 @@ export default function Home() {
     );
   };
 
-  // スクロールバーを表示しない
-  // useEffect(() => {デバッグのために一時的にコメントアウトしてます水谷
-  //   if (menuOpen) document.body.classList.add("no-scroll");
-  //   else document.body.classList.remove("no-scroll");
-  // }, [menuOpen]);
-
   return (
     <div className="frame">
       {/* ===== ヘッダー ===== */}
@@ -481,12 +500,7 @@ export default function Home() {
         <div className="menuIcon text-2xl mr-3 cursor-pointer" onClick={toggleMenu}>
           {menuOpen ? "✕" : "☰"}
         </div>
-        <button
-          className="text-2xl mr-3 cursor-pointer"
-          onClick={() => setIsFilterOpen(true)}
-          aria-label="Filter"
-        >フィルター
-        </button>
+
         {/* 修正後のヘッダー内の検索バー部分 */}
         <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center pr-2">
           <input
@@ -496,10 +510,19 @@ export default function Home() {
             onChange={(e) => setFilterKeyword(e.target.value)}
             className="flex-1 p-2 text-gray-700 outline-none"
           />
+
+          {/* フィルターボタン */}
+          <button
+            className="filter-btn"
+            onClick={() => setIsFilterOpen(true)}
+            aria-label="Filter"
+          >フィルター
+          </button>
+
           {/* ★ 検索ボタンを追加 */}
           <button
             onClick={() => setSearchKeyword(filterKeyword)}
-            className="p-2 text-gray-500 hover:text-orange-500 transition-colors"
+            className="search-btn"
           >
             検索
           </button>
@@ -513,17 +536,18 @@ export default function Home() {
         <ul className="text-gray-800 text-lg">
           {/* 出店者なら出店者プロフィールに行く TODO */}
           <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_user")}>
-            プロフィール
+            ユーザープロフィール
           </li>
-          <li className="border-b p-3 hover:bg-gray-100">マイ投稿</li>
-          {/* 店舗ログインなら表示 TODO*/}
-          {/* {storeId && ( */}
+          <li className="border-b p-3 hover:bg-gray-100 cursor-pointer" onClick={() => router.push("/profile_store")}>
+            ストアプロフィール
+          </li>
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
             onClick={() => router.push("/register")}
           >
             出店登録
           </li>
+
           {!session ? (
             <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
               ログイン
@@ -652,51 +676,52 @@ export default function Home() {
             <h3 className="text-lg font-bold mb-6 text-center">
               投票結果
             </h3>
+            <div className='scroll'>
 
-            {(() => {
-              // ===== 仮データ（後でDBに置き換え）=====
-              // ===== TODO　DB連携 =====
-              const leftCount = pollCounts?.count1 || 0;
-              const rightCount = pollCounts?.count2 || 0;
-              const total = leftCount + rightCount || 1;
+              {(() => {
+                // ===== DB取得=====
+                const leftCount = pollCounts?.count1 || 0;
+                const rightCount = pollCounts?.count2 || 0;
+                const total = leftCount + rightCount || 1;
 
-              const leftRate = Math.round((leftCount / total) * 100);
-              const rightRate = Math.round((rightCount / total) * 100);
+                const leftRate = Math.round((leftCount / total) * 100);
+                const rightRate = Math.round((rightCount / total) * 100);
 
-              return (
-                <div className="result-wrapper">
-                  {/* ラベル */}
-                  <div className="result-labels">
-                    <span className="result-labels-left">{selectedQuestion.option1Text}</span>
-                    <span className="result-labels-right">{selectedQuestion.option2Text}</span>
-                  </div>
-
-                  {/* グラフ */}
-
-                  <div className="result-bar">
-                    {/* 左 */}
-                    <div
-                      className="result-left"
-                      style={{ width: `${leftRate}%` }}
-                    >
-                      <span className="result-text">
-                        {leftRate}%（{leftCount}票）
-                      </span>
+                return (
+                  <div className="result-wrapper">
+                    {/* ラベル */}
+                    <div className="result-labels">
+                      <span className="result-labels-left">{selectedQuestion.option1Text}</span>
+                      <span className="result-labels-right">{selectedQuestion.option2Text}</span>
                     </div>
 
-                    {/* 右 */}
-                    <div
-                      className="result-right"
-                      style={{ width: `${rightRate}%` }}
-                    >
-                      <span className="result-text">
-                        {rightRate}%（{rightCount}票）
-                      </span>
+                    {/* グラフ */}
+
+                    <div className="result-bar">
+                      {/* 左 */}
+                      <div
+                        className="result-left"
+                        style={{ width: `${leftRate}%` }}
+                      >
+                        <span className="result-text">
+                          {leftRate}%（{leftCount}票）
+                        </span>
+                      </div>
+
+                      {/* 右 */}
+                      <div
+                        className="result-right"
+                        style={{ width: `${rightRate}%` }}
+                      >
+                        <span className="result-text">
+                          {rightRate}%（{rightCount}票）
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
           </div>
         </>
       )}
@@ -707,48 +732,50 @@ export default function Home() {
       {postOpen && (
         <>
           {/* ===== 意見投稿 ===== */}
-          <div
-            className="dialog-overlay"
-            onClick={() => setPostOpen(false)}
-          />
-          <div className="poll-dialog active">
-            <button
-              className="close-btn"
+          <div className='scroll'>
+            <div
+              className="dialog-overlay"
               onClick={() => setPostOpen(false)}
-            >
-              ×
-            </button>
-
-            <h3>意見を投稿</h3>
-
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="お店についての意見を入力..."
             />
-            {/* ジャンル選択 */}
-            <div className="genre-container">
-              選択：
-              <select
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
-              >
-                {/* optionsのリストをレンダリング */}
-                {tags.map((tag) => (
-                  <option key={tag.value} value={tag.value}>
-                    {tag.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-2 mb-3">
+            <div className="poll-dialog active">
               <button
-                onClick={handleOpinionSubmit}
-                className="submit-btn"
+                className="close-btn"
+                onClick={() => setPostOpen(false)}
               >
-                投稿する
+                ×
               </button>
+
+              <h3>意見を投稿</h3>
+
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="お店についての意見を入力..."
+              />
+              {/* ジャンル選択 */}
+              <div className="genre-container">
+                選択：
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+                >
+                  {/* optionsのリストをレンダリング */}
+                  {tags.map((tag) => (
+                    <option key={tag.value} value={tag.value}>
+                      {tag.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={handleOpinionSubmit}
+                  className="submit-btn"
+                >
+                  投稿する
+                </button>
+              </div>
             </div>
           </div>
         </>
@@ -757,6 +784,7 @@ export default function Home() {
 
       {isFilterOpen && (
         <>
+          {/* フィルター */}
           {/* 背景の黒み (クリックで閉じる) */}
           <div
             className="dialog-overlay"
@@ -777,149 +805,154 @@ export default function Home() {
             {/* --- ここから中身は既存の入力フォームと同じ --- */}
 
             {/* タグ */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">タグ</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={filters.tag ?? ""}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
-                }
-              >
-                <option value="">---</option>
-                <option value="食品">食品</option>
-                <option value="設備">設備</option>
-                <option value="値段">値段</option>
-                <option value="ボリューム">ボリューム</option>
-                <option value="満足">満足</option>
-                <option value="その他">その他</option>
-              </select>
-            </div>
+            <div className='scroll'>
+              <div className="form-row-horizontal">
+                <label className="filter-title">タグの選択</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={filters.tag ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
+                  }
+                >
+                  <option value="">---</option>
+                  <option value="商品">商品</option>
+                  <option value="設備">設備</option>
+                  <option value="値段">値段</option>
+                  <option value="ボリューム">ボリューム</option>
+                  <option value="満足">満足</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
 
-            {/* 性別 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">性別</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={filters.gender ?? ""}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
-                }
-              >
-                <option value="">---</option>
-                <option value="男性">男性</option>
-                <option value="女性">女性</option>
-                <option value="その他">その他</option>
-              </select>
-            </div>
+              {/* 性別 */}
+              <div className="form-row-horizontal">
+                <label className="filter-title">性別</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={filters.gender ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
+                  }
+                >
+                  <option value="">---</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
 
-            {/* 職業 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">職業</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={filters.occupation ?? ""}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
-                }
-              >
-                <option value="">---</option>
-                <option value="学生">学生</option>
-                <option value="会社員">会社員</option>
-                <option value="アルバイト・パート">アルバイト・パート</option>
-                <option value="フリーランス">フリーランス</option>
-                <option value="公務員">公務員</option>
-                <option value="無職">無職</option>
-                <option value="フリーター">フリーター</option>
-                <option value="その他">その他</option>
-              </select>
-            </div>
+              {/* 職業 */}
+              <div className="form-row-horizontal">
+                <label className="block text-sm font-bold mb-1">職業</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={filters.occupation ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
+                  }
+                >
+                  <option value="">---</option>
+                  <option value="学生">学生</option>
+                  <option value="会社員">会社員</option>
+                  <option value="アルバイト・パート">アルバイト・パート</option>
+                  <option value="フリーランス">フリーランス</option>
+                  <option value="公務員">公務員</option>
+                  <option value="無職">無職</option>
+                  <option value="フリーター">フリーター</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
 
-            {/* 年齢 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">年齢</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={filters.ageRange ?? ""}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
-                }
-              >
-                <option value="">---</option>
-                <option value="10代">10歳未満</option>
-                <option value="20代">20代</option>
-                <option value="30代">30代</option>
-                <option value="40代">40代</option>
-                <option value="50代">50代</option>
-                <option value="60代">60代</option>
-                <option value="70代">70代</option>
-                <option value="80代以上">80代以上</option>
-              </select>
-            </div>
+              {/* 年齢 */}
+              <div className="form-row-horizontal">
+                <label className="form-row-horizontal">年齢</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={filters.ageRange ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
+                  }
+                >
+                  <option value="">---</option>
+                  <option value="10代">10歳未満</option>
+                  <option value="20代">20代</option>
+                  <option value="30代">30代</option>
+                  <option value="40代">40代</option>
+                  <option value="50代">50代</option>
+                  <option value="60代">60代</option>
+                  <option value="70代">70代</option>
+                  <option value="80代以上">80代以上</option>
+                </select>
+              </div>
 
-            {/* 最低いいね数 */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">最低いいね数</label>
-              <input
-                type="number"
-                min="0"
-                className="w-full p-2 border rounded"
-                value={filters.minLikes ?? ""}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    minLikes: e.target.value ? Number(e.target.value) : null,
-                  }))
-                }
-              />
-            </div>
+              {/* 最低いいね数 */}
+              <div className="form-row-horizontal">
+                <label className="form-row-horizontal">最低いいね数</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full p-2 border rounded"
+                  value={filters.minLikes ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      minLikes: e.target.value ? Number(e.target.value) : null,
+                    }))
+                  }
+                />
+              </div>
 
-            {/* 日付（以降） */}
-            <div style={{ marginBottom: 10 }}>
-              <label className="block text-sm font-bold mb-1">日付（以降）</label>
-              <input
-                type="date"
-                className="w-full p-2 border rounded"
-                value={formatDateInput(filters.dateFrom)}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    dateFrom: e.target.value ? new Date(e.target.value) : null,
-                  }))
-                }
-              />
-            </div>
+              {/* 日付（以降） */}
+              <div className="form-row-horizontal" style={{ marginBottom: 10 }}>
+                <label className="form-row-horizontal">日付（以降）</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border rounded"
+                  value={formatDateInput(filters.dateFrom)}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      dateFrom: e.target.value ? new Date(e.target.value) : null,
+                    }))
+                  }
+                />
+              </div>
 
-            <div className="flex gap-2 mt-4">
-              <button
-                className="flex-1 py-2 bg-gray-200 rounded border border-gray-300"
-                onClick={() =>
-                  setFilters({
-                    tag: null,
-                    gender: null,
-                    occupation: null,
-                    ageRange: null,
-                    minLikes: null,
-                    dateFrom: null,
-                    dateTo: null,
-                  })
-                }
-              >
-                リセット
-              </button>
-              <button
-                className="flex-1 py-2 bg-orange-500 text-white rounded font-bold"
-                onClick={() => {
-                  setAppliedFilters(filters);
-                  setIsFilterOpen(false); // 適用したら閉じる
-                }}
-              >
-                適用
-              </button>
+              <div className="modal-button-group">
+                <button
+                  className="modal-reset-btn"
+                  onClick={() =>
+                    setFilters({
+                      tag: null,
+                      gender: null,
+                      occupation: null,
+                      ageRange: null,
+                      minLikes: null,
+                      dateFrom: null,
+                      dateTo: null,
+                    })
+                  }
+                >
+                  リセット
+                </button>
+                <button
+                  className="modal-apply-btn"
+                  onClick={() => {
+                    setAppliedFilters(filters);
+                    setIsFilterOpen(false); // 適用したら閉じる
+                  }}
+                >
+                  適用
+                </button>
+              </div>
+
             </div>
           </div>
         </>
       )}
+
+
       {
         createOpen && (
           <>
@@ -927,90 +960,104 @@ export default function Home() {
             <div className="poll-dialog active">
               <button className="close-btn" onClick={() => setCreateOpen(false)}>×</button>
               <h3>アンケートを作成</h3>
-              <input
-                type="text"
-                value={newQuestion}
-                onChange={(e) => setNewQuestion(e.target.value)}
-                placeholder="質問を入力"
-                className="mb-2 p-2 border rounded w-full"
-              />
-              <input
-                type="text"
-                value={optionOne}
-                onChange={(e) => setOptionOne(e.target.value)}
-                placeholder="選択肢1"
-                className="mb-4 p-2 border rounded w-full"
-              />
-              <input
-                type="text"
-                value={optionTwo}
-                onChange={(e) => setOptionTwo(e.target.value)}
-                placeholder="選択肢2"
-                className="mb-4 p-2 border rounded w-full"
-              />
-              <button onClick={() => { if (newQuestion && optionOne && optionTwo) createPoll(); }} className="submit-btn">作成</button>
+              <div className='scroll'>
+                <input
+                  type="text"
+                  value={newQuestion}
+                  onChange={(e) => setNewQuestion(e.target.value)}
+                  placeholder="質問を入力"
+                  className="mb-2 p-2 border rounded w-full"
+                />
+                <input
+                  type="text"
+                  value={optionOne}
+                  onChange={(e) => setOptionOne(e.target.value)}
+                  placeholder="選択肢1"
+                  className="mb-4 p-2 border rounded w-full"
+                />
+                <input
+                  type="text"
+                  value={optionTwo}
+                  onChange={(e) => setOptionTwo(e.target.value)}
+                  placeholder="選択肢2"
+                  className="mb-4 p-2 border rounded w-full"
+                />
+                <button onClick={() => { if (newQuestion && optionOne && optionTwo) createPoll(); }} className="submit-btn">作成</button>
+              </div>
             </div>
           </>
         )
       }
-      {showExtractPanel && (
-        <div className="extract-panel">
-          <div className="panel-header">
-            <span>抽出された意見 ({extractedOpinions.length}件)</span>
-            <button onClick={() => setShowExtractPanel(false)}>×</button>
-          </div>
-
-          <div className="panel-body">
-            {extractedOpinions.length === 0 ? (
-              <p className="empty-text">意見がありません</p>
-            ) : (
-              extractedOpinions.map((op, i) => (
-                <div key={i} className="opinion-item">
-                  {op}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-      {showClickedOpinion && (
-        <>
+      {
+        showExtractPanel && (
           <div className="extract-panel">
             <div className="panel-header">
-              <span>{clickedOpinion.commentText}</span>
-              <button onClick={() => setShowClickedOpinion(false)}>×</button>
+              <span>抽出された意見 ({extractedOpinions.length}件)</span>
+              <button onClick={() => setShowExtractPanel(false)}>×</button>
+            </div>
+
+            <div className="panel-body">
+              {extractedOpinions.length === 0 ? (
+                <p className="empty-text">意見がありません</p>
+              ) : (
+                extractedOpinions.map((op, i) => (
+                  <div key={i} className="opinion-item">
+                    {op}
+                  </div>
+                ))
+              )}
+            </div>
+
+          </div>
+        )
+      }
+      {
+        showClickedOpinion && (
+          <>
+            <div className="extract-panel">
+              <div className="panel-header">
+                <span>{clickedOpinion.commentText}</span>
+                <button onClick={() => setShowClickedOpinion(false)}>×</button>
+              </div>
+              <div className="panel-body">
+                <p>いいね数：{clickedOpinion.likeCount}</p>
+                <p>タグ：{clickedOpinion.tags}</p>
+                <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
+                <p>性別：{clickedOpinion?.profile.gender}</p>
+                <p>年齢：{clickedOpinion?.profile.age}</p>
+                <p>職業：{clickedOpinion?.profile.occupation}</p>
+                <button
+                  className="like-button"
+                  onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+                >
+                  いいね
+                </button>
+                <button
+                  className={'heart-btn'}
+                  onClick={() => handleLikeClick(clickedOpinion.opinionId)}
+                  aria-label="like"
+                >
+                  ❤
+                </button>
+              </div>
+            </div>
+          </>
+        )
+      }
+      {
+        showClickedStore && (
+          <div className="extract-panel">
+            <div className="panel-header">
+              <span>{clickedStore.storeName}</span>
+              <button onClick={() => setShowClickedStore(false)}>×</button>
             </div>
             <div className="panel-body">
-              <p>いいね数：{clickedOpinion.likeCount}</p>
-              <p>タグ：{clickedOpinion.tags}</p>
-              <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
-              <p>性別：{clickedOpinion?.profile.gender}</p>
-              <p>年齢：{clickedOpinion?.profile.age}</p>
-              <p>職業：{clickedOpinion?.profile.occupation}</p>
-              <button
-                className="like-button"
-                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
-              >
-                いいね
-              </button>
+              <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
+              <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
             </div>
           </div>
-        </>
-      )
+        )
       }
-      {showClickedStore && (
-        <div className="extract-panel">
-          <div className="panel-header">
-            <span>{clickedStore.storeName}</span>
-            <button onClick={() => setShowClickedStore(false)}>×</button>
-          </div>
-          <div className="panel-body">
-            <p>ストアURL：{clickedStore?.storeDetails?.storeUrl || '未登録'}</p>
-            <p>説明:{clickedStore?.storeDetails?.introduction || '未登録'}</p>
-          </div>
-        </div>
-      )
-      }
-    </div>
+    </div >
   )
 }

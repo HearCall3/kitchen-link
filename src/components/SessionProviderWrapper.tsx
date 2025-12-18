@@ -1,14 +1,11 @@
-// src/components/SessionProviderWrapper.tsx
-'use client';
+"use client";
 
-import { SessionProvider } from 'next-auth/react';
-import React from 'react';
+import { SessionProvider } from "next-auth/react";
 
-// RootLayoutで利用するためのラッパーコンポーネント
-export function SessionProviderWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      {children}
-    </SessionProvider>
-  );
+export function SessionProviderWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <SessionProvider>{children}</SessionProvider>;
 }

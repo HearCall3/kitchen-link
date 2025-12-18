@@ -21,6 +21,7 @@ declare module "next-auth" {
       isNewUser?: boolean;
       email?: string;
       storeId?: string; // ★ 修正: storeId (String) を追加
+      userId?: string;
       accountId?: string; 
     } & DefaultSession["user"];
   }
@@ -29,6 +30,7 @@ declare module "next-auth" {
     isNewUser?: boolean;
     email?: string;
     storeId?: string; // 補足: User型にも追加
+    userId?: string;
     accountId?: string;
   }
 }
@@ -38,6 +40,7 @@ declare module "next-auth/jwt" {
     isNewUser?: boolean;
     email?: string;
     storeId?: string; // ★ 修正: JWTにもstoreIdを追加
+    userId?: string;
     accountId?: string;
   }
 }
