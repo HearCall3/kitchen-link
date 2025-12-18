@@ -130,6 +130,23 @@ export default function Home() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);//意見フィルターのダイアログ開閉
 
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  // 現在地を取得
+  useEffect(() => {
+    // ブラウザがGeolocation APIをサポートしているか確認
+    if (!navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+    );
+  }, []);
+
   // 1. ログイン状態チェック
   useEffect(() => {
     const checkLoginStatus = () => {
@@ -418,11 +435,18 @@ export default function Home() {
       accountId={session?.user.accountId!}
       filter={appliedFilters}
       filterKeyword={searchKeyword}
+      giveLocation={position}
       onDialogOpen={handleDialogOpen}
       onExtract={handleExtract}
     />,
-    poll: <PollMap questions={questions} filterKeyword={searchKeyword} onDialogOpen={handleDialogOpen} />,
-    store: <StoreMap schedule={schedules} filterKeyword={searchKeyword} onExtract={handleExtract} />
+    poll: <PollMap questions={questions}
+    filterKeyword={searchKeyword}
+    onDialogOpen={handleDialogOpen}
+    giveLocation={position} />,
+    store: <StoreMap schedule={schedules}
+    filterKeyword={searchKeyword}
+    giveLocation={position}
+    onExtract={handleExtract} />
   };
 
   // --------------------------------------------------

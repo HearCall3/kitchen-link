@@ -18,7 +18,6 @@ const containerStyle = {
     height: "100%",
 };
 
-const center = { lat: 35.681236, lng: 139.767125 };
 const mapOption = { disableDefaultUI: true }
 
 // 定数は外に出す（変更なし）
@@ -33,16 +32,24 @@ const circleOptions = {
     fillOpacity: 0.2, // 塗りつぶしの透明度
 };
 
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
+
 interface PostMapProps {
     onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }, hasAnswered?: boolean) => void;
     questions: (any[]);
     filterKeyword: String;
+    giveLocation: locationtypes | null;
 }
 
-export default function PollMap({ questions, filterKeyword, onDialogOpen }: PostMapProps) {
+export default function PollMap({ questions, filterKeyword,giveLocation, onDialogOpen }: PostMapProps) {
 
     const { data: session } = useSession();
     const currentAccountId = session?.user?.accountId;
+    const [position, setposition] = useState<locationtypes>({lat:35.681236,lng:139.767125})
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -58,6 +65,17 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
         if (clickPos)
             onDialogOpen("poll", clickPos);
     }
+
+    useEffect(() => {
+            if(giveLocation){
+                setposition(giveLocation)
+                if(map){
+            map.moveCamera({
+                    center: position,
+                    zoom: 15
+                });
+            }}
+        },[giveLocation]);
 
     useEffect(() => {
         if (!map || !isLoaded) return;
@@ -83,7 +101,7 @@ export default function PollMap({ questions, filterKeyword, onDialogOpen }: Post
                 }}
                 mapContainerStyle={containerStyle}
                 options={mapOption}
-                center={center}
+                center={position}
                 zoom={14}
             >
 
