@@ -513,7 +513,7 @@ export default function Home() {
             onClick={() => setSearchKeyword(filterKeyword)}
             className="search-btn"
           >
-            検索
+            🔍
           </button>
         </div>
       </header>
@@ -1027,14 +1027,14 @@ export default function Home() {
           <>
             <div className="extract-panel">
               <div className="panel-header">
-                <span>{clickedOpinion.commentText}</span>
+                <span className='comment-text'>{clickedOpinion.commentText}</span>
                 <button onClick={() => setShowClickedOpinion(false)}>×</button>
               </div>
               <button
                 className={`heart-btn ${isLiked ? 'liked' : ''}`}
                 onClick={() => setIsLiked(prev => !prev)}
               >
-                ❤ {clickedOpinion?.likeCount || 0}
+                ♥ {clickedOpinion?.likeCount || 0}
               </button>
 
               <p>タグ：{clickedOpinion.tags}</p>
