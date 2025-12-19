@@ -1,0 +1,64 @@
+/* ===== 会員登録フォーム ===== */
+
+.register-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.register-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 32px 28px;
+  width: 90%;
+  max-width: 450px;
+}
+
+.register-title {
+  font-size: 26px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.register-input {
+  width: 100%;
+  /* ←フル幅！ */
+  padding: 14px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.register-input:focus {
+  border-color: #f97316;
+}
+
+.registerBtn {
+  padding: 14px;
+  background-color: #f97316;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.registerBtn:hover {
+  background-color: #fb923c;
+}

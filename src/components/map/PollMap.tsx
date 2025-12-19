@@ -1,0 +1,190 @@
+'use client';
+
+import React, { useEffect, useState, useCallback, useRef } from "react";
+
+import {
+    GoogleMap,
+    MarkerF,
+    InfoWindowF, // InfoWindow をインポート
+    Circle,        // Circle をインポート
+    type Libraries,
+    useJsApiLoader,
+    OverlayView
+} from '@react-google-maps/api';
+import { useSession } from "next-auth/react";
+
+const containerStyle = {
+    width: "100%",
+    height: "100%",
+};
+
+const mapOption = { disableDefaultUI: true }
+
+// 定数は外に出す（変更なし）
+const libraries: ("geometry" | "drawing" | "places" | "visualization")[] = ["drawing", "geometry", "places"];
+
+// 円のスタイル設定
+const circleOptions = {
+    strokeColor: '#FF0000', // 線の色
+    strokeOpacity: 0.8,
+    strokeWeight: 2,
+    fillColor: '#FF0000', // 塗りつぶしの色
+    fillOpacity: 0.2, // 塗りつぶしの透明度
+};
+
+type locationtypes = {
+    lat: number;
+    lng: number;
+};
+
+
+interface PostMapProps {
+    onDialogOpen: (data: string, clickPos?: { lat: number, lng: number }, hasAnswered?: boolean) => void;
+    questions: (any[]);
+    filterKeyword: String;
+    giveLocation: locationtypes | null;
+}
+
+export default function PollMap({ questions, filterKeyword,giveLocation, onDialogOpen }: PostMapProps) {
+
+    const { data: session } = useSession();
+    const currentAccountId = session?.user?.accountId;
+    const [position, setposition] = useState<locationtypes>({lat:35.681236,lng:139.767125})
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+        libraries: libraries,
+    });
+
+    const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [clickPos, setClickPos] = useState<{ lat: number, lng: number } | null>(null);
+
+
+    const handleOpinionTransition = () => {
+        if (clickPos)
+            onDialogOpen("poll", clickPos);
+    }
+
+    useEffect(() => {
+            if(giveLocation){
+                setposition(giveLocation)
+                if(map){
+            map.moveCamera({
+                    center: position,
+                    zoom: 15
+                });
+            }}
+        },[giveLocation]);
+
+    useEffect(() => {
+        if (!map || !isLoaded) return;
+        // 2. マップにセット（これで表示されます）
+        setMap(map);
+    });
+
+    const filterdQuestions = questions.filter((op) => {
+        if (op.questionText && op.questionText.includes(filterKeyword)) return true;
+    })
+
+    if (!isLoaded) return <div>Loading...</div>;
+
+    return (
+        <>
+            <GoogleMap
+                onClick={(e) => {
+                    if (!e.latLng) return;
+                    setClickPos({
+                        lat: e.latLng.lat(),
+                        lng: e.latLng.lng(),
+                    })
+                }}
+                mapContainerStyle={containerStyle}
+                options={mapOption}
+                center={position}
+                zoom={14}
+            >
+
+                {/* アンケートの作成 アイコン作成todo*/}
+                {filterdQuestions.map((q) => {
+
+                    let hasAnswered = false;
+
+                    console.group(`--- Question ID: ${q.questionId} ---`);
+                    console.log(`1. Current Logged-in Account ID (currentAccountId):`, currentAccountId);
+                    console.log(`2. All Answers for this Question (q.answers):`, q.answers);
+
+                    // ★ 回答済み判定ロジック ★
+                    if (currentAccountId && q.answers) {
+                        const loggedInId = String(currentAccountId);
+
+                        const isMatchFound = q.answers.some((answer: any) => {
+                            // 厳密な文字列比較
+                            return String(answer.accountId) === loggedInId;
+                        });
+
+                        if (isMatchFound) {
+                            hasAnswered = true;
+                        }
+                    }
+
+                    // ★ ピンのアイコン/スタイルを決定 (ロジックを反転) ★
+                    const isUnanswered = !hasAnswered;
+
+                    // 未回答の場合にカスタムアイコンを使用 (質問ピン)
+                    const unansweredIcon = {
+                        url: "/icon/poll.png",
+                        scaledSize: new google.maps.Size(40, 40),
+                        anchor: new google.maps.Point(20, 40),
+                    };
+
+                    // ★ 回答済みの場合にカスタムアイコンを使用 (回答済みピン) ★
+                    const answeredIcon = {
+
+                        // ここのパスを指定します！！！！！！
+                        url: "/icon/poll_ok.png",
+
+                        scaledSize: new google.maps.Size(40, 40),
+                        anchor: new google.maps.Point(20, 40),
+                    };
+
+
+                    const markerIcon = hasAnswered ?
+                        answeredIcon : // 回答済みなら、新しいカスタムピン
+                        unansweredIcon; // 未回答なら、/icon/poll.png
+
+                    return (
+                        <MarkerF
+                            key={q.questionId}
+                            position={{
+                                lat: Number(q.latitude),
+                                lng: Number(q.longitude),
+                            }}
+                            icon={markerIcon} // 未回答ならカスタム、回答済みならデフォルト
+                            onClick={() => onDialogOpen(q.questionId, undefined, hasAnswered)}
+                        />
+                    );
+                })}
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}>
+                    {clickPos && (
+                        <OverlayView
+                            position={clickPos}
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                        >
+                            <button
+                                style={{
+                                    background: 'white', padding: '8px 12px', borderRadius:
+                                        '6px', border: '1px solid #ccc', whiteSpace: 'nowrap',
+                                }}
+                                onClick={handleOpinionTransition}
+                            >
+                                アンケートを作成</button>
+                        </OverlayView>
+                    )}
+                </div>
+            </GoogleMap>
+        </>
+    );
+}
