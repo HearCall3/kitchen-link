@@ -1,0 +1,116 @@
+.opinion-bubble {
+    background: white;
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+
+    white-space: normal;
+    word-break: break-word;
+    position: relative;
+    transform: translate(-50%, -110%);
+    margin-bottom: 8px;
+}
+
+/* 短文 */
+.bubble-sm {
+    min-width: 80px;
+    max-width: 140px;
+}
+
+/* 普通 */
+.bubble-md {
+    min-width: 120px;
+    max-width: 200px;
+}
+
+/* 長め */
+.bubble-lg {
+    min-width: 160px;
+    max-width: 260px;
+}
+
+/* 超長文 */
+.bubble-xl {
+    min-width: 200px;
+    max-width: 300px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+
+.opinion-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 24px;
+    border-width: 8px 8px 0 8px;
+    border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.opinion-bubble {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* 意見抽出のUI */
+.map-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+
+    width: 56px;
+    height: 56px;
+
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    z-index: 9999;
+    transition: background 0.2s;
+}
+
+.map-btn.active {
+    background: #ff9500;
+    /* オレンジ */
+}
+
+.map-btn img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 70px;
+    right: 50%;
+    transform: translateX(50%);
+    background: black;
+    color: white;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.map-btn:hover .tooltip {
+    opacity: 1;
+}
