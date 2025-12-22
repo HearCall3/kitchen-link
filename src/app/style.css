@@ -493,24 +493,13 @@ header input {
   font-weight: bold;
 }
 
-/* オーバーレイ（画面全体を覆う） */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 90;
-}
-
 /* ===== ダイアログ共通 ===== */
 .poll-dialog {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90%;
+  width: 80%;
   max-width: 400px;
   background: #fff;
   border-radius: 20px;
