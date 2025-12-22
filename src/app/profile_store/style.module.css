@@ -1,6 +1,6 @@
 /* ===== スマホ風フレーム全体 ===== */
 .phone-frame {
-  width: 100%;
+  width: 95%;
   height: 100vh;
   background: #f3f4f6;
   display: flex;
@@ -52,6 +52,7 @@
 
 /* ===== 入力系 ===== */
 .input {
+  left: 50%;
   width: 93%;
   padding: 12px;
   border: 1px solid #d1d5db;
@@ -63,6 +64,7 @@
 }
 
 .textarea {
+  left: 50%;
   width: 93%;
   padding: 12px;
   border: 1px solid #d1d5db;
@@ -74,6 +76,7 @@
 }
 
 .textarea {
+  left: 50%;
   min-height: 120px;
   resize: vertical;
 }

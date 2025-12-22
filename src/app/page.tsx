@@ -564,7 +564,7 @@ export default function Home() {
               }
             }}
           > プロフィール
-          </li>
+        </li>
           
           {session?.user?.storeId && (
             <li
