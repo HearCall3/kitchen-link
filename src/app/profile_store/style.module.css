@@ -26,7 +26,7 @@
 
 /* ===== 中のコンテンツ領域 ===== */
 .container {
-  width: 100%;
+  width: 90%;
   display: flex;
   flex-direction: column;
   gap: 16px;

@@ -440,13 +440,13 @@ export default function Home() {
       onExtract={handleExtract}
     />,
     poll: <PollMap questions={questions}
-    filterKeyword={searchKeyword}
-    onDialogOpen={handleDialogOpen}
-    giveLocation={position} />,
+      filterKeyword={searchKeyword}
+      onDialogOpen={handleDialogOpen}
+      giveLocation={position} />,
     store: <StoreMap schedule={schedules}
-    filterKeyword={searchKeyword}
-    giveLocation={position}
-    onExtract={handleExtract} />
+      filterKeyword={searchKeyword}
+      giveLocation={position}
+      onExtract={handleExtract} />
   };
 
   // --------------------------------------------------
@@ -543,54 +543,49 @@ export default function Home() {
       </header>
 
 
-
       {/* ===== ハンバーガーメニュー ===== */}
       <div className={`side-menu ${menuOpen ? "open" : ""}`}>
         <ul className="text-gray-800 text-lg">
-          {/* 出店者なら出店者プロフィールに行く TODO */}
+
           <li
             className="border-b p-3 hover:bg-gray-100 cursor-pointer"
             onClick={() => {
+              {/* ログインしてなかったらログインモーダル */ }
               if (!session) {
-                // ログインしてなかったらログインに誘導
                 setShowLoginPrompt(true);
                 return;
-              }
-              router.push("/profile_user");
-            }}
-          >
+                {/* 出店ユーザーなら出店プロフィールへ */ }
+              } else if (session.user.storeId) {
+                router.push("/profile_store");
 
-            ユーザープロフィール
-          </li>
-          <li
-            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => {
-              if (!session) {
-                // ログインしてなかったらログインに誘導
-                setShowLoginPrompt(true);
-                return;
+                {/* ユーザーならユーザープロフィールへ */ }
+              } else {
+                router.push("/profile_user");
               }
-              router.push("/profile_user");
             }}
-          >
-            ストアプロフィール
+          > プロフィール
           </li>
-          <li
-            className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-            onClick={() => router.push("/register")}
-          >
-            出店登録
-          </li>
-
-          {!session ? (
-            <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
-              ログイン
-            </li>
-          ) : (
-            <li className="border-b p-3 hover:bg-gray-100 text-red-600 cursor-pointer" onClick={() => signOut({ callbackUrl: "/" })}>
-              ログアウト
+          
+          {session?.user?.storeId && (
+            <li
+              className="border-b p-3 hover:bg-gray-100 cursor-pointer"
+              onClick={() => router.push("/register")}
+            >
+              出店登録
             </li>
           )}
+
+          {
+            !session ? (
+              <li className="border-b p-3 hover:bg-gray-100 text-blue-600 cursor-pointer" onClick={() => router.push("/login")}>
+                ログイン
+              </li>
+            ) : (
+              <li className="border-b p-3 hover:bg-gray-100 text-red-600 cursor-pointer" onClick={() => signOut({ callbackUrl: "/" })}>
+                ログアウト
+              </li>
+            )
+          }
         </ul>
       </div>
 
@@ -660,332 +655,339 @@ export default function Home() {
 
       {/* ===== ★ 必須: アンケート回答ダイアログ (新設) ★ ===== */}
       {/* ★ 表示条件を answerPollOpen と selectedQuestion に修正 ★ */}
-      {answerPollOpen && selectedQuestion && (
-        <>
-          <div className="dialog-overlay" onClick={() => setAnswerPollOpen(false)} />
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
-            <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
-            <p className="text-sm text-gray-500 mb-3">作成者： {selectedQuestion.storeName}</p>
-
-            <div className="poll-options">
-              <button
-                onClick={() => setSelectedOption(1)}
-                className={`poll-option ${selectedOption === 1 ? "selected left" : "left"
-                  }`}
-              >
-                {selectedQuestion.option1Text}
-              </button>
-              <button
-                onClick={() => setSelectedOption(2)}
-                className={`poll-option ${selectedOption === 2 ? "selected right" : "right"
-                  }`}
-              >
-                {selectedQuestion.option2Text}
-              </button>
-            </div>
-
-            {/* ★ 確認: 回答を送信 ボタンに handleAnswerSubmit が設定されている ★ */}
-            <button
-              onClick={handleAnswerSubmit}
-              disabled={selectedOption === null}
-              className={`submit-btn mt-4 ${selectedOption === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              回答を送信
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* 結果表示ダイヤログ */}
-      {showResult && selectedQuestion && (
-        <>
-          <div className="dialog-overlay" onClick={() => setShowResult(false)} />
-
-          <div className="poll-dialog active">
-            <button className="close-btn" onClick={() => setShowResult(false)}>
-              ×
-            </button>
-
-            <h2 className="text-lg font-bold mb-6 text-center">
-              結果
-            </h2>
-            <h3 className="text-lg font-bold mb-6 text-center">
+      {
+        answerPollOpen && selectedQuestion && (
+          <>
+            <div className="dialog-overlay" onClick={() => setAnswerPollOpen(false)} />
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setAnswerPollOpen(false)}>×</button>
               <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
-            </h3>
-            <div className='scroll'>
+              <p className="text-sm text-gray-500 mb-3">作成者： {selectedQuestion.storeName}</p>
 
-              {(() => {
-                // ===== DB取得=====
-                const leftCount = pollCounts?.count1 || 0;
-                const rightCount = pollCounts?.count2 || 0;
-                const total = leftCount + rightCount || 1;
+              <div className="poll-options">
+                <button
+                  onClick={() => setSelectedOption(1)}
+                  className={`poll-option ${selectedOption === 1 ? "selected left" : "left"
+                    }`}
+                >
+                  {selectedQuestion.option1Text}
+                </button>
+                <button
+                  onClick={() => setSelectedOption(2)}
+                  className={`poll-option ${selectedOption === 2 ? "selected right" : "right"
+                    }`}
+                >
+                  {selectedQuestion.option2Text}
+                </button>
+              </div>
 
-                const leftRate = Math.round((leftCount / total) * 100);
-                const rightRate = Math.round((rightCount / total) * 100);
-
-                return (
-                  <div className="result-wrapper">
-                    {/* ラベル */}
-                    <div className="result-labels">
-                      <span className="result-labels-left">{selectedQuestion.option1Text}</span>
-                      <span className="result-labels-right">{selectedQuestion.option2Text}</span>
-                    </div>
-
-                    {/* グラフ */}
-
-                    <div className="result-bar">
-                      {/* 左 */}
-                      <div
-                        className="result-left"
-                        style={{ width: `${leftRate}%` }}
-                      >
-                        <span className="result-text">
-                          {leftRate}%（{leftCount}票）
-                        </span>
-                      </div>
-
-                      {/* 右 */}
-                      <div
-                        className="result-right"
-                        style={{ width: `${rightRate}%` }}
-                      >
-                        <span className="result-text">
-                          {rightRate}%（{rightCount}票）
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </>
-      )}
-
-
-
-
-      {postOpen && (
-        <>
-          {/* ===== 意見投稿 ===== */}
-          <div
-            className="dialog-overlay"
-            onClick={() => setPostOpen(false)}
-          />
-          <div className="poll-dialog active">
-            <button
-              className="close-btn"
-              onClick={() => setPostOpen(false)}
-            >
-              ×
-            </button>
-
-            <h3>意見を投稿</h3>
-
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="お店についての意見を入力..."
-            />
-            {/* ジャンル選択 */}
-            <div className="genre-container">
-              選択：
-              <select
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
-              >
-                {/* optionsのリストをレンダリング */}
-                {tags.map((tag) => (
-                  <option key={tag.value} value={tag.value}>
-                    {tag.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-2 mb-3">
+              {/* ★ 確認: 回答を送信 ボタンに handleAnswerSubmit が設定されている ★ */}
               <button
-                onClick={handleOpinionSubmit}
-                className="submit-btn"
+                onClick={handleAnswerSubmit}
+                disabled={selectedOption === null}
+                className={`submit-btn mt-4 ${selectedOption === null ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                投稿する
+                回答を送信
               </button>
             </div>
-          </div>
-        </>
-      )
+          </>
+        )
       }
 
-      {isFilterOpen && (
-        <>
-          {/* フィルター */}
-          {/* 背景の黒み (クリックで閉じる) */}
-          <div
-            className="dialog-overlay"
-            onClick={() => setIsFilterOpen(false)}
-          />
+      {/* 結果表示ダイヤログ */}
+      {
+        showResult && selectedQuestion && (
+          <>
+            <div className="dialog-overlay" onClick={() => setShowResult(false)} />
 
-          {/* 中央に表示するパネル (poll-dialog active クラスなどを流用してスタイル統一) */}
-          <div className="poll-dialog active" style={{ maxHeight: "80vh", overflowY: "auto" }}>
-            <button
-              className="close-btn"
-              onClick={() => setIsFilterOpen(false)}
-            >
-              ×
-            </button>
+            <div className="poll-dialog active">
+              <button className="close-btn" onClick={() => setShowResult(false)}>
+                ×
+              </button>
 
-            <h3 className="text-lg font-bold mb-4">詳細フィルター</h3>
+              <h2 className="text-lg font-bold mb-6 text-center">
+                結果
+              </h2>
+              <h3 className="text-lg font-bold mb-6 text-center">
+                <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
+              </h3>
+              <div className='scroll'>
 
-            {/* --- ここから中身は既存の入力フォームと同じ --- */}
+                {(() => {
+                  // ===== DB取得=====
+                  const leftCount = pollCounts?.count1 || 0;
+                  const rightCount = pollCounts?.count2 || 0;
+                  const total = leftCount + rightCount || 1;
 
-            {/* タグ */}
-            <div className='scroll'>
-              <div className="form-row-horizontal">
-                <label className="filter-title">タグの選択</label>
-                <select
-                  className="w-full p-2 border rounded"
-                  value={filters.tag ?? ""}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
-                  }
-                >
-                  <option value="">---</option>
-                  <option value="商品">商品</option>
-                  <option value="設備">設備</option>
-                  <option value="値段">値段</option>
-                  <option value="ボリューム">ボリューム</option>
-                  <option value="満足">満足</option>
-                  <option value="その他">その他</option>
-                </select>
+                  const leftRate = Math.round((leftCount / total) * 100);
+                  const rightRate = Math.round((rightCount / total) * 100);
+
+                  return (
+                    <div className="result-wrapper">
+                      {/* ラベル */}
+                      <div className="result-labels">
+                        <span className="result-labels-left">{selectedQuestion.option1Text}</span>
+                        <span className="result-labels-right">{selectedQuestion.option2Text}</span>
+                      </div>
+
+                      {/* グラフ */}
+
+                      <div className="result-bar">
+                        {/* 左 */}
+                        <div
+                          className="result-left"
+                          style={{ width: `${leftRate}%` }}
+                        >
+                          <span className="result-text">
+                            {leftRate}%（{leftCount}票）
+                          </span>
+                        </div>
+
+                        {/* 右 */}
+                        <div
+                          className="result-right"
+                          style={{ width: `${rightRate}%` }}
+                        >
+                          <span className="result-text">
+                            {rightRate}%（{rightCount}票）
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-
-              {/* 性別 */}
-              <div className="form-row-horizontal">
-                <label className="filter-title">性別</label>
-                <select
-                  className="w-full p-2 border rounded"
-                  value={filters.gender ?? ""}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
-                  }
-                >
-                  <option value="">---</option>
-                  <option value="男性">男性</option>
-                  <option value="女性">女性</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職業 */}
-              <div className="form-row-horizontal">
-                <label className="block text-sm font-bold mb-1">職業</label>
-                <select
-                  className="w-full p-2 border rounded"
-                  value={filters.occupation ?? ""}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
-                  }
-                >
-                  <option value="">---</option>
-                  <option value="学生">学生</option>
-                  <option value="会社員">会社員</option>
-                  <option value="アルバイト・パート">アルバイト・パート</option>
-                  <option value="フリーランス">フリーランス</option>
-                  <option value="公務員">公務員</option>
-                  <option value="無職">無職</option>
-                  <option value="フリーター">フリーター</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 年齢 */}
-              <div className="form-row-horizontal">
-                <label className="form-row-horizontal">年齢</label>
-                <select
-                  className="w-full p-2 border rounded"
-                  value={filters.ageRange ?? ""}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
-                  }
-                >
-                  <option value="">---</option>
-                  <option value="10代">10歳未満</option>
-                  <option value="20代">20代</option>
-                  <option value="30代">30代</option>
-                  <option value="40代">40代</option>
-                  <option value="50代">50代</option>
-                  <option value="60代">60代</option>
-                  <option value="70代">70代</option>
-                  <option value="80代以上">80代以上</option>
-                </select>
-              </div>
-
-              {/* 最低いいね数 */}
-              <div className="form-row-horizontal">
-                <label className="form-row-horizontal">最低いいね数</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full p-2 border rounded"
-                  value={filters.minLikes ?? ""}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      minLikes: e.target.value ? Number(e.target.value) : null,
-                    }))
-                  }
-                />
-              </div>
-
-              {/* 日付（以降） */}
-              <div className="form-row-horizontal" style={{ marginBottom: 10 }}>
-                <label className="form-row-horizontal">日付（以降）</label>
-                <input
-                  type="date"
-                  className="w-full p-2 border rounded"
-                  value={formatDateInput(filters.dateFrom)}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      dateFrom: e.target.value ? new Date(e.target.value) : null,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="modal-button-group">
-                <button
-                  className="modal-reset-btn"
-                  onClick={() =>
-                    setFilters({
-                      tag: null,
-                      gender: null,
-                      occupation: null,
-                      ageRange: null,
-                      minLikes: null,
-                      dateFrom: null,
-                      dateTo: null,
-                    })
-                  }
-                >
-                  リセット
-                </button>
-                <button
-                  className="modal-apply-btn"
-                  onClick={() => {
-                    setAppliedFilters(filters);
-                    setIsFilterOpen(false); // 適用したら閉じる
-                  }}
-                >
-                  適用
-                </button>
-              </div>
-
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )
+      }
+
+
+
+
+      {
+        postOpen && (
+          <>
+            {/* ===== 意見投稿 ===== */}
+            <div
+              className="dialog-overlay"
+              onClick={() => setPostOpen(false)}
+            />
+            <div className="poll-dialog active">
+              <button
+                className="close-btn"
+                onClick={() => setPostOpen(false)}
+              >
+                ×
+              </button>
+
+              <h3>意見を投稿</h3>
+
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="お店についての意見を入力..."
+              />
+              {/* ジャンル選択 */}
+              <div className="genre-container">
+                選択：
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="select-tag-input" // スタイル調整が必要な場合はclassNameを変更
+                >
+                  {/* optionsのリストをレンダリング */}
+                  {tags.map((tag) => (
+                    <option key={tag.value} value={tag.value}>
+                      {tag.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={handleOpinionSubmit}
+                  className="submit-btn"
+                >
+                  投稿する
+                </button>
+              </div>
+            </div>
+          </>
+        )
+      }
+
+      {
+        isFilterOpen && (
+          <>
+            {/* フィルター */}
+            {/* 背景の黒み (クリックで閉じる) */}
+            <div
+              className="dialog-overlay"
+              onClick={() => setIsFilterOpen(false)}
+            />
+
+            {/* 中央に表示するパネル (poll-dialog active クラスなどを流用してスタイル統一) */}
+            <div className="poll-dialog active" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+              <button
+                className="close-btn"
+                onClick={() => setIsFilterOpen(false)}
+              >
+                ×
+              </button>
+
+              <h3 className="text-lg font-bold mb-4">詳細フィルター</h3>
+
+              {/* --- ここから中身は既存の入力フォームと同じ --- */}
+
+              {/* タグ */}
+              <div className='scroll'>
+                <div className="form-row-horizontal">
+                  <label className="filter-title">タグの選択</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={filters.tag ?? ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, tag: e.target.value || null }))
+                    }
+                  >
+                    <option value="">---</option>
+                    <option value="商品">商品</option>
+                    <option value="設備">設備</option>
+                    <option value="値段">値段</option>
+                    <option value="ボリューム">ボリューム</option>
+                    <option value="満足">満足</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+
+                {/* 性別 */}
+                <div className="form-row-horizontal">
+                  <label className="filter-title">性別</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={filters.gender ?? ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, gender: e.target.value || null }))
+                    }
+                  >
+                    <option value="">---</option>
+                    <option value="男性">男性</option>
+                    <option value="女性">女性</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+
+                {/* 職業 */}
+                <div className="form-row-horizontal">
+                  <label className="block text-sm font-bold mb-1">職業</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={filters.occupation ?? ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, occupation: e.target.value || null }))
+                    }
+                  >
+                    <option value="">---</option>
+                    <option value="学生">学生</option>
+                    <option value="会社員">会社員</option>
+                    <option value="アルバイト・パート">アルバイト・パート</option>
+                    <option value="フリーランス">フリーランス</option>
+                    <option value="公務員">公務員</option>
+                    <option value="無職">無職</option>
+                    <option value="フリーター">フリーター</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+
+                {/* 年齢 */}
+                <div className="form-row-horizontal">
+                  <label className="form-row-horizontal">年齢</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={filters.ageRange ?? ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, ageRange: e.target.value || null }))
+                    }
+                  >
+                    <option value="">---</option>
+                    <option value="10代">10歳未満</option>
+                    <option value="20代">20代</option>
+                    <option value="30代">30代</option>
+                    <option value="40代">40代</option>
+                    <option value="50代">50代</option>
+                    <option value="60代">60代</option>
+                    <option value="70代">70代</option>
+                    <option value="80代以上">80代以上</option>
+                  </select>
+                </div>
+
+                {/* 最低いいね数 */}
+                <div className="form-row-horizontal">
+                  <label className="form-row-horizontal">最低いいね数</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full p-2 border rounded"
+                    value={filters.minLikes ?? ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        minLikes: e.target.value ? Number(e.target.value) : null,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* 日付（以降） */}
+                <div className="form-row-horizontal" style={{ marginBottom: 10 }}>
+                  <label className="form-row-horizontal">日付（以降）</label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded"
+                    value={formatDateInput(filters.dateFrom)}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        dateFrom: e.target.value ? new Date(e.target.value) : null,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="modal-button-group">
+                  <button
+                    className="modal-reset-btn"
+                    onClick={() =>
+                      setFilters({
+                        tag: null,
+                        gender: null,
+                        occupation: null,
+                        ageRange: null,
+                        minLikes: null,
+                        dateFrom: null,
+                        dateTo: null,
+                      })
+                    }
+                  >
+                    リセット
+                  </button>
+                  <button
+                    className="modal-apply-btn"
+                    onClick={() => {
+                      setAppliedFilters(filters);
+                      setIsFilterOpen(false); // 適用したら閉じる
+                    }}
+                  >
+                    適用
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </>
+        )
+      }
 
 
       {
