@@ -569,7 +569,7 @@ export default function Home() {
           {session?.user?.storeId && (
             <li
               className="border-b p-3 hover:bg-gray-100 cursor-pointer"
-              onClick={() => router.push("/register")}
+              onClick={() => router.push("/Register")}
             >
               出店登録
             </li>
