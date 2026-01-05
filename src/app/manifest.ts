@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
 return {
-    name: 'Next.js PWA',
-    short_name: 'NextPWA',
+    name: 'KitchenLink',
+    short_name: 'KitchenLink',
     description: 'キッチンカーの出店者と来店者の意見交換ができるアプリです',
     start_url: '/',
     display: 'standalone',
