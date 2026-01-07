@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
 return {
     name: 'KitchenLink',
-    short_name: 'KitchenLink',
+    short_name: 'Kitchen Link',
     description: 'キッチンカーの出店者と来店者の意見交換ができるアプリです',
     start_url: '/',
     display: 'standalone',

@@ -58,7 +58,6 @@ model Store {
   // 出店情報とのリレーション (1:N)
   openings      StoreOpeningInformation[]
   // アンケートとのリレーション (1:N)
-  questions     Question[]
 
   @@map("Stores")
 }
@@ -90,6 +89,7 @@ model Account {
   // アンケート回答とのリレーション (1:N)
   answers       QuestionAnswer[]
 
+  questions   Question[]
   @@map("Account")
 }
 
@@ -195,9 +195,8 @@ model Question {
   option2Text     String  @db.VarChar(255) @map("option_2_text")
 
   // 外部キー: Stores.store_id - Stringに変更
-  storeId         String   @map("store_id")
-  store           Store   @relation(fields: [storeId], references: [storeId])
-
+  accountId String @map("account_id")
+  account Account @relation(fields: [accountId], references: [accountId])
   // アンケート回答とのリレーション (1:N)
   answers         QuestionAnswer[]
 

@@ -161,10 +161,15 @@ export default function Home() {
   // 2. データ取得
   useEffect(() => {
     async function fetchData() {
-      // 既存のデータ取得 (Questions, Opinions, Tags) ...
       const resultQ = await getAllQuestions();
-      if (resultQ.success && resultQ.questions) setQuestions(resultQ.questions);
-      else console.error(resultQ.error);
+      if (resultQ.success && resultQ.questions) {
+        setQuestions(resultQ.questions.map(q => ({
+          ...q,
+          accountId: q.accountId // 必要に応じてアカウントIDを利用
+        })));
+      } else {
+        console.error(resultQ.error);
+      }
 
       const resultO = await getAllOpinions();
       if (resultO.success && resultO.opinions) setOpinions(resultO.opinions);
@@ -174,7 +179,6 @@ export default function Home() {
       if (resultT.success && resultT.tags) setTags([{ value: "", label: "タグを選択" }, ...resultT.tags]);
       else console.error(resultT.error);
 
-      // ★ 修正 2: スケジュールデータの取得と State への格納 ★
       const resultS = await getAllStoreSchedules();
       if (resultS.success && resultS.schedules) {
         setSchedules(resultS.schedules);
@@ -317,9 +321,9 @@ export default function Home() {
 
   // --- Poll Creation Handlers ---
   const createPoll = async () => {
-    const storeId = session?.user?.storeId;
-    if (!storeId) {
-      // alert("出店者としてログインしているか確認してください。");
+    const accountId = session?.user?.accountId;
+    if (!accountId) {
+      alert("ログインしているか確認してください。");
       return;
     }
     if (!newQuestion || !optionOne || !optionTwo || !latLng) {
@@ -327,7 +331,7 @@ export default function Home() {
       return;
     }
     const formData = new FormData();
-    formData.append('storeId', storeId);
+    formData.append('accountId', accountId);
     formData.append('questionText', newQuestion);
     formData.append('option1Text', optionOne);
     formData.append('option2Text', optionTwo);
@@ -694,7 +698,7 @@ export default function Home() {
         )
       }
 
-      {/* 結果表示ダイヤログ */}
+      {/* 結果表示ダイアログ */}
       {
         showResult && selectedQuestion && (
           <>
@@ -709,12 +713,12 @@ export default function Home() {
                 結果
               </h2>
               <h3 className="text-lg font-bold mb-6 text-center">
-                <h3 className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</h3>
+                <span className="text-lg font-bold text-gray-800">{selectedQuestion.questionText}</span>
               </h3>
               <div className='scroll'>
 
                 {(() => {
-                  // ===== DB取得=====
+                  // ===== DB取得 =====
                   const leftCount = pollCounts?.count1 || 0;
                   const rightCount = pollCounts?.count2 || 0;
                   const total = leftCount + rightCount || 1;

@@ -1,4 +1,4 @@
-// src/actions/db_access.ts (全機能を実装し、User/StoreのCRUDを分割)
+// src/actions/db_access.ts (全機能を実装し、User/StoreのCRUD)
 'use server';
 
 import prisma from '@/lib/prisma';
@@ -447,8 +447,6 @@ export async function deleteStore(accountId: string) {
 
             // Storeに紐づく依存データを削除（外部キー制約を満たすため）
             await tx.storeOpeningInformation.deleteMany({ where: { storeId: storeIdToDelete } }); // 出店情報
-            await tx.questionAnswer.deleteMany({ where: { question: { storeId: storeIdToDelete } } }); // アンケート回答（Question経由）
-            await tx.question.deleteMany({ where: { storeId: storeIdToDelete } }); // アンケート
             console.log(`[DB] Deleted dependencies for Store ID ${storeIdToDelete}.`);
 
             // Storeレコードを削除
@@ -722,6 +720,7 @@ export async function getAllOpinions() {
  */
 export async function createQuestion(formData: FormData) {
     console.log(`[DB] START: Creating Question.`);
+    const accountId = formData.get('accountId') as string;
     const storeId = formData.get('storeId') as string;
     const questionText = formData.get('questionText') as string;
     const option1Text = formData.get('option1Text') as string;
@@ -729,15 +728,15 @@ export async function createQuestion(formData: FormData) {
     const latitude = parseFloat(formData.get('latitude') as string);
     const longitude = parseFloat(formData.get('longitude') as string);
 
-    if (!storeId || !questionText || !option1Text || !option2Text || isNaN(latitude) || isNaN(longitude)) {
+    if (!accountId || !storeId || !questionText || !option1Text || !option2Text || isNaN(latitude) || isNaN(longitude)) {
         return { error: '必須フィールドが不足しています。' };
     }
 
     try {
         const newQuestion = await prisma.$transaction(async (tx) => {
             // ストアの存在確認
-            const existingStore = await tx.store.findUnique({ where: { storeId: storeId } });
-            if (!existingStore) { return { error: '指定されたストアIDは存在しません。' }; }
+            const existingAccount = await tx.account.findUnique({ where: { accountId: accountId } });
+            if (!existingAccount) { return { error: '指定されたアカウントIDは存在しません。' }; }
 
             // カスタムIDを生成（アンケート用）
             const customQuestionId = await getAndIncrementCustomId(SEQUENCE_NAME_QUESTION, '06', tx);
@@ -746,7 +745,7 @@ export async function createQuestion(formData: FormData) {
             const question = await tx.question.create({
                 data: {
                     questionId: customQuestionId,
-                    storeId: storeId,
+                    accountId: accountId,
                     questionText: questionText,
                     option1Text: option1Text,
                     option2Text: option2Text,
@@ -832,9 +831,9 @@ export async function getAllQuestions() {
                 option2Text: true,
                 latitude: true,
                 longitude: true,
-                // Storeテーブルを結合して店舗名を取得
-                store: {
-                    select: { storeName: true }
+                // Accountテーブルを結合してアカウント情報を取得
+                account: {
+                    select: { accountId: true }
                 },
                 // 回答数をカウントするためにanswersを含める
                 answers: {
@@ -855,7 +854,7 @@ export async function getAllQuestions() {
                 questionText: q.questionText,
                 option1Text: q.option1Text,
                 option2Text: q.option2Text,
-                storeName: q.store.storeName,
+                accountId: q.account.accountId, // 修正: storeName を削除
                 latitude: q.latitude,
                 longitude: q.longitude,
                 totalAnswers: totalAnswers,
