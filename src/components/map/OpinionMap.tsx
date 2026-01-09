@@ -340,7 +340,7 @@ export default function OpinionMap({ onDialogOpen, opinions, onExtract, accountI
                         }
                     }}
                 >
-                    <img src="/icon/square.png" />
+                    <img src="/square.png" />
                 </div>
             )}
         </>

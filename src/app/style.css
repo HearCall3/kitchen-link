@@ -48,13 +48,11 @@ header {
   color: #374151;
 }
 
-/* 検索ボタン */
 .search-btn {
   padding: 0 16px;
   height: 40px;
   font-size: 11px;
   width: 12%;
-  max-width: 60px;
   /* 高さを統一 */
   border: none;
   border-radius: 9999px;
@@ -80,8 +78,9 @@ header {
 .filter-btn {
   padding: 0 16px;
   height: 40px;
-  width: 100px; /* 幅を固定 */
-  font-size: 14px; /* フォントサイズを調整 */
+  min-width: 56px;
+  /* 幅はコンテンツに合わせる（固定しない） */
+  font-size: 14px;
   border: none;
   border-radius: 9999px;
   background-color: #f69148;
@@ -89,6 +88,12 @@ header {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .filter-btn:hover {
@@ -97,10 +102,22 @@ header {
 
 @media (max-width: 768px) {
   .filter-btn {
-    width: 120px; /* スマホ画面で幅を広げる */
-    font-size: 12px; /* フォントサイズを微調整 */
+    width: auto;
+    max-width: 90px; /* スマホでボタンを狭める */
+    padding: 0 10px;
+    font-size: 12px;
   }
 }
+
+@media (max-width: 420px) {
+  .filter-btn {
+    max-width: 72px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
+
+  
 
 /* ======閉じるボタン====== */
 .close-btn {
@@ -253,6 +270,106 @@ header {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 }
+
+/* 入力内に重ねて表示する検索ボタン用ラッパー */
+.search-input-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0; /* flex項目が必要以上に伸びないようにする */
+}
+
+/* 強制上書きルール（Tailwindや他のスタイルに負ける場合の保険） */
+header .search-input-wrapper { min-width: 0 !important; flex: 1 1 auto !important; position: relative !important; }
+
+.search-input-wrapper input {
+  padding-right: 140px; /* ボタン分の余白（検索+リセット分を確保） */
+  box-sizing: border-box;
+}
+
+header .search-input-wrapper input { padding-right: 140px !important; box-sizing: border-box !important; width: 100% !important; }
+
+.search-input-wrapper .search-btn.search-overlap {
+  position: absolute;
+  right: 90px; /* moved slightly right to avoid overlap */
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  height: 32px;
+  min-width: auto;
+  width: auto;
+  display: inline-flex;
+  font-size: 13px;
+  border-radius: 9999px;
+  background-color: #3b82f6;
+  color: #fff;
+  z-index: 5;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+/* 強制上書き（位置ずれを確実に修正） */
+header .search-input-wrapper .search-btn.search-overlap { position: absolute !important; right: 78px !important; top: 50% !important; transform: translateY(-50%) !important; z-index: 999 !important; }
+
+@media (max-width: 768px) {
+  .search-input-wrapper input { padding-right: 120px; }
+  .search-input-wrapper .search-btn.search-overlap { padding: 6px 8px; font-size: 12px; right: 58px; }
+}
+
+@media (max-width: 420px) {
+  .search-input-wrapper input { padding-right: 104px; }
+  .search-input-wrapper .search-btn.search-overlap { padding: 5px 6px; font-size: 11px; right: 50px; }
+}
+
+/* フィルターボタンはレイアウトで固定幅扱い */
+.filter-btn {
+  flex: 0 0 auto;
+}
+
+/* 強制上書き for filter button */
+header .filter-btn { flex: 0 0 auto !important; margin-left: 8px !important; }
+
+/* ヘッダーの検索欄上に重ねるリセットボタン */
+.search-reset-btn {
+  padding: 0 10px;
+  height: 28px;
+  border-radius: 9999px;
+  background-color: #fff8f0;
+  color: #e76f24;
+  border: 1px solid #f0a050;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.search-reset-btn:hover { background-color: #fff0e0; }
+
+.search-input-wrapper .search-reset-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+  z-index: 30;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+@media (max-width: 768px) {
+  .search-input-wrapper .search-reset-btn { right: 8px; top: 50%; font-size: 11px; padding: 5px 8px; }
+}
+
+/* 検索コンテナの overflow を可視化して、上に重ねたボタンがクリップされないようにする */
+.search-container { overflow: visible !important; }
+
+/* 補助: 検索ラッパー内の余分なボタンを確実に非表示にする（重複対策） */
+.search-input-wrapper button:not(.search-btn):not(.search-reset-btn) { display: none !important; }
+
+/* モーダル内のリセットは既存の .modal-reset-btn を使用（そのまま表示） */
+.modal-reset-btn { display: inline-flex !important; }
 
 /* ボタンを横並びにするコンテナ */
 .modal-button-group {
@@ -744,78 +861,65 @@ header input {
   transform: scale(0.96);
 }
 
-/* 全体 */
-.result-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* 全体の幅 */
 .result-wrapper {
   width: 100%;
+  margin-top: 10px;
 }
 
-.result-labels {
+/* ラベルと数値を左右に分けるコンテナ */
+.result-header-container {
   display: flex;
   justify-content: space-between;
-  /* 左右に振り分け */
-  align-items: center;
-  font-size: 16px;
-  color: #000000;
-  margin: 8px;
+  margin-bottom: 8px; /* バーとの隙間 */
   padding: 0 4px;
 }
 
-.result-labels-left {
+/* 左側のテキスト群 */
+.result-column-left {
   text-align: left;
 }
 
-.result-labels-right {
+/* 右側のテキスト群 */
+.result-column-right {
   text-align: right;
 }
 
-.result-header {
-  display: flex;
-  justify-content: space-between;
+/* 項目名のスタイル */
+.option-text {
   font-size: 14px;
-  margin-bottom: 8px;
+  font-weight: bold;
+  color: #333;
 }
 
+/* 数値のスタイル */
+.percentage-text {
+  font-size: 13px;
+  color: #000;
+  font-weight: bold;
+}
+
+/* バー本体 */
 .result-bar {
-  position: relative;
   display: flex;
-  height: 36px;
+  width: 100%;
+  height: 24px; /* テキストを外に出したので少し細くしても綺麗です */
   background: #f2f2f2;
-  border-radius: 18px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
-/* 左 */
-.result-left {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+/* 左側のゲージ色 */
+.result-left-bar {
+  height: 100%;
   background: #fb923c;
-  color: white;
-  font-size: 12px;
-  padding-right: 8px;
   transition: width 0.8s ease;
 }
 
-/* 右 */
-.result-right {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+/* 右側のゲージ色 */
+.result-right-bar {
+  height: 100%;
   background: #f97316;
-  color: white;
-  font-size: 12px;
-  padding-left: 8px;
-  transition: width 0.8s ease;
-}
-
-.result-text {
-  white-space: nowrap;
 }
 
 /* アラート */

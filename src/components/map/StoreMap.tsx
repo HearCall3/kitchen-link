@@ -85,7 +85,7 @@ export default function StoreMap({ schedule, filterKeyword, giveLocation, onExtr
                             lng: Number(q.location.lng),
                         }}
                         icon={{
-                            url: "/icon/kitchen.png",  // publicフォルダに画像を置く
+                            url: "/kitchen.png",  // publicフォルダに画像を置く
                             scaledSize: new google.maps.Size(40, 30), // サイズ調整
                             anchor: new google.maps.Point(20, 40), // 先端の位置調整
                             labelOrigin: new window.google.maps.Point(50, 30),

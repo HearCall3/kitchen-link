@@ -721,14 +721,13 @@ export async function getAllOpinions() {
 export async function createQuestion(formData: FormData) {
     console.log(`[DB] START: Creating Question.`);
     const accountId = formData.get('accountId') as string;
-    const storeId = formData.get('storeId') as string;
     const questionText = formData.get('questionText') as string;
     const option1Text = formData.get('option1Text') as string;
     const option2Text = formData.get('option2Text') as string;
     const latitude = parseFloat(formData.get('latitude') as string);
     const longitude = parseFloat(formData.get('longitude') as string);
 
-    if (!accountId || !storeId || !questionText || !option1Text || !option2Text || isNaN(latitude) || isNaN(longitude)) {
+    if (!accountId || !questionText || !option1Text || !option2Text || isNaN(latitude) || isNaN(longitude)) {
         return { error: '必須フィールドが不足しています。' };
     }
 

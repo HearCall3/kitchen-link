@@ -46,7 +46,7 @@ export default function Home() {
   const [answerPollOpen, setAnswerPollOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [pollCounts, setPollCounts] = useState<{ count1: number, count2: number } | null>(null);
+  const [pollCounts, setPollCounts] = useState<{ count1: number, count2: number }>({ count1: 0, count2: 0 });
 
   // ====== メニュー・状態 ======
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,10 +62,6 @@ export default function Home() {
   const [text, setText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const genres = ["商品", "値段", "ボリューム", "満足", "その他"];
-
-  // =====いいね=====
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState<number>(0);
 
   // ====== アンケート作成 States ======
   const [createOpen, setCreateOpen] = useState(false);
@@ -353,7 +349,7 @@ export default function Home() {
   }
 
   const handleLikeClick = async (opinionId: string) => {
-    const accountId = session?.user.accountId
+    const accountId = session?.user.accountId;
     if (!accountId) {
       alert('ログインしていません。いいねを行うにはログインが必要です。');
       return;
@@ -364,46 +360,39 @@ export default function Home() {
       const result = await toggleLike(accountId, opinionId);
 
       if (result.success) {
-        const [isLiked, setIsLiked] = useState(false);
-
-        setOpinions(prevOpinions =>
-          prevOpinions.map(op => {
-            // 意見IDでマッチング
+        setOpinions(prevOpinions => {
+          const updatedOpinions = prevOpinions.map(op => {
             if (op.opinionId === opinionId) {
-
-              // 開いている意見パネルの情報を更新
-              if (showClickedOpinion && op.opinionId === opinionId) {
-                setShowClickedOpinion({
-                  ...clickedOpinion,
-                  likeCount: likeCount,
-                  isLikedByUser: isLiked // ユーザーがいいねしたかどうかの状態も更新
-                });
-              }
-
-              // 意見リストの当該レコードを更新
               return {
                 ...op,
-                likeCount: likeCount,
+                likeCount: result.likeCount,
+                isLiked: result.isLiked,
               };
             }
             return op;
-          })
-        );
+          });
+          return updatedOpinions;
+        });
 
+        if (clickedOpinion?.opinionId === opinionId) {
+          setClickedOpinion({
+            ...clickedOpinion,
+            likeCount: result.likeCount,
+            isLiked: result.isLiked,
+          });
+        }
       } else {
         alert(result.error || 'いいね処理に失敗しました。');
       }
-
     } catch (error) {
       console.error('いいね処理中のエラー:', error);
       alert('いいね処理中に予期せぬエラーが発生しました。');
     }
-
   }
 
-  const handleDialogOpen = (data: string, takeLatLng?: { lat: number, lng: number }, hasAnswered?: boolean) => {
-
-    if (!session) {//ログインしてなかったらログインに誘導
+  const handleDialogOpen = async (data: string, takeLatLng?: { lat: number, lng: number }, hasAnswered?: boolean) => {
+    if (!session) {
+      // ログインしていなければログインモーダルを表示
       setShowLoginPrompt(true);
       return;
     }
@@ -411,19 +400,33 @@ export default function Home() {
     if (takeLatLng) {
       setLatLng(takeLatLng);
       switch (data) {
-        case ("post"): setPostOpen(true); break;
-        case ("poll"): setCreateOpen(true); break;
+        case "post":
+          setPostOpen(true);
+          break;
+        case "poll":
+          setCreateOpen(true);
+          break;
       }
     };
     setSelectedQuestion(questions.find(q => q.questionId === data))
-    // if(){そのアンケートに回答したことがあるか判定
-    // setShowResult(true);回答済みなら結果を表示
-    // } else {
-    setAnswerPollOpen(true);//未回答なら回答させる
 
     if (hasAnswered) {
-      setShowResult(true);
+      // 回答済みの場合
+      setShowResult(true); // 結果表示ダイアログを開く
       setAnswerPollOpen(false);
+      try {
+        const result = await getQuestionAnswerCounts(data); // `data` は `questionId`
+        if (result.success && result.counts) {
+          setPollCounts(result.counts); // 結果を `pollCounts` に格納
+        } else {
+          console.error("回答結果の取得に失敗しました:", result.error);
+          setPollCounts({ count1: 0, count2: 0 }); // エラー時は初期化
+        }
+      } catch (error) {
+        console.error("回答結果の取得中にエラーが発生しました:", error);
+        setPollCounts({ count1: 0, count2: 0 });
+      }
+
     } else {
       setAnswerPollOpen(true);
       setShowResult(false);
@@ -453,63 +456,6 @@ export default function Home() {
       onExtract={handleExtract} />
   };
 
-  // --------------------------------------------------
-  // ここで関数を呼び出して出店情報をとってくる＋表示させる
-  // --------------------------------------------------
-  // ★ 修正 3: スケジュールリストのレンダリング関数を定義 ★
-  const renderScheduleList = () => {
-
-    // エラー表示
-    if (scheduleError) {
-      return <div className="p-4 text-red-600 bg-red-100 border border-red-300">🚨 データ読み込みエラー: {scheduleError}</div>;
-    }
-
-    // データなし
-    if (!schedules || schedules.length === 0) {
-      return <div className="p-4 text-center text-gray-500 bg-gray-50 border-t">📅 現在、出店スケジュールはありません。</div>;
-    }
-
-    // リスト表示
-    return (
-      <div className="schedule-list-container p-4 bg-white border-t border-gray-200">
-        <h2 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📅 今後の出店スケジュール</h2>
-        <ul className="space-y-3">
-          {schedules.map((schedule) => (
-            <li key={schedule.id} className="flex items-center p-3 bg-gray-50 rounded-lg shadow-sm">
-              {/* 日付 (左側) */}
-              <div className="date-box font-mono text-lg text-blue-600 font-semibold mr-4 min-w-[100px]">
-                {schedule.date}
-              </div>
-              {/* 情報 (右側) */}
-              <div className="info-box flex-1">
-                <strong className="block text-base text-gray-900">{schedule.storeName}</strong>
-                <p className="text-xs text-gray-500 mt-1">
-                  📍
-                  {schedule.locationName || '場所未定'}
-                  ({schedule.location.lat.toFixed(4)}, {schedule.location.lng.toFixed(4)})
-                </p>
-
-                {/* 2. ストア詳細情報（★追加部分） */}
-                {/* storeDetailsオブジェクトが存在する場合のみ表示 */}
-                {schedule.storeDetails && (
-                  <div className="store-details p-2 mt-2 bg-white border border-gray-200 rounded-md">
-                    <p className="text-sm font-medium text-gray-700">店舗情報</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      🏠 **ストアURL:** {schedule.storeDetails.storeUrl || '未登録'}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      📞 **説明:** {schedule.storeDetails.introduction || '未登録'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
-
   return (
     <div className="frame">
       {/* ===== ヘッダー ===== */}
@@ -519,29 +465,41 @@ export default function Home() {
         </div>
 
         {/* 修正後のヘッダー内の検索バー部分 */}
-        <div className="flex-1 flex bg-white rounded-full overflow-hidden items-center pr-2">
-          <input
-            type="text"
-            placeholder="タグや店名で検索"
-            value={filterKeyword}
-            onChange={(e) => setFilterKeyword(e.target.value)}
-            className="flex-1 p-2 text-gray-700 outline-none"
-          />
+        <div className="search-container flex-1 flex bg-white rounded-full overflow-hidden items-center pr-2">
+          <div className="search-input-wrapper flex-1 relative" style={{ flex: '1 1 auto', minWidth: 0, position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="タグや店名で検索"
+              value={filterKeyword}
+              onChange={(e) => setFilterKeyword(e.target.value)}
+              className="w-full p-2 text-gray-700 outline-none"
+              style={{ paddingRight: '140px' }}
+            />
+
+            {/* 検索ボタンを入力欄の右端に重ねて配置 */}
+            <button
+              onClick={() => setSearchKeyword(filterKeyword)}
+              className="search-btn search-overlap"
+              aria-label="検索"
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', padding: '6px 10px' }}
+            >
+              検索
+            </button>
+            {/* リセットボタン: 検索ボタンの右隣、検索欄の上に重ねて表示 */}
+            <button
+              className="search-reset-btn"
+              aria-label="Reset"
+              onClick={() => setSearchKeyword("")}
+            >リセット</button>
+          </div>
 
           {/* フィルターボタン */}
           <button
             className="filter-btn"
             onClick={() => setIsFilterOpen(true)}
             aria-label="Filter"
+            style={{ flex: '0 0 auto' }}
           >フィルター
-          </button>
-
-          {/* ★ 検索ボタンを追加 */}
-          <button
-            onClick={() => setSearchKeyword(filterKeyword)}
-            className="search-btn"
-          >
-            🔍
           </button>
         </div>
       </header>
@@ -568,8 +526,8 @@ export default function Home() {
               }
             }}
           > プロフィール
-        </li>
-          
+          </li>
+
           {session?.user?.storeId && (
             <li
               className="border-b p-3 hover:bg-gray-100 cursor-pointer"
@@ -728,34 +686,31 @@ export default function Home() {
 
                   return (
                     <div className="result-wrapper">
-                      {/* ラベル */}
-                      <div className="result-labels">
-                        <span className="result-labels-left">{selectedQuestion.option1Text}</span>
-                        <span className="result-labels-right">{selectedQuestion.option2Text}</span>
+                      {/* ラベルと数値をバーの上に配置 */}
+                      <div className="result-header-container">
+                        {/* 左側：項目1と左の数値 */}
+                        <div className="result-column-left">
+                          <div className="option-text">{selectedQuestion.option1Text}</div>
+                          <div className="percentage-text">{leftRate}%（{leftCount}票）</div>
+                        </div>
+
+                        {/* 右側：項目2と右の数値 */}
+                        <div className="result-column-right">
+                          <div className="option-text">{selectedQuestion.option2Text}</div>
+                          <div className="percentage-text">{rightRate}%（{rightCount}票）</div>
+                        </div>
                       </div>
 
-                      {/* グラフ */}
-
+                      {/* ゲージ：文字を入れないシンプルな棒 */}
                       <div className="result-bar">
-                        {/* 左 */}
                         <div
-                          className="result-left"
+                          className="result-left-bar"
                           style={{ width: `${leftRate}%` }}
-                        >
-                          <span className="result-text">
-                            {leftRate}%（{leftCount}票）
-                          </span>
-                        </div>
-
-                        {/* 右 */}
+                        />
                         <div
-                          className="result-right"
-                          style={{ width: `${rightRate}%` }}
-                        >
-                          <span className="result-text">
-                            {rightRate}%（{rightCount}票）
-                          </span>
-                        </div>
+                          className="result-right-bar"
+                          style={{ flexGrow: 1 }}
+                        />
                       </div>
                     </div>
                   );
@@ -1061,13 +1016,16 @@ export default function Home() {
                 <button onClick={() => setShowClickedOpinion(false)}>×</button>
               </div>
               <button
-                className={`heart-btn ${isLiked ? 'liked' : ''}`}
-                onClick={() => setIsLiked(prev => !prev)}
+                className={`heart-btn ${clickedOpinion.isLiked ? 'liked' : ''}`}
+                onClick={() => handleLikeClick(clickedOpinion.opinionId)}
               >
                 ♥ {clickedOpinion?.likeCount || 0}
               </button>
-
-              <p>タグ：{clickedOpinion.tags}</p>
+              {(() => {
+                console.log('Clicked Opinion:', clickedOpinion);
+                console.log(clickedOpinion.isLiked);
+                return null; // JSX 内で有効な値を返す
+              })()}              <p>タグ：{clickedOpinion.tags}</p>
               <p>投稿時刻：{clickedOpinion.postedAt.toLocaleString()}</p>
               <p>性別：{clickedOpinion?.profile.gender}</p>
               <p>年齢：{clickedOpinion?.profile.age}</p>

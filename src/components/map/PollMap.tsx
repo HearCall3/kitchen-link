@@ -133,7 +133,7 @@ export default function PollMap({ questions, filterKeyword,giveLocation, onDialo
 
                     // 未回答の場合にカスタムアイコンを使用 (質問ピン)
                     const unansweredIcon = {
-                        url: "/icon/poll.png",
+                        url: "/poll.png",
                         scaledSize: new google.maps.Size(40, 40),
                         anchor: new google.maps.Point(20, 40),
                     };
@@ -142,7 +142,7 @@ export default function PollMap({ questions, filterKeyword,giveLocation, onDialo
                     const answeredIcon = {
 
                         // ここのパスを指定します！！！！！！
-                        url: "/icon/poll_ok.png",
+                        url: "/poll_ok.png",
 
                         scaledSize: new google.maps.Size(40, 40),
                         anchor: new google.maps.Point(20, 40),
@@ -151,7 +151,7 @@ export default function PollMap({ questions, filterKeyword,giveLocation, onDialo
 
                     const markerIcon = hasAnswered ?
                         answeredIcon : // 回答済みなら、新しいカスタムピン
-                        unansweredIcon; // 未回答なら、/icon/poll.png
+                        unansweredIcon; // 未回答なら、/poll.png
 
                     return (
                         <MarkerF

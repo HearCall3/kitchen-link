@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./style.css";
 import { metadata } from "./metadata";
 import { SessionProviderWrapper } from "../components/SessionProviderWrapper";
 
